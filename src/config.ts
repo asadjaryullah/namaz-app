@@ -1,0 +1,1 @@
+export const DESTINATION_ADDRESS = 'Zeppelinstraße 33, 64625 Bensheim, Germany';
