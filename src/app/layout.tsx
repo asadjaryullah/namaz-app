@@ -31,15 +31,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      {/* suppressHydrationWarning verhindert Fehler durch Browser-Plugins */}
-      <body className="antialiased bg-slate-50" suppressHydrationWarning>
-        
-        {/* Die Leiste ist immer da, wenn man eingeloggt ist */}
+      <body className="antialiased bg-slate-50 flex flex-col min-h-screen" suppressHydrationWarning>
         <ProfileBar />
         
-        {/* Hier wird der Inhalt der jeweiligen Seite angezeigt */}
-        {children}
-      
+        {/* Inhalt füllt den Platz */}
+        <div className="flex-1">
+          {children}
+        </div>
+
+        {/* Footer */}
+        <footer className="py-6 text-center text-slate-400 text-xs">
+          <p>© {new Date().getFullYear()} Namaz Taxi Bensheim</p>
+          <div className="mt-2 space-x-3">
+            <a href="/impressum" className="hover:underline">Impressum</a>
+            <a href="/datenschutz" className="hover:underline">Datenschutz</a>
+          </div>
+        </footer>
+
       </body>
     </html>
   );

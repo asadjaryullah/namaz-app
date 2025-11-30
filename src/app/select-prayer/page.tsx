@@ -8,8 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Loader2, Save, LogOut } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
+import ProfileBar from '@/components/ProfileBar'; 
 
-// 👇 DEINE EMAIL
+// 👇 HIER DEINE EMAIL PRÜFEN
 const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 const getIcon = (id: string) => {
@@ -23,7 +24,7 @@ const getIcon = (id: string) => {
   }
 };
 
-// --- NEUE KOMPONENTE: AUTO SITZPLAN ---
+// --- AUTO SITZPLAN KOMPONENTE ---
 function CarSeatSelector({ 
   availableSeats, 
   onChange 
@@ -31,16 +32,12 @@ function CarSeatSelector({
   availableSeats: number, 
   onChange: (n: number) => void 
 }) {
-  // Wir simulieren 4 Sitze (Status: true = grün/frei, false = rot/belegt)
-  // Standardmäßig sind alle 4 frei (true)
   const [seats, setSeats] = useState([true, true, true, true]);
 
   const toggleSeat = (index: number) => {
     const newSeats = [...seats];
-    newSeats[index] = !newSeats[index]; // Umschalten
+    newSeats[index] = !newSeats[index];
     setSeats(newSeats);
-    
-    // Zähle wie viele 'true' sind und gib es nach oben weiter
     const count = newSeats.filter(s => s).length;
     onChange(count);
   };
@@ -51,15 +48,10 @@ function CarSeatSelector({
         Wähle freie Plätze ({availableSeats})
       </p>
       
-      {/* Das Auto Chassis */}
       <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
-        
-        {/* Windschutzscheibe */}
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
-          
-          {/* Fahrer (Immer grau/belegt) */}
           <div className="flex flex-col items-center">
             <div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner">
                <span className="text-xl">👮‍♂️</span>
@@ -67,65 +59,29 @@ function CarSeatSelector({
             <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
           </div>
 
-          {/* Beifahrer (Sitz 0) */}
-          <button 
-            onClick={() => toggleSeat(0)}
-            className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95
-              ${seats[0] 
-                ? 'bg-green-500 border-green-400 text-white shadow-green-500/20' 
-                : 'bg-red-500 border-red-400 text-white shadow-red-500/20 opacity-90'
-              }`}
-          >
+          <button onClick={() => toggleSeat(0)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[0] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
             {seats[0] ? '✔' : '❌'}
           </button>
 
-          {/* Rückbank Links (Sitz 1) */}
-          <button 
-            onClick={() => toggleSeat(1)}
-            className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95
-              ${seats[1] 
-                ? 'bg-green-500 border-green-400 text-white shadow-green-500/20' 
-                : 'bg-red-500 border-red-400 text-white shadow-red-500/20 opacity-90'
-              }`}
-          >
+          <button onClick={() => toggleSeat(1)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[1] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
              {seats[1] ? '✔' : '❌'}
           </button>
 
-          {/* Rückbank Rechts (Sitz 2) */}
-          <button 
-            onClick={() => toggleSeat(2)}
-            className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95
-              ${seats[2] 
-                ? 'bg-green-500 border-green-400 text-white shadow-green-500/20' 
-                : 'bg-red-500 border-red-400 text-white shadow-red-500/20 opacity-90'
-              }`}
-          >
+          <button onClick={() => toggleSeat(2)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[2] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
              {seats[2] ? '✔' : '❌'}
           </button>
           
-          {/* Rückbank Mitte (Sitz 3) - Optional als "Notplatz" oder einfach 4. Platz */}
           <div className="col-span-2 flex justify-center -mt-2">
-             <button 
-                onClick={() => toggleSeat(3)}
-                className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95
-                  ${seats[3] 
-                    ? 'bg-green-500 border-green-400 text-white shadow-green-500/20' 
-                    : 'bg-red-500 border-red-400 text-white shadow-red-500/20 opacity-90'
-                  }`}
-              >
+             <button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
                  {seats[3] ? '✔' : '❌'}
               </button>
           </div>
-
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-2">
-        Tippe auf einen Sitz, um ihn zu blockieren.
-      </p>
+      <p className="text-xs text-slate-400 mt-2">Tippe auf einen Sitz, um ihn zu blockieren.</p>
     </div>
   );
 }
-// ----------------------------------------
 
 type Prayer = {
   id: string;
@@ -204,15 +160,18 @@ function SelectPrayerContent() {
             .eq('id', user.id)
             .single();
 
+          const today = new Date().toISOString().split('T')[0];
+
           const { error } = await supabase.from('rides').insert({
             driver_id: user.id,
             driver_name: profile?.full_name || "Unbekannt",
             driver_phone: profile?.phone || "",
             prayer_id: selectedPrayer.id,
             prayer_time: selectedPrayer.time,
-            seats: seats, // <--- HIER NUTZEN WIR JETZT DIE ZAHL VOM AUTO
+            seats: seats,
             start_lat: lat,
-            start_lon: lon
+            start_lon: lon,
+            ride_date: today
           });
 
           setCreatingRide(false);
@@ -226,6 +185,7 @@ function SelectPrayerContent() {
         (error) => {
           setCreatingRide(false);
           alert("Bitte GPS erlauben.");
+          console.error(error);
         }
       );
 
@@ -287,7 +247,6 @@ function SelectPrayerContent() {
             );
           })}
 
-          {/* DAS AUTO ERSCHEINT NUR WENN MAN FAHRER IST UND EIN GEBET GEWÄHLT HAT */}
           {role === 'driver' && selectedId && (
             <CarSeatSelector availableSeats={seats} onChange={setSeats} />
           )}
@@ -322,10 +281,13 @@ function SelectPrayerContent() {
 
 export default function SelectPrayerPage() {
   return (
-    <main className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">
-      <Suspense fallback={<div>Lade...</div>}>
-        <SelectPrayerContent />
-      </Suspense>
+    <main className="min-h-screen bg-slate-50 flex flex-col">
+      <ProfileBar />
+      <div className="p-6 flex flex-col items-center">
+        <Suspense fallback={<div>Lade...</div>}>
+          <SelectPrayerContent />
+        </Suspense>
+      </div>
     </main>
   );
 }
