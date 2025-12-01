@@ -11,7 +11,7 @@ import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import ProfileBar from '@/components/ProfileBar'; 
 
 // 👇 HIER DEINE EMAIL PRÜFEN
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
@@ -109,7 +109,7 @@ function SelectPrayerContent() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    if (user && user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) {
         setIsAdmin(true);
       }
       const { data } = await supabase

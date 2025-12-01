@@ -11,40 +11,45 @@ import { ChevronLeft, Loader2, Mail, User, Phone, CheckCircle2 } from "lucide-re
 export default function LoginPage() {
   const router = useRouter();
   
-  // Wir speichern jetzt mehr als nur die Email
-  const [formData, setFormData] = useState({
-    email: '',
-    fullName: '',
-    phone: ''
-  });
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Verhindert Neuladen der Seite
+    
+    // Zusätzlicher Check (obwohl 'required' im HTML das schon macht)
+    if (!email || !fullName || !phone) {
+        setError("Bitte fülle alle Felder aus.");
+        return;
+    }
+
     setLoading(true);
     setError(null);
 
-    // Wir senden die Zusatzdaten (Name, Phone) als "options" mit
-    const { error } = await supabase.auth.signInWithOtp({
-      email: formData.email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/role-selection`,
-        data: {
-          full_name: formData.fullName,
-          phone: formData.phone
-        }
-      },
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: fullName,
+            phone: phone
+          }
+        },
+      });
 
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
+      if (error) throw error;
       setSent(true);
+
+    } catch (err: any) {
+      setError(err.message || "Ein Fehler ist aufgetreten.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,73 +64,83 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-sm shadow-xl border-slate-200">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Anmeldung</CardTitle>
+          <CardTitle className="text-2xl font-bold">Anmelden</CardTitle>
           <CardDescription>
-            Bitte fülle deine Daten aus, um dich anzumelden oder zu registrieren.
+            Wir senden dir einen Link per Email.<br/>
+            Kein Passwort nötig.
           </CardDescription>
         </CardHeader>
         
         <CardContent>
           {sent ? (
-            <div className="text-center space-y-4 py-4">
+            <div className="text-center space-y-4 py-4 animate-in zoom-in duration-300">
               <div className="flex justify-center text-green-600">
-                <CheckCircle2 size={48} />
+                <CheckCircle2 size={64} />
               </div>
-              <h3 className="font-semibold text-lg">Fast geschafft!</h3>
-              <p className="text-slate-600 text-sm">
-                Wir haben einen Link an <strong>{formData.email}</strong> geschickt.<br/>
-                Klicke in der Email auf den Link, um fortzufahren.
+              <h3 className="font-semibold text-xl">Email ist raus! 🚀</h3>
+              <p className="text-slate-600">
+                Checke dein Postfach (<strong>{email}</strong>).<br/>
+                Klicke auf den Link, um dich anzumelden.
               </p>
               <Button variant="outline" className="w-full mt-4" onClick={() => setSent(false)}>
-                Eingabe korrigieren
+                Falsche Email? Zurück
               </Button>
             </div>
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               
-              {/* NAME */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Vollständiger Name</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="Max Mustermann" 
-                    className="pl-9"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                    required
-                  />
+              <div className="grid grid-cols-1 gap-4">
+                {/* NAME */}
+                <div className="space-y-1">
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1">
+                      Vor- & Nachname <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Input 
+                          className="pl-9" 
+                          placeholder="Max Mustermann" 
+                          value={fullName} 
+                          onChange={e => setFullName(e.target.value)} 
+                          required // <--- PFLICHTFELD
+                        />
+                    </div>
                 </div>
-              </div>
 
-              {/* TELEFON */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="0176 12345678" 
-                    className="pl-9"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    required
-                  />
+                {/* TELEFON */}
+                <div className="space-y-1">
+                    <label className="text-xs font-bold uppercase text-slate-500 ml-1">
+                      Handynummer <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                        <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <Input 
+                          className="pl-9" 
+                          placeholder="0176 12345678" 
+                          type="tel"
+                          value={phone} 
+                          onChange={e => setPhone(e.target.value)} 
+                          required // <--- PFLICHTFELD
+                        />
+                    </div>
                 </div>
-              </div>
 
-              {/* EMAIL */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-slate-500 ml-1">Email Adresse</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="email" 
-                    placeholder="deine@email.com" 
-                    className="pl-9"
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
-                  />
+                {/* EMAIL */}
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase text-slate-500 ml-1">
+                    Email Adresse <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                    <Input 
+                      type="email" 
+                      placeholder="name@beispiel.de" 
+                      className="pl-9 h-12 text-lg"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required // <--- PFLICHTFELD
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -135,8 +150,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full bg-slate-900 text-white hover:bg-slate-800 mt-2" disabled={loading}>
-                {loading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sende...</> : "Code anfordern"}
+              <Button type="submit" className="w-full bg-slate-900 text-white hover:bg-slate-800 mt-2 h-12 text-lg" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin mr-2"/> : "Link anfordern ✨"}
               </Button>
             </form>
           )}

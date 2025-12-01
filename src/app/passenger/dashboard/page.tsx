@@ -5,12 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle } from "lucide-react"; // <--- MessageCircle NEU
+import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle } from "lucide-react";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
-// ... (Die Funktion Directions { ... } bleibt unverändert, hier kurz ausgeblendet für Übersicht)
+// Route zeichnen
 function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -38,7 +38,6 @@ function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | n
 
   return null;
 }
-// ...
 
 function PassengerDashboardContent() {
   const router = useRouter();
@@ -48,14 +47,27 @@ function PassengerDashboardContent() {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Fahrt laden UND überwachen
   useEffect(() => {
     if (!rideId) return;
+    
     const fetchRide = async () => {
-      const { data } = await supabase.from('rides').select('*').eq('id', rideId).single();
+      const { data } = await supabase
+        .from('rides')
+        .select('*')
+        .eq('id', rideId)
+        .single();
+      
       if (data) setRide(data);
       setLoading(false);
     };
+
     fetchRide();
+    
+    // --- NEU: Alle 5 Sekunden prüfen, ob die Fahrt beendet ist ---
+    const interval = setInterval(fetchRide, 5000);
+    return () => clearInterval(interval);
+    // ------------------------------------------------------------
   }, [rideId]);
 
   const handleCancel = async () => {
@@ -67,9 +79,8 @@ function PassengerDashboardContent() {
     router.push('/');
   };
 
-  // Hilfsfunktion: WhatsApp Link bauen
   const getWhatsAppLink = (phone: string) => {
-    // Entfernt alles außer Zahlen und tauscht führende 0 durch 49
+    if (!phone) return "#";
     const cleanNumber = phone.replace(/[^0-9]/g, '').replace(/^0/, '49');
     const text = encodeURIComponent("Salam Alaikum, ich fahre gleich bei dir mit! 🚕");
     return `https://wa.me/${cleanNumber}?text=${text}`;
@@ -77,6 +88,29 @@ function PassengerDashboardContent() {
 
   if (loading) return <div className="h-screen flex justify-center items-center"><Loader2 className="animate-spin"/></div>;
   if (!ride) return <div className="p-10 text-center">Fahrt nicht gefunden.</div>;
+
+  // --- NEU: WENN FAHRT BEENDET IST -> ZEIGE ANKUNFTS-SCREEN ---
+  if (ride.status === 'completed') {
+    return (
+      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="bg-white p-6 rounded-full shadow-xl mb-6 animate-bounce">
+          <span className="text-4xl">🕌</span>
+        </div>
+        <h1 className="text-2xl font-bold text-green-900">Alhamdulillah!</h1>
+        <p className="text-green-800 mt-2 mb-8">
+          Ihr seid an der Bashir Moschee angekommen.
+        </p>
+        
+        <Button 
+          className="w-full max-w-xs bg-green-600 hover:bg-green-700 text-white h-14 text-lg shadow-lg rounded-xl"
+          onClick={() => router.push('/arrival')}
+        >
+          Zur Gebetsvorbereitung ➜
+        </Button>
+      </div>
+    );
+  }
+  // -----------------------------------------------------------
 
   const driverStart = { lat: ride.start_lat, lng: ride.start_lon };
 
@@ -96,6 +130,7 @@ function PassengerDashboardContent() {
 
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
+        
         <div className="flex items-center gap-3 mb-6 bg-green-50 p-4 rounded-xl border border-green-100">
           <CheckCircle2 className="text-green-600 h-8 w-8" />
           <div>
@@ -111,7 +146,6 @@ function PassengerDashboardContent() {
               <p className="text-xl font-bold text-slate-900">{ride.driver_name}</p>
             </div>
             
-            {/* BUTTONS: ANRUF & WHATSAPP */}
             <div className="flex gap-2">
               <a href={getWhatsAppLink(ride.driver_phone)} target="_blank" rel="noopener noreferrer">
                 <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-md">

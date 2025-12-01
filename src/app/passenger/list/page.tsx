@@ -62,15 +62,20 @@ function PassengerListContent() {
   }, [prayerId]);
 
   // --- BUCHUNGS-LOGIK ---
-  const handleBookRide = async (rideId: string) => {
+ const handleBookRide = async (rideId: string) => {
     setBookingRideId(rideId); 
 
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // WENN NICHT EINGELOGGT -> ZUR LOGIN SEITE SCHICKEN
     if (!user) {
-      alert("Bitte erst einloggen!");
+      // Optional: Wir merken uns, dass er eigentlich buchen wollte (für Fortgeschrittene)
+      // Aber für jetzt reicht die Umleitung:
+      alert("Du musst dich kurz anmelden, um mitzufahren!"); // Kurzer Hinweis
+      router.push('/login'); // <--- WEITERLEITUNG
       return;
     }
-
+    
     // Checken ob User schon in DIESER Fahrt gebucht ist (Doppelbuchung verhindern)
     const { data: existingBooking } = await supabase
       .from('bookings')
