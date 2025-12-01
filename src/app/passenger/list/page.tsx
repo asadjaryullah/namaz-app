@@ -19,7 +19,10 @@ function PassengerListContent() {
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
-      // 1. Hole alle aktiven Fahrten für dieses Gebet
+      // 1. Hole alle aktiven Fahrten für dieses Gebet 
+      
+      const today = new Date().toLocaleDateString('en-CA');
+      
       const { data: ridesData, error: ridesError } = await supabase
         .from('rides')
         .select('*')
@@ -75,7 +78,7 @@ function PassengerListContent() {
       router.push('/login'); // <--- WEITERLEITUNG
       return;
     }
-    
+
     // Checken ob User schon in DIESER Fahrt gebucht ist (Doppelbuchung verhindern)
     const { data: existingBooking } = await supabase
       .from('bookings')

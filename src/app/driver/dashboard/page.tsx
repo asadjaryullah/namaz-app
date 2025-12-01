@@ -76,12 +76,13 @@ export default function DriverDashboard() {
   const rideEndedRef = useRef(false);
 
   // 1. Eigene Fahrt laden
-  useEffect(() => {
+useEffect(() => {
     const fetchRide = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
+      // NEU: Lokales Datum nutzen
+      const today = new Date().toLocaleDateString('en-CA');
 
       const { data: ride } = await supabase
         .from('rides')

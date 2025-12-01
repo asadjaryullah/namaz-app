@@ -160,7 +160,7 @@ function SelectPrayerContent() {
             .eq('id', user.id)
             .single();
 
-          const today = new Date().toISOString().split('T')[0];
+          const today = new Date().toLocaleDateString('en-CA');
 
           const { error } = await supabase.from('rides').insert({
             driver_id: user.id,
