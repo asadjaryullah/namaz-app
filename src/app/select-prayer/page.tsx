@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, Loader2, Save, LogOut } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import ProfileBar from '@/components/ProfileBar'; 
+import Image from 'next/image'; // <--- WICHTIG: Das hat gefehlt!
 
-// 👇 HIER DEINE EMAIL PRÜFEN
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+// 👇 DEINE EMAIL
+const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
@@ -24,7 +25,7 @@ const getIcon = (id: string) => {
   }
 };
 
-// --- AUTO SITZPLAN KOMPONENTE ---
+// --- AUTO SITZPLAN ---
 function CarSeatSelector({ 
   availableSeats, 
   onChange 
@@ -52,24 +53,26 @@ function CarSeatSelector({
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
+          
+          {/* FAHRER MIT BILD */}
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner">
-               <span className="text-xl">👮‍♂️</span>
+            <div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner overflow-hidden relative">
+               {/* Hier wird das Bild genutzt */}
+               <Image 
+                 src="/driver-icon.png" 
+                 alt="Fahrer" 
+                 fill 
+                 className="object-cover"
+               />
             </div>
             <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
           </div>
 
-          <button onClick={() => toggleSeat(0)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[0] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-            {seats[0] ? '✔' : '❌'}
-          </button>
-
-          <button onClick={() => toggleSeat(1)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[1] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-             {seats[1] ? '✔' : '❌'}
-          </button>
-
-          <button onClick={() => toggleSeat(2)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[2] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-             {seats[2] ? '✔' : '❌'}
-          </button>
+          {[0,1,2].map(i => (
+            <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+              {seats[i] ? '✔' : '❌'}
+            </button>
+          ))}
           
           <div className="col-span-2 flex justify-center -mt-2">
              <button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
@@ -98,18 +101,16 @@ function SelectPrayerContent() {
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  
-  // Neuer State für Sitze (Standard 4)
   const [seats, setSeats] = useState(4);
-
+  const [creatingRide, setCreatingRide] = useState(false);
+  
   const [isAdmin, setIsAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [creatingRide, setCreatingRide] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-    if (user && user.email && user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) {
+      if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
         setIsAdmin(true);
       }
       const { data } = await supabase

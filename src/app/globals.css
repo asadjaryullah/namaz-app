@@ -35,3 +35,6 @@
     @apply bg-background text-foreground;
   }
 }
+.font-arabic {
+  font-family: var(--font-amiri), serif;
+}

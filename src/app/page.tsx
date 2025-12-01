@@ -30,7 +30,6 @@ export default function HomePage() {
         if (session?.user) {
           if(mounted) setUser(session.user);
           
-          // Profil laden
           const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
@@ -39,13 +38,11 @@ export default function HomePage() {
           
           if(mounted) setProfile(profileData);
 
-          // --- NEU: TÜRSTEHER FÜR TELEFONNUMMER ---
-          // Wenn kein Profil da ist oder keine Nummer -> Umleitung
+          // TÜRSTEHER: Telefonnummer Pflicht
           if (!profileData || !profileData.phone) {
              router.push('/complete-profile');
-             return; // Hier stoppen wir, damit die Seite wechselt
+             return; 
           }
-          // ----------------------------------------
 
           const today = new Date().toLocaleDateString('en-CA');
           
@@ -96,20 +93,23 @@ export default function HomePage() {
     );
   }
 
-  // --- ANSICHT: NICHT EINGELOGGT ---
+  // --- ANSICHT: NICHT EINGELOGGT (Startseite) ---
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
         <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
+          
+          {/* Logo */}
           <div className="relative w-[220px] h-[140px] mb-4">
             <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" priority />
           </div>
           
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Namaz Taxi</h1>
           
-          <div className="space-y-5">
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-2xl font-bold text-slate-800 font-serif leading-none">
+          {/* Arabischer Text */}
+          <div className="space-y-6 mt-2">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
                 حَيَّ عَلَىٰ ٱلصَّلَاةِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
@@ -117,8 +117,8 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-2xl font-bold text-slate-800 font-serif leading-none">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
                 حَيَّ عَلَىٰ ٱلْفَلَاحِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
@@ -126,9 +126,10 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+
         </div>
 
-        <div className="w-full max-w-xs space-y-4 mt-2">
+        <div className="w-full max-w-xs space-y-4 mt-4">
           <Button 
             size="lg" 
             className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95"
@@ -136,14 +137,16 @@ export default function HomePage() {
           >
             Anmelden
           </Button>
-          <p className="text-xs text-center text-slate-400">Einloggen via Email (Magic Link) oder Google</p>
+          <p className="text-xs text-center text-slate-400">Einloggen via Email (Magic Link)</p>
         </div>
 
-        <div className="w-full max-w-md mt-2 opacity-80 pointer-events-none grayscale"> 
+        {/* Karte im Hintergrund */}
+        <div className="w-full max-w-md mt-4 opacity-80 pointer-events-none grayscale"> 
            <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
              <MapComponent />
            </div>
         </div>
+
       </main>
     );
   }

@@ -10,7 +10,7 @@ import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle } from "lucide-rea
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
-// Route zeichnen
+// Diese Komponente zeichnet die grüne Linie (Route)
 function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -47,7 +47,7 @@ function PassengerDashboardContent() {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fahrt laden UND überwachen
+  // Fahrt laden und alle 5 Sekunden aktualisieren (Live-Tracking!)
   useEffect(() => {
     if (!rideId) return;
     
@@ -63,11 +63,8 @@ function PassengerDashboardContent() {
     };
 
     fetchRide();
-    
-    // --- NEU: Alle 5 Sekunden prüfen, ob die Fahrt beendet ist ---
     const interval = setInterval(fetchRide, 5000);
     return () => clearInterval(interval);
-    // ------------------------------------------------------------
   }, [rideId]);
 
   const handleCancel = async () => {
@@ -89,10 +86,10 @@ function PassengerDashboardContent() {
   if (loading) return <div className="h-screen flex justify-center items-center"><Loader2 className="animate-spin"/></div>;
   if (!ride) return <div className="p-10 text-center">Fahrt nicht gefunden.</div>;
 
-  // --- NEU: WENN FAHRT BEENDET IST -> ZEIGE ANKUNFTS-SCREEN ---
+  // Wenn Fahrt beendet -> Weiterleitung zur Ankunfts-Seite
   if (ride.status === 'completed') {
     return (
-      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
         <div className="bg-white p-6 rounded-full shadow-xl mb-6 animate-bounce">
           <span className="text-4xl">🕌</span>
         </div>
@@ -100,7 +97,6 @@ function PassengerDashboardContent() {
         <p className="text-green-800 mt-2 mb-8">
           Ihr seid an der Bashir Moschee angekommen.
         </p>
-        
         <Button 
           className="w-full max-w-xs bg-green-600 hover:bg-green-700 text-white h-14 text-lg shadow-lg rounded-xl"
           onClick={() => router.push('/arrival')}
@@ -110,24 +106,43 @@ function PassengerDashboardContent() {
       </div>
     );
   }
-  // -----------------------------------------------------------
+
+  // Wo steht das Auto gerade? (Wenn keine Live-Daten da sind, nimm Startpunkt)
+  const currentCarPosition = {
+    lat: ride.current_lat || ride.start_lat,
+    lng: ride.current_lon || ride.start_lon
+  };
 
   const driverStart = { lat: ride.start_lat, lng: ride.start_lon };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      
+      {/* KARTE */}
       <div className="h-[50vh] w-full relative">
         <APIProvider apiKey={MAP_API_KEY}>
-          <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={12} disableDefaultUI={true} mapId="DEMO_MAP_ID">
+          <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={13} disableDefaultUI={true} mapId="DEMO_MAP_ID">
+            
+            {/* Grüne Route */}
             <Directions startPoint={driverStart} />
-            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
-            <AdvancedMarker position={driverStart} title="Fahrer Start">
-               <div className="bg-slate-900 text-white text-xs px-2 py-1 rounded-full shadow border-2 border-white">🚗 {ride.driver_name}</div>
+            
+            {/* Ziel: Moschee */}
+            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee">
+               <div className="text-3xl">🕌</div>
             </AdvancedMarker>
+
+            {/* LIVE POSITION DES FAHRERS */}
+            <AdvancedMarker position={currentCarPosition} title="Fahrer">
+               <div className="bg-slate-900 text-white text-xs px-2 py-1 rounded-full shadow border-2 border-white flex items-center gap-1 animate-pulse transition-all duration-1000">
+                 🚗 {ride.driver_name}
+               </div>
+            </AdvancedMarker>
+
           </Map>
         </APIProvider>
       </div>
 
+      {/* INFO UNTEN */}
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
         
@@ -167,7 +182,9 @@ function PassengerDashboardContent() {
             </div>
             <div className="bg-slate-50 p-3 rounded-lg text-center">
               <p className="text-xs text-slate-500 uppercase">Status</p>
-              <p className="font-bold text-blue-600 uppercase text-sm mt-1">{ride.status === 'active' ? 'Unterwegs' : 'Beendet'}</p>
+              <p className="font-bold text-blue-600 uppercase text-sm mt-1">
+                {ride.status === 'active' ? 'Unterwegs' : 'Beendet'}
+              </p>
             </div>
           </div>
 

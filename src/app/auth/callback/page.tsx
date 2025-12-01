@@ -9,26 +9,39 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Diese Funktion verarbeitet den Link aus der Email
     const handleAuthCallback = async () => {
-      // Supabase prüft automatisch die URL auf den Login-Code
+      // 1. Prüfen: Gibt es schon eine Session?
       const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (error) {
-        console.error('Login Fehler:', error);
-        router.push('/login?error=true');
-      } else if (session) {
-        // Erfolgreich! Wir sind drin.
-        // Jetzt leiten wir zum Dashboard weiter.
-        router.push('/'); 
-      } else {
-        // Manchmal dauert es kurz, wir warten auf das Event
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (event === 'SIGNED_IN' && session) {
-            router.push('/');
-          }
-        });
+      if (session) {
+        // Ja -> Sofort weiter
+        router.push('/');
+        return;
       }
+
+      if (error) {
+        console.error('Auth error:', error);
+        router.push('/login'); // Zurück bei Fehler
+        return;
+      }
+
+      // 2. Listener: Falls der Login noch im Gange ist
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          router.push('/');
+        }
+      });
+
+      // 3. FALLBACK (Der "Schubser"): 
+      // Wenn nach 2 Sekunden nichts passiert ist, probieren wir es einfach auf der Startseite.
+      // Oft ist das Cookie schon da, aber der Event-Listener hat es verpasst.
+      setTimeout(() => {
+        router.push('/');
+      }, 2000);
+
+      return () => {
+        subscription.unsubscribe();
+      };
     };
 
     handleAuthCallback();
@@ -37,8 +50,8 @@ export default function AuthCallbackPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
       <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
-      <h2 className="text-xl font-bold text-slate-700">Du wirst angemeldet...</h2>
-      <p className="text-slate-500">Bitte einen Moment warten.</p>
+      <h2 className="text-xl font-bold text-slate-700">Anmeldung wird verarbeitet...</h2>
+      <p className="text-slate-500 text-sm">Du wirst gleich weitergeleitet.</p>
     </div>
   );
 }

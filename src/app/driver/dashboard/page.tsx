@@ -13,7 +13,7 @@ const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
 // Hilfsfunktion: Abstand berechnen (in Metern)
 function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; // Erdradius in Metern
+  const R = 6371e3; // Erdradius
   const φ1 = lat1 * Math.PI/180;
   const φ2 = lat2 * Math.PI/180;
   const Δφ = (lat2-lat1) * Math.PI/180;
@@ -72,16 +72,15 @@ export default function DriverDashboard() {
   const [rideId, setRideId] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
   
-  // Ref, um endloses Beenden zu verhindern
+  // Ref verhindert doppeltes Beenden
   const rideEndedRef = useRef(false);
 
   // 1. Eigene Fahrt laden
-useEffect(() => {
+  useEffect(() => {
     const fetchRide = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // NEU: Lokales Datum nutzen
       const today = new Date().toLocaleDateString('en-CA');
 
       const { data: ride } = await supabase
@@ -98,7 +97,6 @@ useEffect(() => {
         setRideId(ride.id);
         if (ride.start_lat) setStartPoint({ lat: ride.start_lat, lng: ride.start_lon });
       } else {
-        // alert("Keine aktive Fahrt gefunden."); // Nervt manchmal beim Reload
         router.push('/');
       }
     };
@@ -121,49 +119,51 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, [rideId]);
 
-  // 3. Fahrt beenden Funktion (Sicher gemacht gegen NULL Fehler)
+  // 3. Fahrt beenden
   const handleEndRide = async (auto = false) => {
-    if (!rideId) return; // FIX: Verhindert den UUID Fehler!
-    if (rideEndedRef.current) return; // Schon beendet
+    if (!rideId) return;
+    if (rideEndedRef.current) return;
 
     if (!auto && !confirm("Fahrt wirklich beenden?")) return;
     
-    rideEndedRef.current = true; // Markieren als beendet
+    rideEndedRef.current = true;
     setLoadingEnd(true);
 
-    if (auto) alert("Du hast die Moschee erreicht. Die Fahrt wird automatisch beendet. Alhamdulillah!");
+    if (auto) alert("Ankunft an der Moschee! Fahrt wird beendet.");
 
     const { error } = await supabase
       .from('rides')
       .update({ status: 'completed' })
       .eq('id', rideId);
 
-if (!error) {
-      // router.push('/');  <-- ALT
-      router.push('/arrival'); // <-- NEU: Zur Ankunfts-Seite!
+    if (!error) {
+      router.push('/arrival'); // Weiterleitung zur Checkliste
     } else {
-            alert("Fehler: " + error.message);
+      alert("Fehler: " + error.message);
       setLoadingEnd(false);
       rideEndedRef.current = false;
     }
   };
-// 4. GPS TRACKING & AUTOMATISCHES BEENDEN
+
+  // 4. GPS TRACKING (Hier war der Fehler vorher)
   useEffect(() => {
     if (!rideId || rideEndedRef.current) return;
 
     const watcher = navigator.geolocation.watchPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude; // <--- HIER GEÄNDERT (lng statt lon)
+        const lng = pos.coords.longitude;
         
-        // State update für die Karte (Google Maps braucht 'lng')
-        setCurrentPos({ lat, lng }); 
+        setCurrentPos({ lat, lng });
 
-        // Abstand zur Moschee berechnen
-        // (Für die Mathe-Funktion ist der Name egal, Hauptsache der Wert stimmt)
+        // Update in DB (für Mitfahrer sichtbar)
+        await supabase
+          .from('rides')
+          .update({ current_lat: lat, current_lon: lng })
+          .eq('id', rideId);
+
+        // Geofencing Check
         const distance = getDistanceInMeters(lat, lng, MOSQUE_LOCATION.lat, MOSQUE_LOCATION.lng);
-        
-        // Wenn näher als 150 Meter -> Fahrt beenden
         if (distance < 150) {
            handleEndRide(true);
         }
@@ -185,24 +185,24 @@ if (!error) {
             
             <Directions userLocation={startPoint} />
             
-            {/* Ziel */}
-            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
+            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee">
+               <div className="text-3xl">🕌</div>
+            </AdvancedMarker>
             
-            {/* Startpunkt (Statisch) */}
             {startPoint && (
               <AdvancedMarker position={startPoint} title="Start">
                  <Pin background={'#94a3b8'} glyphColor={'#fff'} borderColor={'#fff'} scale={0.8} />
               </AdvancedMarker>
             )}
 
-            {/* LIVE POSITION DES FAHRERS (Blauer Punkt) */}
+            {/* LIVE POSITION */}
             {currentPos && (
               <AdvancedMarker position={currentPos} title="Ich">
                  <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
               </AdvancedMarker>
             )}
 
-            {/* Mitfahrer */}
+            {/* Mitfahrer Pins */}
             {passengers.map((p) => (
               p.pickup_lat && p.pickup_lon && (
                 <AdvancedMarker 
@@ -220,7 +220,7 @@ if (!error) {
         </APIProvider>
       </div>
 
-      {/* INFO UNTEN */}
+      {/* INFO BEREICH */}
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
         
@@ -247,7 +247,9 @@ if (!error) {
                   </div>
                   <div>
                     <p className="font-bold text-slate-900">{p.passenger_name}</p>
-                    <p className="text-xs text-slate-500">Wartet am Standort</p>
+                    <p className="text-xs text-slate-500">
+                        {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'}
+                    </p>
                   </div>
                 </div>
                 
