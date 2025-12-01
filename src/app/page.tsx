@@ -100,7 +100,7 @@ export default function HomePage() {
         <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
           
           {/* Logo */}
-          <div className="relative w-[320px] h-[220px] mb-4">
+          <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           
