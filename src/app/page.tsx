@@ -10,7 +10,7 @@ import { Car, User, Settings, Loader2, MapPin } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 
 // 👇 HIER DEINE EMAIL
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
