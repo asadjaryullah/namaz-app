@@ -100,8 +100,8 @@ export default function HomePage() {
         <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
           
           {/* Logo */}
-          <div className="relative w-[220px] h-[140px] mb-4">
-            <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" priority />
+          <div className="relative w-[320px] h-[220px] mb-4">
+            <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Namaz Taxi</h1>
