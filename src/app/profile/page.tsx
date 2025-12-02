@@ -1,4 +1,5 @@
 'use client';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -9,44 +10,128 @@ import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
 
 export default function ProfilePage() {
   const router = useRouter();
+  
+  // WICHTIG: Startet im Lade-Modus, damit keine leere Seite angezeigt wird
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ fullName: '', phone: '' });
-  const [user, setUser] = useState<any>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if(!user) { router.push('/login'); return; }
-      setUser(user);
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if(data) setFormData({ fullName: data.full_name || '', phone: data.phone || '' });
-      setLoading(false);
+    const loadProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          router.push('/login'); // Nicht eingeloggt? Weg hier.
+          return;
+        }
+        
+        setUserId(user.id);
+
+        // Profil laden
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profile) {
+          setFormData({
+            fullName: profile.full_name || '',
+            phone: profile.phone || ''
+          });
+        }
+      } catch (err) {
+        console.error("Fehler beim Laden:", err);
+      } finally {
+        setLoading(false);
+      }
     };
-    load();
+
+    loadProfile();
   }, [router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) return;
     setSaving(true);
-    const { error } = await supabase.from('profiles').update({ full_name: formData.fullName, phone: formData.phone }).eq('id', user.id);
-    setSaving(false);
-    if(error) alert(error.message);
-    else { alert("Gespeichert!"); router.refresh(); }
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({ // upsert = erstellen oder updaten
+          id: userId,
+          full_name: formData.fullName,
+          phone: formData.phone
+        });
+
+      if (error) throw error;
+
+      alert("Profil gespeichert!");
+      router.refresh(); // Aktualisiert die Daten im Browser
+      router.push('/'); // Zurück zum Dashboard
+    } catch (error: any) {
+      alert("Fehler beim Speichern: " + error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  if(loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin"/></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin h-8 w-8 text-slate-400"/>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4">
-      <div className="w-full max-w-sm mb-6 mt-4"><Button variant="ghost" onClick={() => router.push('/')}><ArrowLeft className="mr-2"/> Zurück</Button></div>
+      <div className="w-full max-w-sm flex items-center mb-6 mt-4">
+        <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Zurück
+        </Button>
+      </div>
+
       <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader><CardTitle>Profil bearbeiten</CardTitle><CardDescription>Ändere deine Daten</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle>Profil bearbeiten</CardTitle>
+          <CardDescription>Hier kannst du deine Daten ändern.</CardDescription>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
-            <div className="relative"><User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><Input value={formData.fullName} onChange={e=>setFormData({...formData, fullName: e.target.value})} className="pl-9" placeholder="Name"/></div>
-            <div className="relative"><Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><Input value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="pl-9" placeholder="Handy"/></div>
-            <Button className="w-full bg-slate-900 mt-4" disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : "Speichern"}</Button>
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input 
+                  value={formData.fullName}
+                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+                  className="pl-9"
+                  placeholder="Dein Name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handy</label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input 
+                  value={formData.phone}
+                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  className="pl-9"
+                  type="tel"
+                  placeholder="0176..."
+                />
+              </div>
+            </div>
+
+            <Button type="submit" className="w-full bg-slate-900 mt-4" disabled={saving}>
+              {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4"/>}
+              Speichern
+            </Button>
           </form>
         </CardContent>
       </Card>
