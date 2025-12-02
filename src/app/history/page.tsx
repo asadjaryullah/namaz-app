@@ -1,164 +1,257 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Car, User, Calendar, Clock, Trophy } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Car, User, Settings, Loader2, MapPin, Navigation } from "lucide-react";
+import MapComponent from '@/components/MapComponent'; 
 
-export default function HistoryPage() {
+// 👇 HIER DEINE EMAIL
+const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+
+export default function HomePage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'driver' | 'passenger'>('driver');
-  const [driverRides, setDriverRides] = useState<any[]>([]);
-  const [passengerRides, setPassengerRides] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("");
+  
+  const [loading, setLoading] = useState(true); 
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  
+  // States für laufende Aktivitäten
+  const [activeDrive, setActiveDrive] = useState<any>(null);   // Wenn ich Fahrer bin
+  const [activeBooking, setActiveBooking] = useState<any>(null); // Wenn ich Mitfahrer bin
 
   useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/login');
-        return;
+    let mounted = true;
+
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          if(mounted) setUser(session.user);
+          
+          // 1. Profil laden
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if(mounted) setProfile(profileData);
+
+          // TÜRSTEHER: Telefonnummer Pflicht
+          if (!profileData || !profileData.phone) {
+             router.push('/complete-profile');
+             return; 
+          }
+
+          const today = new Date().toLocaleDateString('en-CA');
+          
+          // 2. CHECK: Bin ich FAHRER einer aktiven Fahrt?
+          const { data: driveData } = await supabase
+            .from('rides')
+            .select('*')
+            .eq('driver_id', session.user.id)
+            .eq('status', 'active')
+            .eq('ride_date', today)
+            .maybeSingle();
+          
+          if(mounted && driveData) setActiveDrive(driveData);
+
+          // 3. CHECK: Bin ich MITFAHRER bei einer aktiven Fahrt?
+          // Wir suchen Buchungen, die 'accepted' sind und wo die Fahrt noch 'active' ist
+          const { data: bookingData } = await supabase
+            .from('bookings')
+            .select('*, rides!inner(*)') // !inner erzwingt, dass die Ride-Filter zutreffen müssen
+            .eq('passenger_id', session.user.id)
+            .eq('status', 'accepted')
+            .eq('rides.status', 'active') // Nur wenn Fahrt noch läuft
+            .eq('rides.ride_date', today)
+            .maybeSingle();
+
+          if (mounted && bookingData) setActiveBooking(bookingData);
+        }
+      } catch (error) {
+        console.error("Session check failed", error);
+      } finally {
+        if(mounted) setLoading(false);
       }
-
-      // Profildaten für den Namen
-      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
-      if (profile) setUserName(profile.full_name?.split(' ')[0] || "Nutzer");
-
-      // Datumsgrenzen für "Diesen Monat"
-      const date = new Date();
-      const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
-      const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString();
-
-      // 1. STATISTIK ALS FAHRER (Rides + Bookings laden)
-      const { data: driveData } = await supabase
-        .from('rides')
-        .select('*, bookings(passenger_name)') // Wir laden die Namen der Mitfahrer direkt mit
-        .eq('driver_id', user.id)
-        .eq('status', 'completed') // Nur beendete Fahrten
-        .gte('ride_date', firstDay)
-        .lte('ride_date', lastDay)
-        .order('ride_date', { ascending: false });
-
-      if (driveData) setDriverRides(driveData);
-
-      // 2. STATISTIK ALS MITFAHRER (Bookings + Ride Info laden)
-      const { data: rideData } = await supabase
-        .from('bookings')
-        .select('*, rides(driver_name, prayer_time, ride_date)') // Wir laden Infos über die Fahrt mit
-        .eq('passenger_id', user.id)
-        .eq('status', 'accepted')
-        .gte('created_at', firstDay)
-        .lte('created_at', lastDay)
-        .order('created_at', { ascending: false });
-
-      if (rideData) setPassengerRides(rideData);
-      
-      setLoading(false);
     };
 
-    fetchData();
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+        setProfile(null);
+        setActiveDrive(null);
+        setActiveBooking(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
-  // Den aktuellen Monatsnamen holen (z.B. "Dezember")
-  const currentMonthName = new Date().toLocaleString('de-DE', { month: 'long' });
-
-  // Welche Liste zeigen wir an?
-  const list = activeTab === 'driver' ? driverRides : passengerRides;
-  const count = list.length;
-
-  return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4">
-      
-      {/* Header */}
-      <div className="w-full max-w-md flex items-center mb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-bold ml-2">Deine Statistik</h1>
+  // --- LADEBILDSCHIRM ---
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <div className="relative w-24 h-24 animate-pulse">
+           <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" />
+        </div>
+        <Loader2 className="animate-spin text-slate-400 h-6 w-6"/>
       </div>
+    );
+  }
 
-      {/* Große Statistik Karte */}
-      <Card className="w-full max-w-md bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-xl mb-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-slate-300 text-sm uppercase tracking-wider font-medium mb-1">
-              Im {currentMonthName}
-            </p>
-            <h2 className="text-4xl font-bold">{count} <span className="text-lg font-normal text-slate-300">Fahrten</span></h2>
+  // --- ANSICHT: NICHT EINGELOGGT ---
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
+        <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
+          <div className="relative w-[220px] h-[140px] mb-4">
+            <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" priority />
           </div>
-          <div className="bg-white/10 p-3 rounded-full">
-            <Trophy className="h-8 w-8 text-yellow-400" />
+          
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Namaz Taxi</h1>
+          
+          <div className="space-y-6 mt-2">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
+                حَيَّ عَلَىٰ ٱلصَّلَاةِ
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+                Kommt zum Gebet
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
+                حَيَّ عَلَىٰ ٱلْفَلَاحِ
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
+                Kommt zum Erfolg
+              </p>
+            </div>
           </div>
         </div>
-        <p className="mt-4 text-sm text-slate-300">
-          Maschaallah, {userName}! Weiter so.
-        </p>
-      </Card>
 
-      {/* Tabs Auswahl */}
-      <div className="w-full max-w-md flex bg-white p-1 rounded-xl shadow-sm mb-6 border">
-        <button 
-          onClick={() => setActiveTab('driver')}
-          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2
-            ${activeTab === 'driver' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-        >
-          <Car size={16} /> Als Fahrer
-        </button>
-        <button 
-          onClick={() => setActiveTab('passenger')}
-          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2
-            ${activeTab === 'passenger' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'}`}
-        >
-          <User size={16} /> Als Mitfahrer
-        </button>
+        <div className="w-full max-w-xs space-y-4 mt-4">
+          <Button 
+            size="lg" 
+            className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95"
+            onClick={() => router.push('/login')}
+          >
+            Anmelden
+          </Button>
+          <p className="text-xs text-center text-slate-400">Einloggen via Email (Magic Link) oder Google</p>
+        </div>
+
+        <div className="w-full max-w-md mt-4 opacity-80 pointer-events-none grayscale"> 
+           <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
+             <MapComponent />
+           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // --- ANSICHT: EINGELOGGT (Dashboard) ---
+  const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
+  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  return (
+    <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
+      
+      <div className="mt-4">
+        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋</h1>
+        <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* Die Liste */}
-      <div className="w-full max-w-md space-y-3 pb-10">
-        {loading ? (
-          <p className="text-center text-slate-400 mt-10">Lade Daten...</p>
-        ) : list.length === 0 ? (
-          <div className="text-center p-8 bg-white rounded-xl border border-dashed">
-            <p className="text-slate-400">Diesen Monat noch keine Fahrten.</p>
+      {/* 1. BUTTON FÜR FAHRER (Resume) */}
+      {activeDrive && (
+        <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors animate-in slide-in-from-top-2"
+             onClick={() => router.push('/driver/dashboard')}
+        >
+          <div>
+            <p className="font-bold text-lg">Laufende Fahrt</p>
+            <p className="text-blue-100 text-sm">Zurück zum Cockpit</p>
           </div>
-        ) : (
-          list.map((item) => {
-            // Daten aufbereiten (da die Struktur je nach Tab etwas anders ist)
-            const date = activeTab === 'driver' ? item.ride_date : item.rides?.ride_date;
-            const time = activeTab === 'driver' ? item.prayer_time : item.rides?.prayer_time;
-            const names = activeTab === 'driver' 
-              ? item.bookings.map((b: any) => b.passenger_name).join(', ') // Wen hab ich mitgenommen?
-              : item.rides?.driver_name; // Wer hat mich mitgenommen?
+          <div className="bg-white/20 p-2 rounded-full animate-pulse"><MapPin /></div>
+        </div>
+      )}
 
-            return (
-              <Card key={item.id} className="p-4 flex flex-col gap-2 border-l-4 border-l-slate-300 hover:border-l-slate-900 transition-all">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-slate-600 text-sm font-bold">
-                    <Calendar size={14} /> 
-                    {new Date(date).toLocaleDateString('de-DE')}
-                  </div>
-                  <div className="flex items-center gap-1 text-slate-500 text-xs bg-slate-100 px-2 py-1 rounded">
-                    <Clock size={12} /> {time} Uhr
-                  </div>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-slate-400 uppercase font-bold mb-1">
-                    {activeTab === 'driver' ? 'Mitgenommen:' : 'Gefahren von:'}
-                  </p>
-                  <p className="text-slate-900 font-medium">
-                    {names || "Niemanden"}
-                  </p>
-                </div>
-              </Card>
-            );
-          })
-        )}
+      {/* 2. BUTTON FÜR MITFAHRER (Resume) - DAS HAT GEFEHLT! */}
+      {activeBooking && (
+        <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors animate-in slide-in-from-top-2"
+             onClick={() => router.push(`/passenger/dashboard?rideId=${activeBooking.ride_id}`)}
+        >
+          <div>
+            <p className="font-bold text-lg">Du fährst mit</p>
+            <p className="text-green-100 text-sm">Live-Standort ansehen</p>
+          </div>
+          <div className="bg-white/20 p-2 rounded-full animate-pulse"><Navigation /></div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4">
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=driver')}
+        >
+          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
+            <Car size={32} className="text-slate-900" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
+            <p className="text-sm text-slate-500">Ich biete Plätze an</p>
+          </div>
+        </Card>
+
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=passenger')}
+        >
+          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
+            <User size={32} className="text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
+            <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
+          </div>
+        </Card>
       </div>
 
+      <div className="w-full mt-6">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ziel</p>
+        <div className="h-[250px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 relative">
+          <MapComponent />
+          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-center text-xs font-bold text-green-800 border-t">
+            📍 Bashir Moschee, Bensheim
+          </div>
+        </div>
+      </div>
+
+      {isAdmin && (
+        <div className="mt-8 pt-8 border-t border-slate-200">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Admin</p>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-3 h-12 text-slate-600"
+            onClick={() => router.push('/admin')} 
+          >
+            <Settings size={18} /> Gebetszeiten bearbeiten
+          </Button>
+        </div>
+      )}
     </main>
   );
 }

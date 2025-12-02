@@ -27,3 +27,11 @@ export default function RootLayout({
     </html>
   );
 }
+// in src/app/layout.tsx
+
+export const metadata: Metadata = {
+  title: "Ride 2 Salah - Bashier Moschee",
+  description: "Gemeinsam zum Gebet, gemeinsam zum Erfolg. Dein Weg zum Gebet – einfach und gesegnet.",
+  manifest: "/manifest.json",
+  // ... rest wie vorher
+};
