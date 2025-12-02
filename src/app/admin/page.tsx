@@ -1,89 +1,126 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { UserCircle, LogOut, Settings } from "lucide-react";
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Loader2, Save, ArrowLeft, ShieldAlert } from "lucide-react";
 
-export default function ProfileBar() {
+// 👇 HIER IST DIE E-MAIL (Zeile 12)
+// Nur wer mit DIESER Email eingeloggt ist, darf die Seite sehen.
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
+
+export default function AdminPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [prayers, setPrayers] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const checkAdminAndLoadData = async () => {
+      // 1. User prüfen
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
+
+      // Debugging: Damit du in der Konsole (F12) siehst, wer eingeloggt ist
+      console.log("Eingeloggt als:", user?.email);
+      console.log("Erwarte Admin:", ADMIN_EMAIL);
+
+      // Sicherheits-Check: Stimmt die Email?
+      if (!user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
+        alert("Zugriff verweigert! Du bist nicht als Admin erkannt.");
+        router.push('/'); 
         return;
       }
-      setUser(user);
 
-      const { data } = await supabase
-        .from('profiles')
+      setIsAuthorized(true);
+
+      // 2. Daten laden (wenn Admin)
+      const { data, error } = await supabase
+        .from('prayer_times')
         .select('*')
-        .eq('id', user.id)
-        .single();
+        .order('sort_order', { ascending: true });
 
-      if (data) setProfile(data);
+      if (error) console.error("DB Fehler:", error);
+      if (data) setPrayers(data);
+      
       setLoading(false);
     };
 
-    fetchData();
-  }, []);
+    checkAdminAndLoadData();
+  }, [router]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/'; 
+  const handleTimeChange = (id: string, newTime: string) => {
+    setPrayers(prayers.map(p => p.id === id ? { ...p, time: newTime } : p));
   };
 
-  if (loading || !user) return null;
+  const handleSave = async () => {
+    setSaving(true);
+    const { error } = await supabase.from('prayer_times').upsert(prayers);
+    setSaving(false);
 
-  const fullName = profile?.full_name || user.user_metadata?.full_name || "";
-  const firstName = fullName.split(' ')[0] || "Nutzer"; 
+    if (error) {
+      alert("Fehler: " + error.message);
+    } else {
+      alert("Gespeichert!");
+    }
+  };
+
+  // LADEBILDSCHIRM
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin h-10 w-10 text-slate-400 mb-4"/>
+        <p className="text-slate-500">Prüfe Admin-Rechte...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthorized) return null;
 
   return (
-    <div className="w-full bg-white border-b px-4 py-3 flex items-center justify-end shadow-sm sticky top-0 z-50">
+    <main className="min-h-screen bg-slate-100 p-6 flex flex-col items-center">
       
-      <div className="flex items-center gap-2">
-        
-        {/* 1. BUTTON: ZUR STATISTIK (Klick auf Name) */}
-        <div 
-          onClick={() => router.push('/history')} 
-          className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 group"
-          title="Zur Statistik"
-        >
-          <div className="flex flex-col items-end mr-1">
-            <span className="font-bold text-sm text-slate-900 leading-none group-hover:text-blue-700 transition-colors">
-              Salam, {firstName} 👋
-            </span>
-          </div>
-
-          <div className="bg-white p-1 rounded-full border border-slate-200 group-hover:border-blue-300">
-            <UserCircle className="h-6 w-6 text-slate-700 group-hover:text-blue-600" />
-          </div>
-        </div>
-
-        {/* 2. BUTTON: PROFIL BEARBEITEN (Zahnrad) - Hier gehts zu deiner Seite! */}
-        <button 
-          onClick={() => router.push('/profile')}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
-          title="Daten ändern"
-        >
-          <Settings className="h-5 w-5" />
-        </button>
-
-        {/* 3. BUTTON: LOGOUT */}
-        <button 
-          onClick={handleLogout}
-          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-          title="Abmelden"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
+      <div className="w-full max-w-md flex items-center justify-between mb-8">
+        <Button variant="ghost" onClick={() => router.push('/')}>
+           <ArrowLeft className="mr-2 h-4 w-4" /> Zum Dashboard
+        </Button>
+        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded border border-red-200 flex items-center gap-1">
+          <ShieldAlert size={12}/> ADMIN AREA
+        </span>
       </div>
 
-    </div>
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-red-600">
+        <CardHeader>
+          <CardTitle>Gebetszeiten verwalten</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          
+          {prayers.map((prayer) => (
+            <div key={prayer.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+              <span className="font-bold text-slate-700 w-24 capitalize">{prayer.name}</span>
+              <Input 
+                type="time" 
+                value={prayer.time}
+                onChange={(e) => handleTimeChange(prayer.id, e.target.value)}
+                className="w-32 font-mono text-center text-lg border-slate-300 focus:ring-red-500"
+              />
+            </div>
+          ))}
+
+          <Button 
+            className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white h-12 text-lg"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />}
+            Speichern
+          </Button>
+
+        </CardContent>
+      </Card>
+    </main>
   );
 }

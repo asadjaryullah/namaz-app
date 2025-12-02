@@ -12,7 +12,7 @@ import ProfileBar from '@/components/ProfileBar';
 import Image from 'next/image'; // <--- WICHTIG: Das hat gefehlt!
 
 // 👇 DEINE EMAIL
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
