@@ -141,7 +141,7 @@ export default function HomePage() {
         </div>
 
         {/* Karte im Hintergrund */}
-        <div className="w-full max-w-md mt-4 opacity-80 pointer-events-none grayscale"> 
+        <div className="w-full max-w-md mt-4 pointer-events-none"> 
            <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
              <MapComponent />
            </div>

@@ -1,69 +1,49 @@
 'use client';
 
-import { APIProvider, Map, AdvancedMarker, Pin, InfoWindow } from '@vis.gl/react-google-maps';
-import { useState } from 'react';
+import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const MAP_ID = "DEMO_MAP_ID";
 
-// 📍 EXAKTE Position: Bashir Moschee, Zeppelinstraße 33, Bensheim
+// WICHTIG: Damit eigene Icons funktionieren, brauchst du hier eigentlich eine echte Map ID von Google.
+// Wenn du keine hast, versuche "DEMO_MAP_ID", aber besser ist eine eigene (Vektor-Karte).
+const MAP_ID = "DEMO_MAP_ID"; 
+
+// Die exakten Koordinaten der Bashir Moschee, Bensheim
 const MOSQUE_LOCATION = { 
   lat: 49.685590, 
   lng: 8.593480,
-  name: "Bashir Moschee",
-  address: "Zeppelinstraße 33, 64625 Bensheim"
 };
 
 export default function MapComponent() {
-  const [open, setOpen] = useState(false);
-
   return (
-    <div className="w-full h-full min-h-[400px] rounded-xl overflow-hidden border shadow-sm relative">
+    <div className="w-full h-full min-h-[100%] rounded-xl overflow-hidden relative">
       <APIProvider apiKey={MAP_API_KEY}>
         <Map
-          defaultCenter={MOSQUE_LOCATION} 
-          defaultZoom={15} 
+          defaultCenter={MOSQUE_LOCATION} // <--- Startet genau hier
+          defaultZoom={17}                // <--- Nah genug ranzoomen
           mapId={MAP_ID}
-          gestureHandling={'cooperative'}
-          disableDefaultUI={true} 
+          disableDefaultUI={true}         // Keine störenden Google-Knöpfe
+          gestureHandling={'cooperative'} // Damit man beim Scrollen nicht stecken bleibt
         >
-          {/* Der Marker */}
-          <AdvancedMarker
-            position={MOSQUE_LOCATION}
-            title={MOSQUE_LOCATION.name}
-            onClick={() => setOpen(true)}
-          >
-            <Pin background={'#166534'} borderColor={'#fff'} glyphColor={'#fff'} scale={1.2} />
-          </AdvancedMarker>
+          {/* Das Moschee Icon */}
+          <AdvancedMarker position={MOSQUE_LOCATION} title="Bashir Moschee">
+            
+            {/* Unser selbstgebautes Icon-Design */}
+            <div className="relative flex items-center justify-center">
+               
+               {/* 1. Der Kreis */}
+               <div className="bg-white w-12 h-12 rounded-full border-4 border-green-700 shadow-xl flex items-center justify-center text-2xl z-10 relative">
+                 🕌
+               </div>
+               
+               {/* 2. Die kleine Spitze unten dran (damit es wie ein Pin aussieht) */}
+               <div className="absolute -bottom-1 w-4 h-4 bg-green-700 transform rotate-45 z-0"></div>
+            
+            </div>
 
-          {/* Info-Fenster beim Klick */}
-          {open && (
-            <InfoWindow 
-              position={MOSQUE_LOCATION} 
-              onCloseClick={() => setOpen(false)}
-            >
-              <div className="p-2 min-w-[150px]">
-                <h3 className="font-bold text-slate-900">{MOSQUE_LOCATION.name}</h3>
-                <p className="text-sm text-slate-600 mt-1">{MOSQUE_LOCATION.address}</p>
-                <a 
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${MOSQUE_LOCATION.lat},${MOSQUE_LOCATION.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 underline mt-2 block"
-                >
-                  Route berechnen ➜
-                </a>
-              </div>
-            </InfoWindow>
-          )}
+          </AdvancedMarker>
         </Map>
       </APIProvider>
-      
-      {!MAP_API_KEY && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80 z-50">
-          <p className="text-red-500 font-bold text-xs">API Key fehlt in .env.local</p>
-        </div>
-      )}
     </div>
   );
 }
