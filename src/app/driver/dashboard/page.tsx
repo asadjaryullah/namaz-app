@@ -4,16 +4,14 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
-import { Card } from "@/components/ui/card";
-import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle } from "lucide-react";
+import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle } from "lucide-react"; // <--- XCircle NEU
 import { Button } from "@/components/ui/button";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 }; 
 
-// Hilfsfunktion: Abstand berechnen (in Metern)
 function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; // Erdradius
+  const R = 6371e3; 
   const φ1 = lat1 * Math.PI/180;
   const φ2 = lat2 * Math.PI/180;
   const Δφ = (lat2-lat1) * Math.PI/180;
@@ -27,7 +25,6 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
   return R * c;
 }
 
-// WhatsApp Link
 const getWhatsAppLink = (phone: string, name: string) => {
   if (!phone) return "#";
   const cleanNumber = phone.replace(/[^0-9]/g, '').replace(/^0/, '49');
@@ -35,7 +32,6 @@ const getWhatsAppLink = (phone: string, name: string) => {
   return `https://wa.me/${cleanNumber}?text=${text}`;
 };
 
-// Route zeichnen
 function Directions({ userLocation }: { userLocation: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -72,10 +68,8 @@ export default function DriverDashboard() {
   const [rideId, setRideId] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
   
-  // Ref verhindert doppeltes Beenden
   const rideEndedRef = useRef(false);
 
-  // 1. Eigene Fahrt laden
   useEffect(() => {
     const fetchRide = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -103,7 +97,6 @@ export default function DriverDashboard() {
     fetchRide();
   }, []);
 
-  // 2. Passagiere laden
   useEffect(() => {
     if (!rideId) return;
     const fetchPassengers = async () => {
@@ -119,7 +112,7 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [rideId]);
 
-  // 3. Fahrt beenden
+  // --- FAHRT BEENDEN (Erfolg) ---
   const handleEndRide = async (auto = false) => {
     if (!rideId) return;
     if (rideEndedRef.current) return;
@@ -137,7 +130,7 @@ export default function DriverDashboard() {
       .eq('id', rideId);
 
     if (!error) {
-      router.push('/arrival'); // Weiterleitung zur Checkliste
+      router.push('/arrival'); 
     } else {
       alert("Fehler: " + error.message);
       setLoadingEnd(false);
@@ -145,7 +138,28 @@ export default function DriverDashboard() {
     }
   };
 
-  // 4. GPS TRACKING (Hier war der Fehler vorher)
+  // --- NEU: FAHRT ABSAGEN (Stornieren) ---
+  const handleCancelRide = async () => {
+    if (!confirm("Möchtest du die Fahrt wirklich ABSAGEN? Alle Mitfahrer werden entfernt.")) return;
+    
+    setLoadingEnd(true);
+
+    // 1. Erst die Buchungen löschen (wichtig wegen Datenbank-Regeln)
+    await supabase.from('bookings').delete().eq('ride_id', rideId);
+
+    // 2. Dann die Fahrt löschen
+    const { error } = await supabase.from('rides').delete().eq('id', rideId);
+
+    if (!error) {
+      alert("Fahrt wurde storniert.");
+      router.push('/'); // Zurück zum Start
+    } else {
+      alert("Fehler beim Stornieren: " + error.message);
+      setLoadingEnd(false);
+    }
+  };
+  // ---------------------------------------
+
   useEffect(() => {
     if (!rideId || rideEndedRef.current) return;
 
@@ -153,16 +167,13 @@ export default function DriverDashboard() {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        
         setCurrentPos({ lat, lng });
 
-        // Update in DB (für Mitfahrer sichtbar)
         await supabase
           .from('rides')
           .update({ current_lat: lat, current_lon: lng })
           .eq('id', rideId);
 
-        // Geofencing Check
         const distance = getDistanceInMeters(lat, lng, MOSQUE_LOCATION.lat, MOSQUE_LOCATION.lng);
         if (distance < 150) {
            handleEndRide(true);
@@ -178,16 +189,11 @@ export default function DriverDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       
-      {/* KARTE */}
       <div className="h-[55vh] w-full relative">
         <APIProvider apiKey={MAP_API_KEY}>
           <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={14} disableDefaultUI={true} mapId="DEMO_MAP_ID">
-            
             <Directions userLocation={startPoint} />
-            
-            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee">
-               <div className="text-3xl">🕌</div>
-            </AdvancedMarker>
+            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
             
             {startPoint && (
               <AdvancedMarker position={startPoint} title="Start">
@@ -195,14 +201,12 @@ export default function DriverDashboard() {
               </AdvancedMarker>
             )}
 
-            {/* LIVE POSITION */}
             {currentPos && (
               <AdvancedMarker position={currentPos} title="Ich">
                  <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
               </AdvancedMarker>
             )}
 
-            {/* Mitfahrer Pins */}
             {passengers.map((p) => (
               p.pickup_lat && p.pickup_lon && (
                 <AdvancedMarker 
@@ -220,7 +224,6 @@ export default function DriverDashboard() {
         </APIProvider>
       </div>
 
-      {/* INFO BEREICH */}
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
         
@@ -290,8 +293,19 @@ export default function DriverDashboard() {
             disabled={loadingEnd}
           >
             {loadingEnd ? <Loader2 className="animate-spin mr-2"/> : <CheckSquare className="mr-2" size={20} />}
-            Fahrt beenden
+            Fahrt beenden (Erfolg)
           </Button>
+
+          {/* --- NEUER ABSAGEN BUTTON --- */}
+          <Button 
+            variant="ghost"
+            className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+            onClick={handleCancelRide}
+            disabled={loadingEnd}
+          >
+            <XCircle className="mr-2" size={18} /> Fahrt absagen
+          </Button>
+          {/* --------------------------- */}
         </div>
 
       </div>

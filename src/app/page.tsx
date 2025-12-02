@@ -104,7 +104,7 @@ export default function HomePage() {
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Namaz Taxi</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
           
           {/* Arabischer Text */}
           <div className="space-y-6 mt-2">
@@ -113,7 +113,7 @@ export default function HomePage() {
                 حَيَّ عَلَىٰ ٱلصَّلَاةِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
-                Kommt zum Gebet
+                "Kommt zum Gebet"
               </p>
             </div>
 
@@ -122,7 +122,7 @@ export default function HomePage() {
                 حَيَّ عَلَىٰ ٱلْفَلَاحِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
-                Kommt zum Erfolg
+                "Kommt zum Erfolg"
               </p>
             </div>
           </div>
