@@ -1,4 +1,3 @@
-// public/sw.js
 self.addEventListener('push', function(event) {
   const data = event.data.json();
   

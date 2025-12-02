@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
+import PushNotificationManager from '@/components/PushNotificationManager'; // <--- WICHTIG: Import
 
 export default function ProfilePage() {
   const router = useRouter();
   
-  // WICHTIG: Startet im Lade-Modus, damit keine leere Seite angezeigt wird
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ fullName: '', phone: '' });
@@ -23,14 +23,13 @@ export default function ProfilePage() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          router.push('/login'); // Nicht eingeloggt? Weg hier.
+          router.push('/login');
           return;
         }
         
         setUserId(user.id);
 
-        // Profil laden
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -55,12 +54,13 @@ export default function ProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
+    
     setSaving(true);
 
     try {
       const { error } = await supabase
         .from('profiles')
-        .upsert({ // upsert = erstellen oder updaten
+        .upsert({
           id: userId,
           full_name: formData.fullName,
           phone: formData.phone
@@ -69,10 +69,10 @@ export default function ProfilePage() {
       if (error) throw error;
 
       alert("Profil gespeichert!");
-      router.refresh(); // Aktualisiert die Daten im Browser
-      router.push('/'); // Zurück zum Dashboard
+      router.refresh(); 
+      router.push('/'); 
     } catch (error: any) {
-      alert("Fehler beim Speichern: " + error.message);
+      alert("Fehler: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -88,6 +88,7 @@ export default function ProfilePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4">
+      
       <div className="w-full max-w-sm flex items-center mb-6 mt-4">
         <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Zurück
@@ -99,8 +100,11 @@ export default function ProfilePage() {
           <CardTitle>Profil bearbeiten</CardTitle>
           <CardDescription>Hier kannst du deine Daten ändern.</CardDescription>
         </CardHeader>
+        
         <CardContent>
+          {/* 1. DAS FORMULAR */}
           <form onSubmit={handleSave} className="space-y-4">
+            
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
               <div className="relative">
@@ -115,7 +119,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handy</label>
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <Input 
@@ -132,7 +136,18 @@ export default function ProfilePage() {
               {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4"/>}
               Speichern
             </Button>
+
           </form>
+
+          {/* 2. DER PUSH BUTTON BEREICH (Hier war der Fehler beim Einfügen) */}
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Erlaube Push-Nachrichten, um zu erfahren, wann der Fahrer ankommt.
+            </p>
+            <PushNotificationManager />
+          </div>
+
         </CardContent>
       </Card>
     </main>
