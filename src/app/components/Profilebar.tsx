@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { UserCircle, LogOut, Settings } from "lucide-react";
+import { UserCircle, LogOut, Settings } from "lucide-react"; // <--- Settings muss hier stehen
 import { useRouter } from 'next/navigation';
 
 export default function ProfileBar() {
@@ -65,9 +65,9 @@ export default function ProfileBar() {
           </div>
         </div>
 
-        {/* 2. BUTTON: PROFIL BEARBEITEN (Zahnrad) - Hier gehts zu deiner Seite! */}
+        {/* 2. BUTTON: PROFIL BEARBEITEN (Das Rädchen) */}
         <button 
-          onClick={() => router.push('/profile')}
+          onClick={() => router.push('/profile')} // <--- HIER IST DER WICHTIGE TEIL
           className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
           title="Daten ändern"
         >
