@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
 // 👇 HIER IST DIE KORREKTUR:
-import NotificationManager from '@/components/NotificationManager'; 
+import NotificationSettings from '@/components/NotificationSettings';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -147,7 +147,7 @@ export default function ProfilePage() {
               Erlaube Push-Nachrichten, um zu erfahren, wann der Fahrer ankommt.
             </p>
             {/* 👇 HIER WURDE DER NAME ANGEPASST */}
-            <NotificationManager />
+            <NotificationSettings />
           </div>
 
         </CardContent>
