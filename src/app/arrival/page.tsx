@@ -37,27 +37,31 @@ export default function ArrivalPage() {
         Möge Allah dein Gebet annehmen.
       </p>
 
-      {/* DUA KARTE - AKTUALISIERT */}
+      {/* DUA KARTE - DESIGN ANGEPASST */}
       <Card className="w-full max-w-md p-6 bg-white border-l-4 border-l-green-600 shadow-md mb-6">
         <div className="flex items-center gap-2 mb-4 text-green-700 font-semibold">
           <BookOpen size={20} />
           <h2>Bittgebet beim Eintreten</h2>
         </div>
         
-        {/* Das neue arabische Gebet */}
-        <p className="text-right text-xl font-serif leading-loose mb-6 dir-rtl text-slate-800" style={{ direction: 'rtl', lineHeight: '2.2' }}>
-          بِسْمِ اللهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللهِ،<br/>
-          اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ
-        </p>
+        {/* HIER IST DIE ÄNDERUNG: Größer, Zentriert, Moderne Schrift */}
+        <div className="text-center mb-6">
+          <p className="text-2xl leading-loose text-slate-800" style={{ direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            بِسْمِ اللهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللهِ
+          </p>
+          <p className="text-3xl font-bold leading-loose text-slate-900 mt-2" style={{ direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+            اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ
+          </p>
+        </div>
         
         {/* Lautschrift */}
-        <p className="text-sm text-slate-500 italic mb-3 leading-relaxed">
+        <p className="text-sm text-slate-500 italic mb-3 leading-relaxed text-center">
           "Bismillāh, was-salātu was-salāmu ʿalā rasūli Llāh,<br/>
           Allāhumma ftaḥ lī abwāba raḥmatik."
         </p>
         
         {/* Deutsche Übersetzung */}
-        <p className="text-slate-900 font-medium text-sm">
+        <p className="text-slate-900 font-medium text-sm text-center">
           Im Namen Allahs, und Frieden und Segen seien auf dem Gesandten Allahs.
           O Allah, öffne mir die Tore Deiner Barmherzigkeit.
         </p>
