@@ -1,255 +1,211 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Car, User, Settings, Loader2, MapPin, Navigation } from "lucide-react";
-import MapComponent from '@/components/MapComponent'; 
+import { ChevronLeft, ChevronRight, Loader2, ArrowLeft, Car, User, TrendingUp } from "lucide-react";
 
-// 👇 HIER DEINE EMAIL
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
-
-export default function HomePage() {
+export default function HistoryPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
   
-  const [loading, setLoading] = useState(true); 
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  // Wir speichern hier mehr Infos: Datum UND Rolle (Fahrer/Mitfahrer)
+  const [allRides, setAllRides] = useState<{date: string, role: 'driver' | 'passenger'}[]>([]);
   
-  // States für laufende Aktivitäten
-  const [activeDrive, setActiveDrive] = useState<any>(null);   // Wenn ich Fahrer bin
-  const [activeBooking, setActiveBooking] = useState<any>(null); // Wenn ich Mitfahrer bin
+  const [viewDate, setViewDate] = useState(new Date());
 
   useEffect(() => {
-    let mounted = true;
+    const fetchHistory = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
+      // 1. Fahrten als FAHRER
+      const { data: driverData } = await supabase
+        .from('rides')
+        .select('ride_date')
+        .eq('driver_id', user.id)
+        .eq('status', 'completed');
+
+      // Daten aufbereiten
+      const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
+
+      // 2. Fahrten als MITFAHRER
+      const { data: myBookings } = await supabase
+        .from('bookings')
+        .select('ride_id')
+        .eq('passenger_id', user.id);
+      
+      let passengerRides: {date: string, role: 'passenger'}[] = [];
+      
+      if (myBookings && myBookings.length > 0) {
+        const rideIds = myBookings.map(b => b.ride_id);
+        const { data: completedRides } = await supabase
+          .from('rides')
+          .select('ride_date')
+          .in('id', rideIds)
+          .eq('status', 'completed');
         
-        if (session?.user) {
-          if(mounted) setUser(session.user);
-          
-          // 1. Profil laden
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if(mounted) setProfile(profileData);
-
-          // TÜRSTEHER: Telefonnummer Pflicht
-          if (!profileData || !profileData.phone) {
-             router.push('/complete-profile');
-             return; 
-          }
-
-          const today = new Date().toLocaleDateString('en-CA');
-          
-          // 2. CHECK: Bin ich FAHRER einer aktiven Fahrt?
-          const { data: driveData } = await supabase
-            .from('rides')
-            .select('*')
-            .eq('driver_id', session.user.id)
-            .eq('status', 'active')
-            .eq('ride_date', today)
-            .maybeSingle();
-          
-          if(mounted && driveData) setActiveDrive(driveData);
-
-          // 3. CHECK: Bin ich MITFAHRER bei einer aktiven Fahrt?
-          // Wir suchen Buchungen, die 'accepted' sind und wo die Fahrt noch 'active' ist
-          const { data: bookingData } = await supabase
-            .from('bookings')
-            .select('*, rides!inner(*)') // !inner erzwingt, dass die Ride-Filter zutreffen müssen
-            .eq('passenger_id', session.user.id)
-            .eq('status', 'accepted')
-            .eq('rides.status', 'active') // Nur wenn Fahrt noch läuft
-            .eq('rides.ride_date', today)
-            .maybeSingle();
-
-          if (mounted && bookingData) setActiveBooking(bookingData);
+        if (completedRides) {
+          passengerRides = completedRides.map(r => ({ date: r.ride_date, role: 'passenger' as const }));
         }
-      } catch (error) {
-        console.error("Session check failed", error);
-      } finally {
-        if(mounted) setLoading(false);
       }
+
+      // Alles zusammenfügen
+      setAllRides([...driverRides, ...passengerRides]);
+      setLoading(false);
     };
 
-    checkSession();
+    fetchHistory();
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setUser(session.user);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setActiveDrive(null);
-        setActiveBooking(null);
-      }
-    });
+  // --- KALENDER LOGIK ---
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [router]);
+  const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
+  const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
 
-  // --- LADEBILDSCHIRM ---
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <div className="relative w-24 h-24 animate-pulse">
-           <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" />
-        </div>
-        <Loader2 className="animate-spin text-slate-400 h-6 w-6"/>
-      </div>
-    );
-  }
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth(); 
+  const monthName = viewDate.toLocaleString('de-DE', { month: 'long' });
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  let startDay = new Date(year, month, 1).getDay();
+  startDay = startDay === 0 ? 6 : startDay - 1;
 
-  // --- ANSICHT: NICHT EINGELOGGT ---
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
-        <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
-          <div className="relative w-[220px] h-[140px] mb-4">
-            <Image src="/way2bashier.png" alt="Logo" fill className="object-contain" priority />
-          </div>
-          
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Namaz Taxi</h1>
-          
-          <div className="space-y-6 mt-2">
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
-                حَيَّ عَلَىٰ ٱلصَّلَاةِ
-              </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
-                Kommt zum Gebet
-              </p>
-            </div>
+  // --- STATISTIK BERECHNEN (Für den angezeigten Monat) ---
+  
+  // Filtert alle Fahrten des aktuellen Monats
+  const currentMonthRides = allRides.filter(r => {
+    // ride_date Format: "YYYY-MM-DD"
+    const [rYear, rMonth] = r.date.split('-'); 
+    return parseInt(rYear) === year && parseInt(rMonth) === month + 1;
+  });
 
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
-                حَيَّ عَلَىٰ ٱلْفَلَاحِ
-              </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
-                Kommt zum Erfolg
-              </p>
-            </div>
-          </div>
-        </div>
+  const totalCount = currentMonthRides.length;
+  const driverCount = currentMonthRides.filter(r => r.role === 'driver').length;
+  const passengerCount = currentMonthRides.filter(r => r.role === 'passenger').length;
 
-        <div className="w-full max-w-xs space-y-4 mt-4">
-          <Button 
-            size="lg" 
-            className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95"
-            onClick={() => router.push('/login')}
-          >
-            Anmelden
-          </Button>
-          <p className="text-xs text-center text-slate-400">Einloggen via Email (Magic Link) oder Google</p>
-        </div>
+  // Zählt Gebete pro Tag für die Kalender-Ansicht
+  const getDailyCount = (day: number) => {
+    const dayStr = day.toString().padStart(2, '0');
+    // Wir suchen einfach im String nach dem Tag, da wir oben schon gefiltert haben (optional)
+    // Oder sicherer:
+    const fullDate = `${year}-${(month+1).toString().padStart(2, '0')}-${dayStr}`;
+    return allRides.filter(r => r.date === fullDate).length;
+  };
 
-        <div className="w-full max-w-md mt-4 opacity-80 pointer-events-none grayscale"> 
-           <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
-             <MapComponent />
-           </div>
-        </div>
-      </main>
-    );
-  }
-
-  // --- ANSICHT: EINGELOGGT (Dashboard) ---
-  const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const getStatusColor = (count: number) => {
+    if (count === 0) return "bg-slate-50 text-slate-300 border border-slate-100"; 
+    if (count >= 5) return "bg-green-600 text-white shadow-md shadow-green-200 border-none scale-110"; 
+    if (count >= 3) return "bg-blue-500 text-white border-none";
+    return "bg-orange-400 text-white border-none";
+  };
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
+    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 pb-20">
       
-      <div className="mt-4">
-        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋</h1>
-        <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
+      {/* Header */}
+      <div className="w-full max-w-md flex items-center mb-6">
+        <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+          <ArrowLeft className="h-6 w-6 text-slate-600" />
+        </Button>
+        <h1 className="text-xl font-bold ml-2 text-slate-800">Mein Gebets-Log</h1>
       </div>
 
-      {/* 1. BUTTON FÜR FAHRER (Resume) */}
-      {activeDrive && (
-        <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors animate-in slide-in-from-top-2"
-             onClick={() => router.push('/driver/dashboard')}
-        >
-          <div>
-            <p className="font-bold text-lg">Laufende Fahrt</p>
-            <p className="text-blue-100 text-sm">Zurück zum Cockpit</p>
-          </div>
-          <div className="bg-white/20 p-2 rounded-full animate-pulse"><MapPin /></div>
-        </div>
-      )}
+      {loading ? (
+        <div className="py-20"><Loader2 className="animate-spin text-slate-400"/></div>
+      ) : (
+        <div className="w-full max-w-md space-y-6">
+          
+          {/* --- NEUE STATISTIK KARTE --- */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Große Gesamt-Box */}
+            <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
+              <div className="relative z-10">
+                <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">{monthName}</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-5xl font-black">{totalCount}</span>
+                  <span className="text-sm font-medium text-slate-400">Gebete</span>
+                </div>
+              </div>
+              <div className="bg-white/10 p-3 rounded-full relative z-10">
+                <TrendingUp size={32} />
+              </div>
+              {/* Deko Kreis im Hintergrund */}
+              <div className="absolute -right-6 -bottom-10 w-32 h-32 bg-white/5 rounded-full blur-2xl"></div>
+            </Card>
 
-      {/* 2. BUTTON FÜR MITFAHRER (Resume) - DAS HAT GEFEHLT! */}
-      {activeBooking && (
-        <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors animate-in slide-in-from-top-2"
-             onClick={() => router.push(`/passenger/dashboard?rideId=${activeBooking.ride_id}`)}
-        >
-          <div>
-            <p className="font-bold text-lg">Du fährst mit</p>
-            <p className="text-green-100 text-sm">Live-Standort ansehen</p>
-          </div>
-          <div className="bg-white/20 p-2 rounded-full animate-pulse"><Navigation /></div>
-        </div>
-      )}
+            {/* Kleine Detail-Boxen */}
+            <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+              <div className="bg-slate-100 p-2 rounded-full text-slate-700">
+                <Car size={20} />
+              </div>
+              <div className="text-center">
+                <span className="block text-xl font-bold text-slate-900">{driverCount}</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Gefahren</span>
+              </div>
+            </Card>
 
-      <div className="grid grid-cols-1 gap-4">
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=driver')}
-        >
-          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <Car size={32} className="text-slate-900" />
+            <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+              <div className="bg-blue-50 p-2 rounded-full text-blue-600">
+                <User size={20} />
+              </div>
+              <div className="text-center">
+                <span className="block text-xl font-bold text-slate-900">{passengerCount}</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold">Mitgefahren</span>
+              </div>
+            </Card>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
-            <p className="text-sm text-slate-500">Ich biete Plätze an</p>
-          </div>
-        </Card>
+          {/* --------------------------- */}
 
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=passenger')}
-        >
-          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <User size={32} className="text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
-            <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
-          </div>
-        </Card>
-      </div>
+          {/* Kalender Karte */}
+          <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
+            
+            <div className="flex justify-between items-center mb-6">
+              <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full">
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+              
+              <div className="text-center">
+                <h2 className="text-lg font-bold text-slate-900">{monthName}</h2>
+                <p className="text-xs text-slate-400 font-bold uppercase">{year}</p>
+              </div>
 
-      <div className="w-full mt-6">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ziel</p>
-        <div className="h-[250px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 relative">
-          <MapComponent />
-          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-center text-xs font-bold text-green-800 border-t">
-            📍 Bashir Moschee, Bensheim
-          </div>
-        </div>
-      </div>
+              <Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full">
+                <ChevronRight className="h-6 w-6" />
+              </Button>
+            </div>
 
-      {isAdmin && (
-        <div className="mt-8 pt-8 border-t border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Admin</p>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-3 h-12 text-slate-600"
-            onClick={() => router.push('/admin')} 
-          >
-            <Settings size={18} /> Gebetszeiten bearbeiten
-          </Button>
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (
+                <div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {Array.from({ length: startDay }).map((_, i) => (
+                <div key={`empty-${i}`} className="w-8 h-8"></div>
+              ))}
+
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const count = getDailyCount(dayNum);
+
+                return (
+                  <div key={dayNum} className="flex flex-col items-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all ${getStatusColor(count)}`}>
+                      {dayNum}
+                    </div>
+                    <div className="flex gap-[1px] mt-1 h-1">
+                       {count > 0 && <div className="w-1 h-1 rounded-full bg-slate-300"></div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+
         </div>
       )}
     </main>
