@@ -10,49 +10,65 @@ export default function NotificationManager() {
   const [permission, setPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
-    // 1. Initialer Check beim Laden
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
-      
-      // Wenn noch nicht gefragt wurde -> Popup zeigen nach 3 Sekunden
       if (Notification.permission === 'default') {
         const timer = setTimeout(() => setShowPopup(true), 3000);
         return () => clearTimeout(timer);
       }
     }
 
-    // 2. Hintergrund-Logik starten (Check alle 60 Sekunden)
+    // Check alle 60 Sekunden
     const interval = setInterval(checkPrayerTimes, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- LOGIK FÜR DIE ERINNERUNG ---
   const checkPrayerTimes = async () => {
     if (Notification.permission !== 'granted') return;
 
-    const { data: prayers } = await supabase.from('prayer_times').select('*');
-    if (!prayers) return;
-
+    // Zeit holen
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const todayStr = now.toISOString().split('T')[0];
 
+    const { data: prayers } = await supabase.from('prayer_times').select('*');
+    if (!prayers) return;
+
     prayers.forEach(p => {
       if (!p.time) return;
-      const [h, m] = p.time.split(':').map(Number);
-      const prayerMinutes = h * 60 + m;
       
+      // Zeit parsen "13:30:00" -> 13:30
+      const [hStr, mStr] = p.time.split(':');
+      const h = parseInt(hStr);
+      const m = parseInt(mStr);
+      
+      const prayerMinutes = h * 60 + m;
       const diff = prayerMinutes - currentMinutes;
 
-      // WENN NOCH 25 MINUTEN SIND
+      // Debugging in der Konsole (F12)
+      console.log(`Prüfe ${p.name}: Noch ${diff} Minuten.`);
+
+      // WENN NOCH 25 MINUTEN SIND (Bereich 24-26 Min)
       if (diff >= 24 && diff <= 26) {
-        const storageKey = `notified-${p.id}-${todayStr}`;
+        
+        // TRICK: Wir speichern auch die Zeit im Key. 
+        // Wenn du die Zeit im Admin änderst, ist der Key neu -> Nachricht kommt nochmal!
+        const storageKey = `notified-${p.id}-${todayStr}-${p.time}`;
+        
         if (!localStorage.getItem(storageKey)) {
-          new Notification(`Bald ist ${p.name}! 🕌`, {
-            body: `In 25 Minuten ist Gebet (${p.time} Uhr). Buche jetzt deine Fahrt!`,
-            icon: '/icon.png',
-            tag: 'namaz-reminder'
-          });
+          
+          // PUSH SENDEN!
+          try {
+            new Notification(`Namaz Taxi: ${p.name}`, {
+              body: `In 25 Minuten ist Gebet (${h}:${m < 10 ? '0'+m : m} Uhr). Buche jetzt deine Fahrt! 🕌`,
+              icon: '/icon.png',
+              tag: 'namaz-reminder'
+            });
+          } catch (e) {
+            console.error("Push Fehler:", e);
+          }
+
+          // Merken
           localStorage.setItem(storageKey, 'true');
         }
       }

@@ -109,7 +109,8 @@ export default function HomePage() {
           {/* Arabischer Text */}
           <div className="space-y-6 mt-2">
             <div className="flex flex-col items-center gap-2">
-              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
+              {/* Hier die Klasse 'font-amiri' nutzen, die wir im Layout definiert haben */}
+              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
                 حَيَّ عَلَىٰ ٱلصَّلَاةِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">
@@ -118,7 +119,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <p className="text-3xl text-slate-800 font-arabic leading-relaxed">
+              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
                 حَيَّ عَلَىٰ ٱلْفَلَاحِ
               </p>
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">

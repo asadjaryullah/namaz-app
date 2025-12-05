@@ -1,16 +1,24 @@
 import type { Metadata, Viewport } from "next";
+import { Amiri } from "next/font/google"; // <--- 1. IMPORTIEREN
 import "./globals.css";
 import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 
+// 2. SCHRIFT KONFIGURIEREN
+const amiri = Amiri({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-amiri", // Wir machen eine Variable daraus
+});
+
 export const metadata: Metadata = {
-  title: "Namaz Taxi",
+  title: "Ride 2 Salah",
   description: "Gemeinsam zur Moschee",
   manifest: "/manifest.json", 
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Namaz Taxi",
+    title: "Ride 2 Salah",
   },
 };
 
@@ -29,18 +37,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body className="antialiased bg-slate-50 flex flex-col min-h-screen" suppressHydrationWarning>
-        
-        {/* Komponenten, die immer da sind */}
+      {/* 3. VARIABLE HIER EINFÜGEN */}
+      <body className={`antialiased bg-slate-50 ${amiri.variable}`} suppressHydrationWarning>
         <ProfileBar />
         <NotificationManager />
-        
-        {/* Inhalt der aktuellen Seite */}
         <div className="flex-1">
           {children}
         </div>
-
-        {/* Footer */}
         <footer className="py-6 text-center text-slate-400 text-xs">
           <p>© {new Date().getFullYear()} Namaz Taxi Bensheim</p>
           <div className="mt-2 space-x-3">
@@ -48,7 +51,6 @@ export default function RootLayout({
             <a href="#" className="hover:underline">Datenschutz</a>
           </div>
         </footer>
-
       </body>
     </html>
   );

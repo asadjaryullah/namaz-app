@@ -46,10 +46,10 @@ export default function ArrivalPage() {
         
         {/* HIER IST DIE ÄNDERUNG: Größer, Zentriert, Moderne Schrift */}
         <div className="text-center mb-6">
-          <p className="text-2xl leading-loose text-slate-800" style={{ direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <p className="text-2xl leading-loose text-slate-800" style={{ direction: 'rtl', fontFamily: 'var(--font-amiri)' }}>
             بِسْمِ اللهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللهِ
           </p>
-          <p className="text-3xl font-bold leading-loose text-slate-900 mt-2" style={{ direction: 'rtl', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+          <p className="text-3xl font-bold leading-loose text-slate-900 mt-2" style={{ direction: 'rtl', fontFamily: 'var(--font-amiri)' }}>
             اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ
           </p>
         </div>
