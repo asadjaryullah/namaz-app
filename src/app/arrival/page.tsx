@@ -37,30 +37,30 @@ export default function ArrivalPage() {
         Möge Allah dein Gebet annehmen.
       </p>
 
-      {/* DUA KARTE - DESIGN ANGEPASST */}
+      {/* DUA KARTE */}
       <Card className="w-full max-w-md p-6 bg-white border-l-4 border-l-green-600 shadow-md mb-6">
         <div className="flex items-center gap-2 mb-4 text-green-700 font-semibold">
           <BookOpen size={20} />
           <h2>Bittgebet beim Eintreten</h2>
         </div>
         
-        {/* HIER IST DIE ÄNDERUNG: Größer, Zentriert, Moderne Schrift */}
-        <div className="text-center mb-6">
-          <p className="text-2xl leading-loose text-slate-800" style={{ direction: 'rtl', fontFamily: 'var(--font-amiri)' }}>
+        {/* HIER IST DIE ÄNDERUNG: Sauberer 2-Zeiler */}
+        <div className="text-center mb-6" style={{ direction: 'rtl', fontFamily: 'var(--font-amiri)' }}>
+          {/* Zeile 1: Bismillah... (etwas kleiner) */}
+          <p className="text-xl text-slate-600 mb-2 leading-normal">
             بِسْمِ اللهِ، وَالصَّلَاةُ وَالسَّلَامُ عَلَى رَسُولِ اللهِ
           </p>
-          <p className="text-3xl font-bold leading-loose text-slate-900 mt-2" style={{ direction: 'rtl', fontFamily: 'var(--font-amiri)' }}>
+          {/* Zeile 2: Allahumma... (Groß & Fett) */}
+          <p className="text-3xl font-bold text-slate-900 leading-normal">
             اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ
           </p>
         </div>
         
-        {/* Lautschrift */}
         <p className="text-sm text-slate-500 italic mb-3 leading-relaxed text-center">
           "Bismillāh, was-salātu was-salāmu ʿalā rasūli Llāh,<br/>
           Allāhumma ftaḥ lī abwāba raḥmatik."
         </p>
         
-        {/* Deutsche Übersetzung */}
         <p className="text-slate-900 font-medium text-sm text-center">
           Im Namen Allahs, und Frieden und Segen seien auf dem Gesandten Allahs.
           O Allah, öffne mir die Tore Deiner Barmherzigkeit.
