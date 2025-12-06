@@ -45,9 +45,10 @@ export default function RootLayout({
           {children}
         </div>
         <footer className="py-6 text-center text-slate-400 text-xs">
-          <p>© {new Date().getFullYear()} Namaz Taxi Bensheim</p>
+          <p>© {new Date().getFullYear()} Ride 2 Salah</p>
           <div className="mt-2 space-x-3">
-            <a href="#" className="hover:underline">Impressum</a>
+            {/* HIER DEN LINK ÄNDERN: */}
+            <a href="/impressum" className="hover:underline">Impressum</a>
             <a href="#" className="hover:underline">Datenschutz</a>
           </div>
         </footer>
