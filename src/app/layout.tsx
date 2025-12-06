@@ -71,7 +71,18 @@ export default function RootLayout({
             </a>
             <a href="#" className="hover:text-slate-600 transition-colors underline-offset-4 hover:underline">
               Datenschutz
-            </a>
+           <footer className="py-8 text-center text-slate-400 text-xs mt-4 border-t border-slate-100/50">
+          
+          {/* ... Logo ... */}
+
+          <p className="mb-2 font-medium">© {new Date().getFullYear()} Ride 2 Salah</p>
+          
+          <div className="flex justify-center gap-4">
+            <a href="/impressum" className="hover:underline">Impressum</a>
+            {/* HIER DEN LINK ÄNDERN: */}
+            <a href="/datenschutz" className="hover:underline">Datenschutz</a>
+          </div>
+        </footer> </a>
           </div>
         </footer>
 
