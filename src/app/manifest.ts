@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Ride 2 Salah - Bashier Moschee',
-    short_name: 'R2S',
+    short_name: 'Ride2Salah',
     description: 'Gemeinsam zur Bashir Moschee',
     start_url: '/',
     display: 'standalone', // Das entfernt die Browser-Leisten!

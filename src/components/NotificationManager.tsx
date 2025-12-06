@@ -59,7 +59,7 @@ export default function NotificationManager() {
           
           // PUSH SENDEN!
           try {
-            new Notification(`Namaz Taxi: ${p.name}`, {
+            new Notification(`Ride 2 Salah: ${p.name}`, {
               body: `In 25 Minuten ist Gebet (${h}:${m < 10 ? '0'+m : m} Uhr). Buche jetzt deine Fahrt! 🕌`,
               icon: '/icon.png',
               tag: 'namaz-reminder'
@@ -82,7 +82,7 @@ export default function NotificationManager() {
     setShowPopup(false);
 
     if (res === 'granted') {
-      new Notification("Namaz Taxi", { body: "Benachrichtigungen aktiviert! ✅" });
+      new Notification("Ride 2 Salah", { body: "Benachrichtigungen aktiviert! ✅" });
       checkPrayerTimes(); 
     }
   };

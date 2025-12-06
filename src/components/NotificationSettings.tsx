@@ -21,7 +21,7 @@ export default function NotificationSettings() {
     const res = await Notification.requestPermission();
     setPermission(res);
     if (res === 'granted') {
-      new Notification("Namaz Taxi", { body: "Test: Benachrichtigungen funktionieren! 🔔" });
+      new Notification("Ride 2 Salah", { body: "Test: Benachrichtigungen funktionieren! 🔔" });
     }
   };
 
