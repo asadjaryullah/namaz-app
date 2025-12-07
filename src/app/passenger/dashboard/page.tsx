@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle } from "lucide-react";
+// 👇 ArrowLeft HINZUGEFÜGT
+import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle, ArrowLeft } from "lucide-react";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
@@ -116,7 +117,18 @@ function PassengerDashboardContent() {
   const driverStart = { lat: ride.start_lat, lng: ride.start_lon };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+      
+      {/* 👇 HIER IST DER NEUE ZURÜCK-BUTTON (Schwebend) */}
+      <div className="absolute top-4 left-4 z-50">
+        <Button 
+          size="icon" 
+          className="rounded-full bg-white text-slate-900 shadow-md hover:bg-slate-100 h-10 w-10"
+          onClick={() => router.push('/')}
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+      </div>
       
       {/* KARTE */}
       <div className="h-[50vh] w-full relative">

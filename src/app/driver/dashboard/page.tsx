@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { Card } from "@/components/ui/card";
-import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle } from "lucide-react";
+import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
@@ -33,6 +33,7 @@ const getWhatsAppLink = (phone: string, name: string) => {
   return `https://wa.me/${cleanNumber}?text=${text}`;
 };
 
+// Route zeichnen
 function Directions({ userLocation }: { userLocation: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -71,9 +72,9 @@ export default function DriverDashboard() {
   
   const rideEndedRef = useRef(false);
   
-  // --- NEU: Refs für die Benachrichtigungs-Logik ---
-  const previousCountRef = useRef(0);     // Wie viele waren es vor 5 Sek?
-  const isFirstLoadRef = useRef(true);    // Ist es das erste Laden?
+  // Refs für Notification-Logik
+  const previousCountRef = useRef(0);
+  const isFirstLoadRef = useRef(true);
 
   // 1. Eigene Fahrt laden
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function DriverDashboard() {
     fetchRide();
   }, []);
 
-  // 2. Passagiere laden & BENACHRICHTIGEN
+  // 2. Passagiere laden & Benachrichtigen
   useEffect(() => {
     if (!rideId) return;
     
@@ -117,30 +118,18 @@ export default function DriverDashboard() {
       if (data) {
         setPassengers(data);
 
-        // --- NEUE LOGIK: Hat jemand gebucht? ---
+        // Check: Neue Buchung?
         const currentCount = data.length;
         const prevCount = previousCountRef.current;
-
-        // Wenn es mehr sind als vorher UND es nicht das erste Laden der Seite ist
         if (!isFirstLoadRef.current && currentCount > prevCount) {
-          
-          // Versuchen, den Namen des Neuen zu finden (der letzte in der Liste)
           const newPassenger = data[data.length - 1]; 
           const name = newPassenger?.passenger_name || "Jemand";
-
-          // PUSH NACHRICHT SENDEN
           if (Notification.permission === "granted") {
-            new Notification("Neuer Mitfahrer! 🙋‍♂️", {
-              body: `${name} hat gerade deine Fahrt gebucht.`,
-              icon: "/icon.png"
-            });
+            new Notification("Neuer Mitfahrer! 🙋‍♂️", { body: `${name} hat gerade deine Fahrt gebucht.`, icon: "/icon.png" });
           } else {
-            // Fallback: Audio abspielen oder Alert (optional)
-            alert(`Neuer Mitfahrer: ${name} ist dabei!`);
+            // alert(`Neuer Mitfahrer: ${name} ist dabei!`); 
           }
         }
-
-        // Werte aktualisieren für den nächsten Check
         previousCountRef.current = currentCount;
         isFirstLoadRef.current = false;
       }
@@ -151,7 +140,7 @@ export default function DriverDashboard() {
     return () => clearInterval(interval);
   }, [rideId]);
 
-  // 3. Fahrt beenden
+  // 3. Fahrt erfolgreich beenden (Ankunft)
   const handleEndRide = async (auto = false) => {
     if (!rideId) return;
     if (rideEndedRef.current) return;
@@ -177,16 +166,43 @@ export default function DriverDashboard() {
     }
   };
 
-  // 4. GPS
+  // 4. Fahrt ABSAGEN (Stornieren)
+  const handleCancelRide = async () => {
+    if (!confirm("Möchtest du die Fahrt wirklich ABSAGEN? Alle Mitfahrer werden entfernt.")) return;
+    
+    setLoadingEnd(true);
+
+    // Erst Buchungen löschen
+    await supabase.from('bookings').delete().eq('ride_id', rideId);
+    // Dann Fahrt löschen
+    const { error } = await supabase.from('rides').delete().eq('id', rideId);
+
+    if (!error) {
+      alert("Fahrt wurde storniert.");
+      router.push('/'); 
+    } else {
+      alert("Fehler beim Stornieren: " + error.message);
+      setLoadingEnd(false);
+    }
+  };
+
+  // 5. GPS Tracking & Live-Update in DB
   useEffect(() => {
     if (!rideId || rideEndedRef.current) return;
 
     const watcher = navigator.geolocation.watchPosition(
-      (pos) => {
+      async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         setCurrentPos({ lat, lng });
 
+        // Position in DB speichern (für Mitfahrer sichtbar machen)
+        await supabase
+          .from('rides')
+          .update({ current_lat: lat, current_lon: lng })
+          .eq('id', rideId);
+
+        // Geofencing Check
         const distance = getDistanceInMeters(lat, lng, MOSQUE_LOCATION.lat, MOSQUE_LOCATION.lng);
         if (distance < 150) {
            handleEndRide(true);
@@ -200,7 +216,20 @@ export default function DriverDashboard() {
   }, [rideId]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+      
+      {/* Zurück-Button */}
+      <div className="absolute top-4 left-4 z-50">
+        <Button 
+          size="icon" 
+          className="rounded-full bg-white text-slate-900 shadow-md hover:bg-slate-100 h-10 w-10"
+          onClick={() => router.push('/')}
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* KARTE */}
       <div className="h-[55vh] w-full relative">
         <APIProvider apiKey={MAP_API_KEY}>
           <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={14} disableDefaultUI={true} mapId="DEMO_MAP_ID">
@@ -236,34 +265,50 @@ export default function DriverDashboard() {
         </APIProvider>
       </div>
 
+      {/* INFO UNTEN */}
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
+        
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Aktive Fahrt</h1>
-          <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">GPS AKTIV</span>
+          <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+            GPS AKTIV
+          </span>
         </div>
         
         <h3 className="text-sm font-bold text-slate-500 uppercase mb-3">Abholungen ({passengers.length})</h3>
         
         {passengers.length === 0 ? (
-          <p className="text-slate-400 text-sm mb-6 bg-slate-50 p-4 rounded-xl text-center border border-dashed">Noch keine Mitfahrer gebucht.</p>
+          <p className="text-slate-400 text-sm mb-6 bg-slate-50 p-4 rounded-xl text-center border border-dashed">
+            Noch keine Mitfahrer gebucht.
+          </p>
         ) : (
           <div className="space-y-3 mb-8">
             {passengers.map((p) => (
               <div key={p.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 animate-in slide-in-from-right duration-300">
                 <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-full border shadow-sm"><MapPin size={18} className="text-blue-600"/></div>
+                  <div className="bg-white p-2 rounded-full border shadow-sm">
+                    <MapPin size={18} className="text-blue-600"/>
+                  </div>
                   <div>
                     <p className="font-bold text-slate-900">{p.passenger_name}</p>
-                    <p className="text-xs text-slate-500">Wartet am Standort</p>
+                    <p className="text-xs text-slate-500">
+                       {/* Hier wird auf "seats_booked" zugegriffen - das muss in der DB existieren! */}
+                       {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'} warten
+                    </p>
                   </div>
                 </div>
+                
                 <div className="flex gap-2">
                   <a href={getWhatsAppLink(p.passenger_phone, p.passenger_name)} target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-sm text-white"><MessageCircle size={18} /></Button>
+                    <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-sm text-white">
+                      <MessageCircle size={18} />
+                    </Button>
                   </a>
                   <a href={`tel:${p.passenger_phone}`}>
-                    <Button size="icon" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 rounded-full h-10 w-10"><Phone size={18} /></Button>
+                    <Button size="icon" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 rounded-full h-10 w-10">
+                      <Phone size={18} />
+                    </Button>
                   </a>
                 </div>
               </div>
@@ -272,18 +317,38 @@ export default function DriverDashboard() {
         )}
 
         <div className="grid grid-cols-1 gap-3">
-          <Button variant="outline" className="w-full h-12 text-lg rounded-xl border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100" onClick={() => {
+          <Button 
+            variant="outline"
+            className="w-full h-12 text-lg rounded-xl border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+            onClick={() => {
                const origin = `${startPoint?.lat},${startPoint?.lng}`;
                const destination = `${MOSQUE_LOCATION.lat},${MOSQUE_LOCATION.lng}`;
                const waypoints = passengers.map(p => `${p.pickup_lat},${p.pickup_lon}`).join('|');
                window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`, '_blank');
-            }}>
+            }}
+          >
             <Navigation className="mr-2" size={20} /> Navigation starten
           </Button>
-          <Button className="w-full h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800" onClick={() => handleEndRide(false)} disabled={loadingEnd}>
-            {loadingEnd ? <Loader2 className="animate-spin mr-2"/> : <CheckSquare className="mr-2" size={20} />} Fahrt beenden
+
+          <Button 
+            className="w-full h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+            onClick={() => handleEndRide(false)}
+            disabled={loadingEnd}
+          >
+            {loadingEnd ? <Loader2 className="animate-spin mr-2"/> : <CheckSquare className="mr-2" size={20} />}
+            Fahrt beenden
+          </Button>
+
+          <Button 
+            variant="ghost"
+            className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+            onClick={handleCancelRide}
+            disabled={loadingEnd}
+          >
+            <XCircle className="mr-2" size={18} /> Fahrt absagen
           </Button>
         </div>
+
       </div>
     </div>
   );
