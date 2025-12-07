@@ -186,44 +186,37 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Wenn man schon eine Fahrt hat, blenden wir die Auswahl aus oder machen sie weniger prominent */}
-      {(!activeDriverRide && !activePassengerRide) && (
-        <div className="grid grid-cols-1 gap-4">
-          <Card 
-            className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-            onClick={() => router.push('/select-prayer?role=driver')}
-          >
-            <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-              <Car size={32} className="text-slate-900" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
-              <p className="text-sm text-slate-500">Ich biete Plätze an</p>
-            </div>
-          </Card>
+     {/* ... (Die blauen/grünen Banner für aktive Fahrten bleiben oben) ... */}
 
-          <Card 
-            className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-            onClick={() => router.push('/select-prayer?role=passenger')}
-          >
-            <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-              <User size={32} className="text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
-              <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* HAUPT-AUSWAHL (IMMER SICHTBAR, damit man weitere Gebete buchen kann) */}
+      <div className="grid grid-cols-1 gap-4">
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=driver')}
+        >
+          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
+            <Car size={32} className="text-slate-900" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
+            <p className="text-sm text-slate-500">Ich biete Plätze an</p>
+          </div>
+        </Card>
 
-      {/* Link zur Statistik */}
-      <div className="flex justify-center mt-2">
-        <Button variant="ghost" className="text-slate-500 hover:text-slate-900" onClick={() => router.push('/history')}>
-          📊 Meine Statistik ansehen
-        </Button>
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=passenger')}
+        >
+          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
+            <User size={32} className="text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
+            <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
+          </div>
+        </Card>
       </div>
-
+      
       <div className="w-full mt-2">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ziel</p>
         <div className="h-[200px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 relative">

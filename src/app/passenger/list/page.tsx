@@ -31,6 +31,7 @@ function PassengerListContent() {
             .eq('passenger_id', user.id)
             .eq('rides.status', 'active')
             .eq('rides.ride_date', today)
+            .eq('rides.prayer_id', prayerId)
             .maybeSingle();
 
         if (existingBooking) {
