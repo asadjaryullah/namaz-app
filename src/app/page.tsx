@@ -44,10 +44,8 @@ export default function HomePage() {
              return; 
           }
 
-          // 👇 HIER WAR DER FEHLER: Wir nutzen jetzt überall 'en-CA' (YYYY-MM-DD lokal)
           const today = new Date().toLocaleDateString('en-CA');
           
-          // 1. FAHRER CHECK
           const { data: driverRide } = await supabase
             .from('rides')
             .select('*')
@@ -58,14 +56,13 @@ export default function HomePage() {
           
           if(mounted && driverRide) setActiveDriverRide(driverRide);
 
-          // 2. MITFAHRER CHECK
           const { data: myBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
             .eq('passenger_id', session.user.id)
             .eq('status', 'accepted')
             .eq('rides.status', 'active')
-            .eq('rides.ride_date', today) // Auch hier das korrigierte Datum
+            .eq('rides.ride_date', today)
             .maybeSingle();
 
           if (mounted && myBooking) {
@@ -83,7 +80,6 @@ export default function HomePage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        // Bei Login/Logout Seite neu laden, damit alles frisch ist
         window.location.reload();
       }
     });
@@ -154,7 +150,19 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* BUTTONS FÜR LAUFENDE FAHRTEN */}
+      {/* 👇 HIER IST DAS NEUE JUBILÄUMSLOGO 👇 */}
+      <div className="flex justify-center -my-2">
+        <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
+          <Image 
+            src="/jubilaeum.png" 
+            alt="20 Jahre Jubiläum" 
+            fill 
+            className="object-contain"
+          />
+        </div>
+      </div>
+      {/* 👆 ENDE LOGO 👆 */}
+
       {activeDriverRide && (
         <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors animate-in slide-in-from-top-2"
              onClick={() => router.push('/driver/dashboard')}
@@ -179,7 +187,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* AUSWAHL (IMMER SICHTBAR) */}
       <div className="grid grid-cols-1 gap-4">
         <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
           <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
