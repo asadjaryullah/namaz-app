@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Car, User, Settings, Loader2, MapPin } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 
-// 👇 HIER DEINE EMAIL
 const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 export default function HomePage() {
@@ -19,7 +18,6 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
-  // Zwei Zustände für aktive Fahrten
   const [activeDriverRide, setActiveDriverRide] = useState<any>(null);
   const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
 
@@ -42,13 +40,14 @@ export default function HomePage() {
           if(mounted) setProfile(profileData);
 
           if (!profileData || !profileData.phone) {
-             router.push('/profile'); // Leitet zur Profilseite, wenn Daten fehlen
+             router.push('/profile');
              return; 
           }
 
-          const today = new Date().toISOString().split('T')[0];
+          // 👇 HIER WAR DER FEHLER: Wir nutzen jetzt überall 'en-CA' (YYYY-MM-DD lokal)
+          const today = new Date().toLocaleDateString('en-CA');
           
-          // 1. CHECK: Bin ich FAHRER einer aktiven Fahrt?
+          // 1. FAHRER CHECK
           const { data: driverRide } = await supabase
             .from('rides')
             .select('*')
@@ -59,18 +58,17 @@ export default function HomePage() {
           
           if(mounted && driverRide) setActiveDriverRide(driverRide);
 
-          // 2. CHECK: Bin ich MITFAHRER einer aktiven Fahrt?
-          // Wir suchen in 'bookings', ob es eine Buchung gibt, die zu einer aktiven Fahrt gehört
+          // 2. MITFAHRER CHECK
           const { data: myBooking } = await supabase
             .from('bookings')
-            .select('ride_id, rides ( status, ride_date )') // Join mit rides Tabelle
+            .select('ride_id, rides!inner(status, ride_date)')
             .eq('passenger_id', session.user.id)
-            .eq('status', 'accepted') // Nur akzeptierte Buchungen
+            .eq('status', 'accepted')
+            .eq('rides.status', 'active')
+            .eq('rides.ride_date', today) // Auch hier das korrigierte Datum
             .maybeSingle();
 
-          // Prüfen ob die verknüpfte Fahrt aktiv und von heute ist
-          // @ts-ignore (TypeScript meckert manchmal bei Joins, ist aber okay hier)
-          if (myBooking && myBooking.rides && myBooking.rides.status === 'active' && myBooking.rides.ride_date === today) {
+          if (mounted && myBooking) {
              setActivePassengerRide(myBooking.ride_id);
           }
         }
@@ -85,12 +83,8 @@ export default function HomePage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user);
-      } else {
-        setUser(null);
-        setProfile(null);
-        setActiveDriverRide(null);
-        setActivePassengerRide(null);
+        // Bei Login/Logout Seite neu laden, damit alles frisch ist
+        window.location.reload();
       }
     });
 
@@ -160,7 +154,7 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* --- BUTTON FÜR FAHRER (BLAU) --- */}
+      {/* BUTTONS FÜR LAUFENDE FAHRTEN */}
       {activeDriverRide && (
         <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors animate-in slide-in-from-top-2"
              onClick={() => router.push('/driver/dashboard')}
@@ -173,7 +167,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- BUTTON FÜR MITFAHRER (GRÜN) --- */}
       {activePassengerRide && (
         <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors animate-in slide-in-from-top-2"
              onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}
@@ -186,44 +179,24 @@ export default function HomePage() {
         </div>
       )}
 
-     {/* ... (Die blauen/grünen Banner für aktive Fahrten bleiben oben) ... */}
-
-      {/* HAUPT-AUSWAHL (IMMER SICHTBAR, damit man weitere Gebete buchen kann) */}
+      {/* AUSWAHL (IMMER SICHTBAR) */}
       <div className="grid grid-cols-1 gap-4">
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=driver')}
-        >
-          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <Car size={32} className="text-slate-900" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
-            <p className="text-sm text-slate-500">Ich biete Plätze an</p>
-          </div>
+        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
+          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
+          <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
         </Card>
 
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=passenger')}
-        >
-          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <User size={32} className="text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
-            <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
-          </div>
+        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=passenger')}>
+          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
+          <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
         </Card>
       </div>
-      
+
       <div className="w-full mt-2">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ziel</p>
         <div className="h-[200px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 relative">
           <MapComponent />
-          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-center text-xs font-bold text-green-800 border-t">
-            📍 Bashir Moschee, Bensheim
-          </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-center text-xs font-bold text-green-800 border-t">📍 Bashir Moschee, Bensheim</div>
         </div>
       </div>
 
