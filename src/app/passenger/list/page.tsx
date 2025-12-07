@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { User, ChevronLeft, MapPin, Loader2, Users, Plus, Minus } from "lucide-react";
+import { User, ChevronLeft, MapPin, Loader2, Users } from "lucide-react";
 
 function PassengerListContent() {
   const router = useRouter();
@@ -16,125 +16,185 @@ function PassengerListContent() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingRideId, setBookingRideId] = useState<string | null>(null);
-  
-  // Wie viele Sitze will ich buchen? (State)
-  const [seatsRequest, setSeatsRequest] = useState(1);
-
-  const fetchRidesAndBookings = async () => {
-    const today = new Date().toLocaleDateString('en-CA');
-
-    const { data: ridesData } = await supabase
-      .from('rides')
-      .select('*')
-      .eq('prayer_id', prayerId)
-      .eq('status', 'active')
-      .eq('ride_date', today);
-
-    if (!ridesData) { setLoading(false); return; }
-
-    const rideIds = ridesData.map(r => r.id);
-    const { data: bookingsData } = await supabase
-      .from('bookings')
-      .select('ride_id, seats_booked') // Wichtig: seats_booked mitladen
-      .in('ride_id', rideIds)
-      .eq('status', 'accepted');
-
-    const ridesWithCounts = ridesData.map(ride => {
-      // Summe aller gebuchten Sitze berechnen
-      const takenSeats = bookingsData
-        ?.filter(b => b.ride_id === ride.id)
-        .reduce((sum, b) => sum + (b.seats_booked || 1), 0) || 0;
-      
-      const freeSeats = ride.seats - takenSeats;
-      return { ...ride, freeSeats };
-    });
-
-    setRides(ridesWithCounts);
-    setLoading(false);
-  };
 
   useEffect(() => {
+    const fetchRidesAndBookings = async () => {
+      // 1. Datum von Heute
+      const today = new Date().toISOString().split('T')[0];
+
+      // 2. CHECK: Habe ich heute schon eine Fahrt? (Doppelbuchungsschutz)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: existingBooking } = await supabase
+            .from('bookings')
+            .select('ride_id, rides!inner(status, ride_date)')
+            .eq('passenger_id', user.id)
+            .eq('rides.status', 'active')
+            .eq('rides.ride_date', today)
+            .maybeSingle();
+
+        if (existingBooking) {
+            alert("Du hast bereits eine aktive Fahrt für heute!");
+            router.push(`/passenger/dashboard?rideId=${existingBooking.ride_id}`);
+            return;
+        }
+      }
+
+      // 3. Fahrten laden (Variable ridesData definieren)
+      const { data: ridesData, error: ridesError } = await supabase
+        .from('rides')
+        .select('*')
+        .eq('prayer_id', prayerId)
+        .eq('status', 'active')
+        .eq('ride_date', today);
+
+      if (ridesError || !ridesData) {
+        setLoading(false);
+        return; // Abbruch wenn Fehler
+      }
+
+      // 4. Buchungen laden (um freie Plätze zu berechnen)
+      const rideIds = ridesData.map((r: any) => r.id);
+      const { data: bookingsData } = await supabase
+        .from('bookings')
+        .select('ride_id')
+        .in('ride_id', rideIds)
+        .eq('status', 'accepted');
+
+      // 5. Zusammenrechnen
+      const ridesWithCounts = ridesData.map((ride: any) => {
+        const takenSeats = bookingsData?.filter((b: any) => b.ride_id === ride.id).length || 0;
+        const freeSeats = ride.seats - takenSeats;
+        return { ...ride, freeSeats };
+      });
+
+      setRides(ridesWithCounts);
+      setLoading(false);
+    };
+
     fetchRidesAndBookings();
+    
+    // Live-Update alle 5 Sek
     const interval = setInterval(fetchRidesAndBookings, 5000);
     return () => clearInterval(interval);
-  }, [prayerId]);
 
+  }, [prayerId, router]); // Router und PrayerId als Dependency
+
+  // --- BUCHUNGS-LOGIK ---
   const handleBookRide = async (rideId: string) => {
     setBookingRideId(rideId); 
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { alert("Bitte anmelden!"); router.push('/login'); return; }
+    
+    // Nicht eingeloggt? -> Login
+    if (!user) {
+      alert("Bitte melde dich kurz an, um mitzufahren!");
+      router.push('/login');
+      return;
+    }
 
-    const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
 
-    if (!navigator.geolocation) { alert("GPS fehlt."); setBookingRideId(null); return; }
+    if (!navigator.geolocation) {
+      alert("GPS nicht verfügbar.");
+      setBookingRideId(null);
+      return;
+    }
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
         const { error } = await supabase.from('bookings').insert({
           ride_id: rideId,
           passenger_id: user.id,
           passenger_name: profile?.full_name || "Mitfahrer",
           passenger_phone: profile?.phone || "",
-          pickup_lat: position.coords.latitude,
-          pickup_lon: position.coords.longitude,
-          status: 'accepted',
-          seats_booked: seatsRequest // <--- HIER SPEICHERN WIR DIE ANZAHL
+          pickup_lat: lat,
+          pickup_lon: lon,
+          status: 'accepted' 
         });
 
-        if (error) alert("Fehler: " + error.message);
-        else router.push(`/passenger/dashboard?rideId=${rideId}`);
+        setBookingRideId(null);
+
+        if (error) {
+          alert("Fehler: " + error.message);
+        } else {
+          router.push(`/passenger/dashboard?rideId=${rideId}`);
+        }
       },
-      () => { setBookingRideId(null); alert("GPS benötigt."); }
+      (err) => {
+        setBookingRideId(null);
+        alert("GPS wird benötigt!");
+      }
     );
   };
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">
+      
       <div className="w-full max-w-md flex items-center mb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.back()}><ChevronLeft /></Button>
+        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
         <div className="ml-2">
           <h1 className="text-xl font-bold">Verfügbare Fahrer</h1>
-          <p className="text-xs text-slate-500">Für {prayerId} um {prayerTime} Uhr</p>
+          <p className="text-xs text-slate-500">
+             Für {prayerId} um {prayerTime} Uhr
+          </p>
         </div>
       </div>
 
-      {loading ? <Loader2 className="animate-spin text-slate-400" /> : rides.length === 0 ? <p className="mt-10 text-slate-500">Keine Fahrer gefunden.</p> : (
+      {loading ? (
+        <div className="py-20"><Loader2 className="animate-spin text-slate-400 h-8 w-8" /></div>
+      ) : rides.length === 0 ? (
+        <div className="text-center mt-10 p-6 bg-white rounded-xl shadow border">
+          <p className="text-lg font-semibold text-slate-700">Keine Fahrer gefunden 😔</p>
+          <Button className="mt-4" onClick={() => router.push('/')}>Zurück</Button>
+        </div>
+      ) : (
         <div className="w-full max-w-md space-y-4">
           {rides.map((ride) => {
-            const isFull = ride.freeSeats < seatsRequest; // Prüfen ob genug Platz für Wunsch ist
+            const isFull = ride.freeSeats <= 0;
 
             return (
-              <Card key={ride.id} className="p-5 border-l-4 border-l-slate-900 shadow-sm">
+              <Card key={ride.id} className={`p-5 border-l-4 shadow-sm transition-all ${isFull ? 'border-l-gray-300 opacity-70' : 'border-l-slate-900'}`}>
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-3">
-                    <div className="bg-slate-100 p-3 rounded-full"><User className="h-6 w-6 text-slate-700"/></div>
+                    <div className={`p-3 rounded-full ${isFull ? 'bg-gray-100' : 'bg-slate-100'}`}>
+                      <User className={`h-6 w-6 ${isFull ? 'text-gray-400' : 'text-slate-700'}`} />
+                    </div>
                     <div>
                       <h3 className="font-bold text-lg">{ride.driver_name}</h3>
-                      <div className="text-sm text-green-600 flex items-center gap-1 mt-1"><MapPin size={12}/> Zur Moschee</div>
-                      <span className={`text-xs font-bold mt-1 block ${ride.freeSeats === 0 ? 'text-red-500' : 'text-slate-500'}`}>
-                        Noch {ride.freeSeats} Plätze frei
-                      </span>
+                      <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                        <MapPin size={12} /> Fährt zur Moschee
+                      </div>
+                      
+                      <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${
+                        isFull ? 'text-red-500' : ride.freeSeats === 1 ? 'text-orange-500' : 'text-green-600'
+                      }`}>
+                        <Users size={12} />
+                        {isFull 
+                          ? "Auto voll belegt" 
+                          : `Noch ${ride.freeSeats} ${ride.freeSeats === 1 ? 'Platz' : 'Plätze'} frei`
+                        }
+                      </div>
+
                     </div>
                   </div>
                 </div>
 
-                {/* SITZPLATZ WAHL */}
-                <div className="mt-4 flex items-center justify-between bg-slate-50 p-2 rounded-lg">
-                  <span className="text-sm font-medium text-slate-600 pl-2">Ich brauche:</span>
-                  <div className="flex items-center gap-3">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSeatsRequest(Math.max(1, seatsRequest - 1))}><Minus size={14}/></Button>
-                    <span className="font-bold w-4 text-center">{seatsRequest}</span>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setSeatsRequest(Math.min(ride.freeSeats, seatsRequest + 1))} disabled={seatsRequest >= ride.freeSeats}><Plus size={14}/></Button>
-                  </div>
-                </div>
-
                 <Button 
-                  className="w-full mt-3 bg-slate-900 hover:bg-slate-800"
+                  className={`w-full mt-4 ${isFull ? 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300' : 'bg-slate-900 hover:bg-slate-800'}`}
                   disabled={bookingRideId === ride.id || isFull}
                   onClick={() => handleBookRide(ride.id)}
                 >
-                  {bookingRideId === ride.id ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : isFull ? "Nicht genug Platz" : `Für ${seatsRequest} Person(en) buchen`}
+                  {bookingRideId === ride.id ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : isFull ? "Leider voll" : "Mitfahren & Standort senden"}
                 </Button>
               </Card>
             );
@@ -146,5 +206,9 @@ function PassengerListContent() {
 }
 
 export default function PassengerListPage() {
-  return <Suspense fallback={<div>Lade...</div>}><PassengerListContent /></Suspense>;
+  return (
+    <Suspense fallback={<div>Lade...</div>}>
+      <PassengerListContent />
+    </Suspense>
+  );
 }
