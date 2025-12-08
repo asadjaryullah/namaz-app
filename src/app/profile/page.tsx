@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import LocationSettings from '@/components/LocationSettings';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
 // 👇 HIER IST DIE KORREKTUR:
@@ -146,8 +147,17 @@ export default function ProfilePage() {
             <p className="text-xs text-slate-500 mb-3">
               Erlaube Push-Nachrichten, um zu erfahren, wann der Fahrer ankommt.
             </p>
-            {/* 👇 HIER WURDE DER NAME ANGEPASST */}
-            <NotificationSettings />
+          </div>
+          
+           <NotificationSettings />
+
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Wird benötigt, damit Fahrer und Mitfahrer sich finden.
+            </p>
+            {/* HIER EINFÜGEN: */}
+            <LocationSettings />
           </div>
 
         </CardContent>
