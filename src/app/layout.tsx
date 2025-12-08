@@ -8,6 +8,8 @@ import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
 import InstallPrompt from "@/components/InstallPrompt"; // <--- NEU
+import OneSignalInit from "@/components/OneSignalInit";
+
 
 const amiri = Amiri({
   subsets: ["arabic"],
@@ -44,6 +46,7 @@ export default function RootLayout({
       <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
         {/* --- HINTERGRUND-KOMPONENTEN --- */}
+         <OneSignalInit />
         <InstallPrompt />      {/* Zeigt Installations-Hilfe auf iPhone */}
         <NotificationManager /> {/* Push Nachrichten Logik */}
         <MosqueDetector />      {/* GPS Auto-Checkin */}
