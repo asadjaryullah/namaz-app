@@ -6,11 +6,10 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-// 👇 AlertTriangle HINZUGEFÜGT
-import { Car, User, Settings, Loader2, MapPin, AlertTriangle } from "lucide-react";
+import { Car, User, Settings, Loader2, AlertTriangle } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
@@ -24,6 +23,11 @@ export default function HomePage() {
 
   useEffect(() => {
     let mounted = true;
+
+    // 1. SICHERHEITS-TIMER: Falls Supabase hängt, brechen wir nach 2 Sek ab
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 2000);
 
     const checkSession = async () => {
       try {
@@ -39,9 +43,6 @@ export default function HomePage() {
             .single();
           
           if(mounted) setProfile(profileData);
-
-          // ❌ HIER WURDE GELÖSCHT: Der aggressive Redirect ist weg!
-          // (if (!profileData || !profileData.phone) router.push...)
 
           const today = new Date().toLocaleDateString('en-CA');
           
@@ -69,7 +70,7 @@ export default function HomePage() {
           }
         }
       } catch (error) {
-        console.error("Session check failed", error);
+        console.error("Fehler:", error);
       } finally {
         if(mounted) setLoading(false);
       }
@@ -77,18 +78,26 @@ export default function HomePage() {
 
     checkSession();
 
+    // HIER WAR DER FEHLER: Wir laden NICHT mehr neu, sondern setzen nur den User
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        window.location.reload();
+      if (mounted) {
+        setUser(session?.user ?? null);
+        if(!session?.user) {
+           setProfile(null);
+           setActiveDriverRide(null);
+           setActivePassengerRide(null);
+        }
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
+  // Ladebildschirm
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
@@ -100,11 +109,12 @@ export default function HomePage() {
     );
   }
 
+  // Nicht eingeloggt
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
         <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
-          <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
+          <div className="relative w-[280px] h-[180px] mb-4">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
@@ -138,10 +148,9 @@ export default function HomePage() {
     );
   }
 
+  // Eingeloggt
   const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  
-  // Prüfen ob Daten fehlen
   const missingData = !profile?.phone;
 
   return (
@@ -152,104 +161,59 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* JUBILÄUMSLOGO */}
       <div className="flex justify-center -my-2">
         <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-          <Image 
-            src="/jubilaeum.png" 
-            alt="20 Jahre Jubiläum" 
-            fill 
-            className="object-contain"
-          />
+          <Image src="/jubilaeum.png" alt="Jubiläum" fill className="object-contain" />
         </div>
       </div>
 
-      {/* --- NEU: WARNHINWEIS WENN DATEN FEHLEN (Statt Loop) --- */}
       {missingData && (
         <div 
           onClick={() => router.push('/profile')}
-          className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors animate-pulse"
+          className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors"
         >
           <AlertTriangle className="text-red-600 shrink-0" />
           <div>
             <p className="text-sm font-bold text-red-800">Profil unvollständig</p>
-            <p className="text-xs text-red-700 mt-1">Bitte trage deine Nummer ein, um Fahrten nutzen zu können.</p>
+            <p className="text-xs text-red-700 mt-1">Bitte trage deine Nummer ein.</p>
           </div>
         </div>
       )}
-      {/* ------------------------------------------ */}
 
       {activeDriverRide && (
-        <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors"
-             onClick={() => router.push('/driver/dashboard')}
-        >
-          <div>
-            <p className="font-bold text-lg">Du bist Fahrer</p>
-            <p className="text-blue-100 text-sm">Zur Navigation / Mitfahrer sehen</p>
-          </div>
+        <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors" onClick={() => router.push('/driver/dashboard')}>
+          <div><p className="font-bold text-lg">Du bist Fahrer</p><p className="text-blue-100 text-sm">Zur Navigation</p></div>
           <div className="bg-white/20 p-2 rounded-full animate-pulse"><Car /></div>
         </div>
       )}
 
       {activePassengerRide && (
-        <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors"
-             onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}
-        >
-          <div>
-            <p className="font-bold text-lg">Du fährst mit</p>
-            <p className="text-green-100 text-sm">Standort & Details ansehen</p>
-          </div>
+        <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors" onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}>
+          <div><p className="font-bold text-lg">Du fährst mit</p><p className="text-green-100 text-sm">Standort ansehen</p></div>
           <div className="bg-white/20 p-2 rounded-full animate-pulse"><User /></div>
         </div>
       )}
 
       <div className="grid grid-cols-1 gap-4">
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=driver')}
-        >
-          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <Car size={32} className="text-slate-900" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Fahrer</h2>
-            <p className="text-sm text-slate-500">Ich biete Plätze an</p>
-          </div>
+        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=driver')}>
+          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
+          <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
         </Card>
 
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=passenger')}
-        >
-          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center">
-            <User size={32} className="text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2>
-            <p className="text-sm text-slate-500">Ich suche eine Fahrt</p>
-          </div>
+        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=passenger')}>
+          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
+          <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
         </Card>
       </div>
 
-      <div className="w-full mt-6">
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Ziel</p>
-        <div className="h-[250px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 relative">
-          <MapComponent />
-          <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-2 text-center text-xs font-bold text-green-800 border-t">
-            📍 Bashir Moschee, Bensheim
-          </div>
-        </div>
+      <div className="w-full mt-2 h-[200px] rounded-2xl overflow-hidden shadow-xl bg-slate-200 relative">
+         <MapComponent />
       </div>
 
       {isAdmin && (
         <div className="mt-8 pt-8 border-t border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Admin</p>
-          <Button 
-            variant="outline" 
-            className="w-full justify-start gap-3 h-12 text-slate-600"
-            onClick={() => router.push('/admin')} 
-          >
-            <Settings size={18} /> Gebetszeiten bearbeiten
+          <Button variant="outline" className="w-full" onClick={() => router.push('/admin')}>
+            <Settings size={18} className="mr-2" /> Admin Bereich
           </Button>
         </div>
       )}
