@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image'; // <--- WICHTIG: Image Import hinzugefügt
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,25 +24,68 @@ const getIcon = (id: string) => {
   }
 };
 
-function CarSeatSelector({ availableSeats, onChange }: { availableSeats: number, onChange: (n: number) => void }) {
+// --- AUTO SITZPLAN KOMPONENTE (Mit driver-icon.png) ---
+function CarSeatSelector({ 
+  availableSeats, 
+  onChange 
+}: { 
+  availableSeats: number, 
+  onChange: (n: number) => void 
+}) {
   const [seats, setSeats] = useState([true, true, true, true]);
+
   const toggleSeat = (index: number) => {
     const newSeats = [...seats];
     newSeats[index] = !newSeats[index];
     setSeats(newSeats);
-    onChange(newSeats.filter(s => s).length);
+    const count = newSeats.filter(s => s).length;
+    onChange(count);
   };
+
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
-      <p className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">Freie Plätze ({availableSeats})</p>
+      <p className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">
+        Wähle freie Plätze ({availableSeats})
+      </p>
+      
       <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
+        
+        {/* Windschutzscheibe */}
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
+
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
-          <div className="flex flex-col items-center"><div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner"><span className="text-xl">👮‍♂️</span></div><span className="text-[10px] text-slate-400 font-bold mt-1">DU</span></div>
-          {[0,1,2].map(i => (
-            <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[i] ? '✔' : '❌'}</button>
-          ))}
-          <div className="col-span-2 flex justify-center -mt-2"><button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[3] ? '✔' : '❌'}</button></div>
+          
+          {/* FAHRER SITZ (Mit Bild) */}
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner relative overflow-hidden">
+               {/* HIER IST DAS BILD */}
+               <Image 
+                 src="/driver-icon.png" 
+                 alt="Fahrer" 
+                 fill
+                 className="object-contain p-1"
+               />
+            </div>
+            <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
+          </div>
+
+          <button onClick={() => toggleSeat(0)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[0] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+            {seats[0] ? '✔' : '❌'}
+          </button>
+
+          <button onClick={() => toggleSeat(1)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[1] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+             {seats[1] ? '✔' : '❌'}
+          </button>
+
+          <button onClick={() => toggleSeat(2)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[2] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+             {seats[2] ? '✔' : '❌'}
+          </button>
+          
+          <div className="col-span-2 flex justify-center -mt-2">
+             <button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+                 {seats[3] ? '✔' : '❌'}
+              </button>
+          </div>
         </div>
       </div>
       <p className="text-xs text-slate-400 mt-2">Tippe auf einen Sitz, um ihn zu blockieren.</p>

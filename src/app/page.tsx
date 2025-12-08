@@ -161,11 +161,17 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      <div className="flex justify-center -my-2">
-        <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-          <Image src="/jubilaeum.png" alt="Jubiläum" fill className="object-contain" />
-        </div>
-      </div>
+      {/* Ändere -my-2 zu my-6 oder my-8 für mehr Abstand */}
+<div className="flex justify-center my-6"> 
+  <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
+    <Image 
+      src="/jubilaeum.png" 
+      alt="20 Jahre Jubiläum" 
+      fill 
+      className="object-contain"
+    />
+  </div>
+</div>
 
       {missingData && (
         <div 
