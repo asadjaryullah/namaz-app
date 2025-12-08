@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   try {
     // 2. Jetzt erst konfigurieren
     webpush.setVapidDetails(
-      'mailto:asad.jaryullah@googlemail.com', // Deine Email
+      'mailto:asad.jaryullah@gmail.com', // Deine Email
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     );

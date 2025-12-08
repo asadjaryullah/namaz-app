@@ -7,6 +7,7 @@ import "./globals.css";
 import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
+import InstallPrompt from "@/components/InstallPrompt"; // <--- NEU
 
 const amiri = Amiri({
   subsets: ["arabic"],
@@ -43,10 +44,12 @@ export default function RootLayout({
       <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
         {/* --- HINTERGRUND-KOMPONENTEN --- */}
-        {/* Diese laufen immer, egal auf welcher Seite man ist */}
+        <InstallPrompt />      {/* Zeigt Installations-Hilfe auf iPhone */}
+        <NotificationManager /> {/* Push Nachrichten Logik */}
+        <MosqueDetector />      {/* GPS Auto-Checkin */}
+        
+        {/* --- NAVIGATION --- */}
         <ProfileBar />
-        <NotificationManager />
-        <MosqueDetector />
         
         {/* --- HAUPTINHALT --- */}
         <div className="flex-1">

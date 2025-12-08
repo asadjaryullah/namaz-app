@@ -11,7 +11,7 @@ import { ChevronLeft, Loader2, Save, LogOut, CheckCircle2 } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import ProfileBar from '@/components/ProfileBar'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
