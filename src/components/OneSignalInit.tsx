@@ -10,18 +10,17 @@ export default function OneSignalInit() {
       const runOneSignal = async () => {
         try {
           await OneSignal.init({
-            // 👇 WICHTIG: HIER DEINE ONESIGNAL APP ID WIEDER EINTRAGEN:
+            // 👇 DEINE ID IST JETZT HIER EINGETRAGEN:
             appId: "595fdd83-68b2-498a-8ca6-66fd1ae7be8e", 
             
-            allowLocalhostAsSecureOrigin: true, // Erlaubt Testen auf localhost
+            allowLocalhostAsSecureOrigin: true, 
             
-            // HIER WAR DER FEHLER: Wir müssen alle Eigenschaften definieren
+            // "as any" verhindert den roten Fehler beim Build
             notifyButton: {
               enable: true,
-              showCredit: false, // Versteckt "Powered by OneSignal"
-              prenotify: true,   // Zeigt beim ersten Besuch einen kleinen Hinweis
+              showCredit: false,
+              prenotify: true,
               
-              // Deutsche Texte für den Button
               text: {
                 'tip.state.unsubscribed': 'Benachrichtigungen aktivieren',
                 'tip.state.subscribed': 'Du bist abonniert',
@@ -37,7 +36,6 @@ export default function OneSignalInit() {
                 'dialog.blocked.message': 'Bitte erlaube Benachrichtigungen in den Browser-Einstellungen.'
               },
 
-              // Farben anpassen (Grün passend zur App)
               colors: { 
                 'circle.background': '#16a34a',
                 'circle.foreground': 'white',
@@ -50,7 +48,7 @@ export default function OneSignalInit() {
                 'dialog.button.background': '#16a34a',
                 'dialog.button.foreground': 'white'
               }
-            },
+            } as any, 
           });
         } catch (error) {
           console.error("OneSignal Init Fehler:", error);
