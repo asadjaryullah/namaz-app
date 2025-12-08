@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { UserCircle, LogOut, Settings } from "lucide-react"; // <--- Settings importieren
+// 👇 "Home" Icon hinzugefügt
+import { UserCircle, LogOut, Settings, Home } from "lucide-react"; 
 import { useRouter } from 'next/navigation';
 
 export default function ProfileBar() {
@@ -44,11 +45,22 @@ export default function ProfileBar() {
   const firstName = fullName.split(' ')[0] || "Nutzer"; 
 
   return (
-    <div className="w-full bg-white border-b px-4 py-3 flex items-center justify-end shadow-sm sticky top-0 z-50">
+    // "justify-between" sorgt dafür: Haus links <---> Profil rechts
+    <div className="w-full bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
       
+      {/* 🏠 BUTTON GANZ LINKS: HOME */}
+      <button 
+        onClick={() => router.push('/')}
+        className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors"
+        title="Zur Startseite"
+      >
+        <Home className="h-6 w-6" />
+      </button>
+
+      {/* RECHTE SEITE: Profil, Settings, Logout */}
       <div className="flex items-center gap-2">
         
-        {/* BUTTON ZUR HISTORY */}
+        {/* 1. BUTTON: ZUR STATISTIK (Klick auf Name) */}
         <div 
           onClick={() => router.push('/history')} 
           className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 group"
@@ -65,16 +77,16 @@ export default function ProfileBar() {
           </div>
         </div>
 
-        {/* PROFIL BEARBEITEN BUTTON (NEU) */}
+        {/* 2. BUTTON: PROFIL BEARBEITEN */}
         <button 
-          onClick={() => router.push('/profile')}
+          onClick={() => router.push('/profile')} 
           className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
-          title="Profil bearbeiten"
+          title="Daten ändern"
         >
           <Settings className="h-5 w-5" />
         </button>
 
-        {/* LOGOUT BUTTON */}
+        {/* 3. BUTTON: LOGOUT */}
         <button 
           onClick={handleLogout}
           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
