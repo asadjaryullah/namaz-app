@@ -1,54 +1,38 @@
 import { NextResponse } from 'next/server';
-import webpush from 'web-push';
-import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e"; // Deine ID
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 export async function POST(request: Request) {
-  // 1. Erst prüfen, ob die Keys da sind. Wenn nicht, Fehler abfangen (verhindert Build-Crash)
-  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
-    console.error("VAPID Keys fehlen!");
-    return NextResponse.json({ message: 'Server Konfiguration fehlt' }, { status: 500 });
-  }
-
   try {
-    // 2. Jetzt erst konfigurieren
-    webpush.setVapidDetails(
-      'mailto:asad.jaryullah@gmail.com', // Deine Email
-      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
-    );
+    const { title, message } = await request.json();
 
-    const { userId, title, body, url } = await request.json();
-
-    // 3. Suche das Abo des Users
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_id', userId);
-
-    if (!subs || subs.length === 0) {
-      return NextResponse.json({ message: 'Kein Abo gefunden' }, { status: 404 });
+    if (!title || !message) {
+      return NextResponse.json({ error: 'Titel und Nachricht fehlen' }, { status: 400 });
     }
 
-    // 4. An alle Geräte senden
-    const notifications = subs.map(sub => {
-      const pushConfig = {
-        endpoint: sub.endpoint,
-        keys: { auth: sub.auth, p256dh: sub.p256dh }
-      };
-      return webpush.sendNotification(pushConfig, JSON.stringify({ title, body, url }));
+    // Nachricht an OneSignal senden (SOFORT)
+    const body = {
+      app_id: ONESIGNAL_APP_ID,
+      headings: { en: title },
+      contents: { en: message },
+      included_segments: ["All"], // An alle
+      url: "https://ride2salah.vercel.app" // Klick öffnet App
+    };
+
+    const response = await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+      },
+      body: JSON.stringify(body)
     });
 
-    await Promise.all(notifications);
-
-    return NextResponse.json({ success: true });
+    const data = await response.json();
+    return NextResponse.json({ success: true, data });
 
   } catch (error: any) {
-    console.error("Push Error:", error);
-    return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
