@@ -19,10 +19,10 @@ function PassengerListContent() {
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
-      // 1. Datum von Heute
-      const today = new Date().toISOString().split('T')[0];
+      // 1. Datum von Heute (Lokalzeit korrigiert!)
+      const today = new Date().toLocaleDateString('en-CA');
 
-      // 2. CHECK: Habe ich heute schon eine Fahrt? (Doppelbuchungsschutz)
+      // 2. CHECK: Habe ich heute schon eine Fahrt?
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: existingBooking } = await supabase
@@ -35,13 +35,13 @@ function PassengerListContent() {
             .maybeSingle();
 
         if (existingBooking) {
-            alert("Du hast bereits eine aktive Fahrt für heute!");
+            alert("Du hast bereits eine aktive Fahrt für dieses Gebet!");
             router.push(`/passenger/dashboard?rideId=${existingBooking.ride_id}`);
             return;
         }
       }
 
-      // 3. Fahrten laden (Variable ridesData definieren)
+      // 3. Fahrten laden
       const { data: ridesData, error: ridesError } = await supabase
         .from('rides')
         .select('*')
@@ -51,10 +51,10 @@ function PassengerListContent() {
 
       if (ridesError || !ridesData) {
         setLoading(false);
-        return; // Abbruch wenn Fehler
+        return; 
       }
 
-      // 4. Buchungen laden (um freie Plätze zu berechnen)
+      // 4. Buchungen laden (Plätze zählen)
       const rideIds = ridesData.map((r: any) => r.id);
       const { data: bookingsData } = await supabase
         .from('bookings')
@@ -79,15 +79,14 @@ function PassengerListContent() {
     const interval = setInterval(fetchRidesAndBookings, 5000);
     return () => clearInterval(interval);
 
-  }, [prayerId, router]); // Router und PrayerId als Dependency
+  }, [prayerId, router]); 
 
-  // --- BUCHUNGS-LOGIK ---
+  // --- BUCHUNGS-LOGIK (MIT PUSH NACHRICHT) ---
   const handleBookRide = async (rideId: string) => {
     setBookingRideId(rideId); 
 
     const { data: { user } } = await supabase.auth.getUser();
     
-    // Nicht eingeloggt? -> Login
     if (!user) {
       alert("Bitte melde dich kurz an, um mitzufahren!");
       router.push('/login');
@@ -111,27 +110,37 @@ function PassengerListContent() {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        const { error } = await supabase.from('bookings').insert({
-          ride_id: rideId,
-          passenger_id: user.id,
-          passenger_name: profile?.full_name || "Mitfahrer",
-          passenger_phone: profile?.phone || "",
-          pickup_lat: lat,
-          pickup_lon: lon,
-          status: 'accepted' 
-        });
+        // 👇 WICHTIG: HIER RUFEN WIR JETZT DIE API AUF (STATT DIREKT DB)
+        try {
+          const response = await fetch('/api/book-ride', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ride_id: rideId,
+              passenger_id: user.id,
+              passenger_name: profile?.full_name || "Mitfahrer",
+              passenger_phone: profile?.phone || "",
+              pickup_lat: lat,
+              pickup_lon: lon
+            })
+          });
 
-        setBookingRideId(null);
+          const result = await response.json();
 
-        if (error) {
-          alert("Fehler: " + error.message);
-        } else {
+          if (!response.ok) throw new Error(result.error);
+
+          // Erfolg -> Weiterleiten
           router.push(`/passenger/dashboard?rideId=${rideId}`);
+
+        } catch (err: any) {
+          alert("Fehler bei der Buchung: " + err.message);
+          setBookingRideId(null);
         }
+        // -----------------------------------------------------------
       },
       (err) => {
         setBookingRideId(null);
-        alert("GPS wird benötigt!");
+        alert("GPS wird benötigt, damit der Fahrer dich findet!");
       }
     );
   };

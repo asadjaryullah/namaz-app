@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Car, User, Settings, Loader2, AlertTriangle } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
+import OneSignal from 'react-onesignal'; 
 
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
@@ -29,20 +30,18 @@ export default function HomePage() {
       if (mounted) setLoading(false);
     }, 2000);
 
-    const checkSession = async () => {
+        const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
+          // 👇 HIER EINFÜGEN: Wir verknüpfen OneSignal mit der Supabase ID
+          if (typeof window !== 'undefined') {
+            OneSignal.login(session.user.id);
+          }
+          // -----------------------------------------------------------
+
           if(mounted) setUser(session.user);
-          
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if(mounted) setProfile(profileData);
 
           const today = new Date().toLocaleDateString('en-CA');
           
