@@ -6,11 +6,11 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Car, User, Settings, Loader2, AlertTriangle } from "lucide-react";
+import { Car, User, Settings, Loader2, AlertTriangle, MapPin } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,23 +25,32 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    // 1. SICHERHEITS-TIMER: Falls Supabase hängt, brechen wir nach 2 Sek ab
+    // 1. SICHERHEITS-TIMER
     const safetyTimer = setTimeout(() => {
       if (mounted) setLoading(false);
     }, 2000);
 
-        const checkSession = async () => {
+    const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // 👇 HIER EINFÜGEN: Wir verknüpfen OneSignal mit der Supabase ID
+          // OneSignal Login
           if (typeof window !== 'undefined') {
-            OneSignal.login(session.user.id);
+            try { OneSignal.login(session.user.id); } catch(e) {}
           }
-          // -----------------------------------------------------------
 
           if(mounted) setUser(session.user);
+          
+          // 👇 HIER IST DIE KORREKTUR: .throwOnError() erzwingt echte Daten!
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+            .throwOnError(); // <--- DAS HAT GEFEHLT!
+          
+          if(mounted && profileData) setProfile(profileData);
 
           const today = new Date().toLocaleDateString('en-CA');
           
@@ -69,7 +78,7 @@ export default function HomePage() {
           }
         }
       } catch (error) {
-        console.error("Fehler:", error);
+        console.error("Fehler beim Laden:", error);
       } finally {
         if(mounted) setLoading(false);
       }
@@ -77,7 +86,6 @@ export default function HomePage() {
 
     checkSession();
 
-    // HIER WAR DER FEHLER: Wir laden NICHT mehr neu, sondern setzen nur den User
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mounted) {
         setUser(session?.user ?? null);
@@ -94,7 +102,7 @@ export default function HomePage() {
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // Ladebildschirm
   if (loading) {
@@ -113,7 +121,7 @@ export default function HomePage() {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
         <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
-          <div className="relative w-[280px] h-[180px] mb-4">
+          <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
@@ -160,17 +168,17 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* Ändere -my-2 zu my-6 oder my-8 für mehr Abstand */}
-<div className="flex justify-center my-6"> 
-  <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-    <Image 
-      src="/jubilaeum.png" 
-      alt="20 Jahre Jubiläum" 
-      fill 
-      className="object-contain"
-    />
-  </div>
-</div>
+      {/* Jubiläums-Logo mit mehr Abstand */}
+      <div className="flex justify-center my-6"> 
+        <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
+          <Image 
+            src="/jubilaeum.png" 
+            alt="20 Jahre Jubiläum" 
+            fill 
+            className="object-contain"
+          />
+        </div>
+      </div>
 
       {missingData && (
         <div 
