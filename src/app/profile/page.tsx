@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
-// 👇 HIER IST DIE KORREKTUR:
+
+// 👇 HIER SIND BEIDE EINSTELLUNGEN IMPORTIERT
 import NotificationSettings from '@/components/NotificationSettings';
+import LocationSettings from '@/components/LocationSettings'; 
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -88,7 +90,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4">
+    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 pb-20">
       
       <div className="w-full max-w-sm flex items-center mb-6 mt-4">
         <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
@@ -140,14 +142,22 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* 2. DER PUSH BUTTON BEREICH (KORRIGIERT) */}
+          {/* 2. PUSH EINSTELLUNGEN */}
           <div className="mt-8 pt-6 border-t border-slate-100">
             <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
             <p className="text-xs text-slate-500 mb-3">
               Erlaube Push-Nachrichten, um zu erfahren, wann der Fahrer ankommt.
             </p>
-            {/* 👇 HIER WURDE DER NAME ANGEPASST */}
             <NotificationSettings />
+          </div>
+
+          {/* 3. GPS EINSTELLUNGEN (NEU HINZUGEFÜGT) */}
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Wird benötigt, damit Fahrer und Mitfahrer sich finden.
+            </p>
+            <LocationSettings />
           </div>
 
         </CardContent>
