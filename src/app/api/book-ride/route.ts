@@ -10,6 +10,10 @@ const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e"; // Deine ID
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 export async function POST(request: Request) {
+  // 👇 DEBUGGING EINFÜGEN:
+  console.log("API Key Check:", process.env.ONESIGNAL_REST_API_KEY ? "Vorhanden" : "FEHLT!");
+  console.log("App ID Check:", "595fdd83-68b2-498a-8ca6-66fd1ae7be8e");
+  
   try {
     const { ride_id, passenger_id, passenger_name, passenger_phone, pickup_lat, pickup_lon } = await request.json();
 
