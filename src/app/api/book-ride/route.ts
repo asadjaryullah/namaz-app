@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// 1. Die URL holen
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
+// 2. Den GEHEIMEN Service-Key holen (für Admin-Rechte)
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+// 3. Client erstellen (mit dem Service Key, NICHT dem Anon Key!)
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+// OneSignal Setup
 const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+
 
 export async function POST(request: Request) {
   try {
