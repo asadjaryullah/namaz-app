@@ -10,7 +10,7 @@ import { Car, User, Settings, Loader2, AlertTriangle, MapPin } from "lucide-reac
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
@@ -35,28 +35,28 @@ export default function HomePage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-  // 👇 DAS MUSS DA SEIN:
-  if (typeof window !== 'undefined') {
-    try { 
-      console.log("Logge User bei OneSignal ein:", session.user.id);
-      OneSignal.login(session.user.id); 
-    } catch(e) { console.error(e); }
-  }
+          // OneSignal Login
+          if (typeof window !== 'undefined') {
+            try { 
+              OneSignal.login(session.user.id); 
+            } catch(e) { console.error(e); }
+          }
 
           if(mounted) setUser(session.user);
           
-          // 👇 HIER IST DIE KORREKTUR: .throwOnError() erzwingt echte Daten!
+          // Profil laden (mit .throwOnError für Sicherheit)
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
             .single()
-            .throwOnError(); // <--- DAS HAT GEFEHLT!
+            .throwOnError(); 
           
           if(mounted && profileData) setProfile(profileData);
 
           const today = new Date().toLocaleDateString('en-CA');
           
+          // 1. FAHRER CHECK
           const { data: driverRide } = await supabase
             .from('rides')
             .select('*')
@@ -67,6 +67,7 @@ export default function HomePage() {
           
           if(mounted && driverRide) setActiveDriverRide(driverRide);
 
+          // 2. MITFAHRER CHECK
           const { data: myBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
@@ -196,6 +197,7 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* --- BUTTON FÜR FAHRER (BLAU) --- */}
       {activeDriverRide && (
         <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors" onClick={() => router.push('/driver/dashboard')}>
           <div><p className="font-bold text-lg">Du bist Fahrer</p><p className="text-blue-100 text-sm">Zur Navigation</p></div>
@@ -203,6 +205,7 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* --- BUTTON FÜR MITFAHRER (GRÜN) --- */}
       {activePassengerRide && (
         <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors" onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}>
           <div><p className="font-bold text-lg">Du fährst mit</p><p className="text-green-100 text-sm">Standort ansehen</p></div>
@@ -210,13 +213,20 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* --- HIER WURDE GEÄNDERT: Die Karten sind jetzt IMMER sichtbar --- */}
       <div className="grid grid-cols-1 gap-4">
-        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=driver')}>
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=driver')}
+        >
           <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
           <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
         </Card>
 
-        <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=passenger')}>
+        <Card 
+          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
+          onClick={() => router.push('/select-prayer?role=passenger')}
+        >
           <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
           <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
         </Card>
