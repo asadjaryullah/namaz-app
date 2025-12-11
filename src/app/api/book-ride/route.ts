@@ -7,21 +7,26 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// OneSignal Setup
+// 1. App ID (Darf im Code stehen)
 const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
 
-// 👇 HIER DEINEN LANGEN SCHLÜSSEL (os_v2...) REINKOPIEREN:
-const ONESIGNAL_API_KEY = "os_v2_app_lfp53a3iwjeyvdfgm36rvz56r35eoozxpvkexhfqpe3fzhuhrhvmhuvwtfr762obkxyfmkdda43palybfmvnlbyildzfnwm7xw3tewq"; 
+// 2. Secret Key (Wird sicher aus dem Tresor geholt)
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 export async function POST(request: Request) {
   try {
-    // Daten vom Frontend empfangen
+    // Sicherheits-Check: Ist der Key da?
+    if (!ONESIGNAL_API_KEY) {
+      console.error("CRITICAL: ONESIGNAL_REST_API_KEY fehlt in den Environment Variables!");
+      return NextResponse.json({ error: 'Server Konfiguration fehlt' }, { status: 500 });
+    }
+
     const bodyData = await request.json();
     const { ride_id, passenger_id, passenger_name, passenger_phone, pickup_lat, pickup_lon } = bodyData;
 
     console.log("Start Buchung für:", passenger_name);
 
-    // 1. Buchung in Supabase speichern
+    // A) Buchung in Supabase speichern
     const { error: dbError } = await supabase.from('bookings').insert({
       ride_id,
       passenger_id,
@@ -32,27 +37,24 @@ export async function POST(request: Request) {
       status: 'accepted'
     });
 
-    if (dbError) {
-      console.error("DB Fehler:", dbError);
-      throw new Error("Datenbank Fehler: " + dbError.message);
-    }
+    if (dbError) throw new Error("DB Fehler: " + dbError.message);
 
-    // 2. Fahrer-ID herausfinden (wem gehört die Fahrt?)
+    // B) Fahrer finden
     const { data: ride } = await supabase
       .from('rides')
       .select('driver_id')
       .eq('id', ride_id)
       .single();
 
-    // 3. Push-Nachricht an den Fahrer senden
+    // C) Push-Nachricht senden
     if (ride && ride.driver_id) {
-      console.log("Sende Push an Fahrer-ID:", ride.driver_id);
+      console.log("Sende Push an Fahrer:", ride.driver_id);
       
       const pushBody = {
         app_id: ONESIGNAL_APP_ID,
         headings: { en: "Neuer Mitfahrer! 🙋‍♂️" },
-        contents: { en: `${passenger_name} hat gerade gebucht und wartet.` },
-        include_aliases: { external_id: [ride.driver_id] }, // Sendet gezielt an den Fahrer
+        contents: { en: `${passenger_name} hat gerade gebucht.` },
+        include_aliases: { external_id: [ride.driver_id] }, // Ziel: Fahrer ID
         target_channel: "push",
         url: "https://ride2salah.vercel.app/driver/dashboard"
       };
@@ -61,13 +63,13 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+          'Authorization': `Basic ${ONESIGNAL_API_KEY}` // Hier wird der Key benutzt
         },
         body: JSON.stringify(pushBody)
       });
 
       const responseData = await response.json();
-      console.log("OneSignal Antwort:", responseData);
+      console.log("OneSignal Status:", response.status, responseData);
     }
 
     return NextResponse.json({ success: true });
