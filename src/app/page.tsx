@@ -35,10 +35,13 @@ export default function HomePage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // OneSignal Login
-          if (typeof window !== 'undefined') {
-            try { OneSignal.login(session.user.id); } catch(e) {}
-          }
+  // 👇 DAS MUSS DA SEIN:
+  if (typeof window !== 'undefined') {
+    try { 
+      console.log("Logge User bei OneSignal ein:", session.user.id);
+      OneSignal.login(session.user.id); 
+    } catch(e) { console.error(e); }
+  }
 
           if(mounted) setUser(session.user);
           
