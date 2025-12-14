@@ -47,15 +47,14 @@ export async function GET() {
         const endDate = new Date(startDate);
         endDate.setMinutes(m + 30);
 
-        // Formatieren für ICS (YYYYMMDDTHHMMSSZ - muss UTC sein!)
-        // Wir ziehen hier simpel die Zeitzone ab, um UTC zu bekommen, oder nutzen toISOString und entfernen Striche
-        const startStr = formatDateToICS(startDate);
-        const endStr = formatDateToICS(endDate);
+        // Formatieren für ICS
+        const startStr = formatLocal(startDate);
+        const endStr = formatLocal(endDate);
 
         const eventBlock = [
           'BEGIN:VEVENT',
           `UID:${p.id}-${startStr}@ride2salah.app`, // Eindeutige ID pro Termin
-          `DTSTAMP:${formatDateToICS(new Date())}`,
+          `DTSTAMP:${formatLocal(new Date())}`,
           `DTSTART:${startStr}`,
           `DTEND:${endStr}`,
           `SUMMARY:${p.name} Gebet`,
@@ -90,6 +89,15 @@ export async function GET() {
 }
 
 // Helfer: Datum in ICS Format (YYYYMMDDTHHMMSS)
-function formatDateToICS(date: Date) {
-  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+function formatLocal(date: Date) {
+  // HIER WAR DER FEHLER: Wir zwingen die Ausgabe jetzt zum String (.toString())
+  const pad = (n: number) => n < 10 ? '0' + n : n.toString();
+  
+  return date.getFullYear() +
+    pad(date.getMonth() + 1) +
+    pad(date.getDate()) +
+    'T' +
+    pad(date.getHours()) +
+    pad(date.getMinutes()) +
+    pad(date.getSeconds());
 }

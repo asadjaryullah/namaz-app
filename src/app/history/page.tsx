@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-// 👇 Icons erweitert (Check, RotateCcw für Zikr)
+// 👇 ALLE Icons importiert:
 import { ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp, Car, User, Footprints, Check, RotateCcw } from "lucide-react";
 
 // --- KONFIGURATION DER ZIKRS ---
@@ -13,20 +13,20 @@ const ZIKR_LIST = [
   {
     key: 'zikr1_count',
     target: 200,
-    arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ سُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَآلِ مُحَمَّدٍ",
-    title: "Tasbih & Salawat"
+    arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
+    title: "200x Tasbih & Salawat"
   },
   {
     key: 'zikr2_count',
     target: 100,
-    arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي مِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
-    title: "Istighfar"
+    arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
+    title: "100x Istighfar"
   },
   {
     key: 'zikr3_count',
     target: 100,
-    arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ رَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
-    title: "Dua"
+    arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
+    title: "100x Dua"
   }
 ];
 
@@ -42,7 +42,7 @@ export default function HistoryPage() {
   const [zikrData, setZikrData] = useState<any>({ zikr1_count: 0, zikr2_count: 0, zikr3_count: 0 });
   const [todayLogId, setTodayLogId] = useState<string | null>(null);
 
-  // Timer fürs Speichern (damit wir die DB nicht überlasten)
+  // Timer fürs Speichern
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function HistoryPage() {
 
       const today = new Date().toLocaleDateString('en-CA');
 
-      // --- TEIL 1: FAHRTEN LADEN (Dein bestehender Code) ---
+      // --- FAHRTEN LADEN ---
       const { data: driverData } = await supabase
         .from('rides')
         .select('ride_date')
@@ -81,7 +81,7 @@ export default function HistoryPage() {
 
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      // --- TEIL 2: ZIKR LADEN (Neu) ---
+      // --- ZIKR LADEN ---
       const { data: zikrLog } = await supabase
         .from('zikr_logs')
         .select('*')
@@ -93,7 +93,6 @@ export default function HistoryPage() {
         setZikrData(zikrLog);
         setTodayLogId(zikrLog.id);
       } else {
-        // Wenn es heute noch keinen Eintrag gibt -> Erstellen
         const { data: newLog } = await supabase
           .from('zikr_logs')
           .insert({ user_id: user.id, log_date: today })
@@ -118,7 +117,7 @@ export default function HistoryPage() {
       if (todayLogId) {
         await supabase.from('zikr_logs').update(newData).eq('id', todayLogId);
       }
-    }, 1000); // Speichert 1 Sekunde nach dem letzten Klick
+    }, 1000); 
   };
 
   const handleZikrClick = (key: string, target: number) => {
@@ -126,7 +125,7 @@ export default function HistoryPage() {
     if (currentVal >= target) return;
 
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(50); // Kleines Feedback am Handy
+      navigator.vibrate(50);
     }
 
     const newVal = currentVal + 1;
@@ -144,7 +143,7 @@ export default function HistoryPage() {
     saveToDb(newData);
   };
 
-  // --- KALENDER HELPER (Dein Code) ---
+  // --- KALENDER HELPER ---
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const year = viewDate.getFullYear();
@@ -181,15 +180,18 @@ export default function HistoryPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 pb-20">
+      
       <div className="w-full max-w-md flex items-center mb-6">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/')}><ArrowLeft className="h-6 w-6 text-slate-600" /></Button>
-        <h1 className="text-xl font-bold ml-2 text-slate-800">Mein Gebets-Log</h1>
+        <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+          <ArrowLeft className="h-6 w-6 text-slate-600" />
+        </Button>
+        <h1 className="text-xl font-bold ml-2 text-slate-800">Logbuch & Zikr</h1>
       </div>
 
       {loading ? ( <div className="py-20"><Loader2 className="animate-spin text-slate-400"/></div> ) : (
         <div className="w-full max-w-md space-y-8">
           
-          {/* --- NEU: ZIKR ZÄHLER --- */}
+          {/* --- ZIKR BEREICH --- */}
           <div>
              <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
                📿 Täglicher Zikr
@@ -209,11 +211,13 @@ export default function HistoryPage() {
                         ${isDone ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-white hover:border-slate-300'}
                       `}
                    >
+                     {/* Fortschrittsbalken */}
                      <div 
                         className="absolute bottom-0 left-0 h-1 bg-green-500 transition-all duration-300" 
                         style={{ width: `${progress}%` }}
                      ></div>
 
+                     {/* Reset Button (Oben Rechts) */}
                      {count > 0 && !isDone && (
                        <div className="absolute top-2 right-2 z-10">
                          <button 
@@ -234,6 +238,7 @@ export default function HistoryPage() {
                          </p>
                        </div>
 
+                       {/* Runder Zähler */}
                        <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
                           {isDone ? (
                             <div className="bg-green-500 text-white rounded-full p-2 shadow-lg animate-in zoom-in">
@@ -257,6 +262,7 @@ export default function HistoryPage() {
           </div>
           {/* ------------------------- */}
           
+          {/* STATISTIK BANNER */}
           <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">{monthName}</p>
@@ -268,6 +274,7 @@ export default function HistoryPage() {
             <div className="bg-white/10 p-3 rounded-full relative z-10"><TrendingUp size={32} /></div>
           </Card>
 
+          {/* DETAIL KÄSTCHEN */}
           <div className="grid grid-cols-3 gap-2">
             <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white">
               <div className="bg-slate-100 p-1.5 rounded-full text-slate-700"><Car size={16} /></div>
@@ -286,6 +293,7 @@ export default function HistoryPage() {
             </Card>
           </div>
 
+          {/* KALENDER */}
           <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
             <div className="flex justify-between items-center mb-6">
               <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
@@ -309,6 +317,7 @@ export default function HistoryPage() {
               })}
             </div>
           </Card>
+
         </div>
       )}
     </main>
