@@ -6,9 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { User, Phone, Save, Loader2, ArrowLeft } from "lucide-react";
+// 👇 "Calendar" Icon hinzugefügt
+import { User, Phone, Save, Loader2, ArrowLeft, Calendar } from "lucide-react";
 
-// 👇 HIER SIND BEIDE EINSTELLUNGEN IMPORTIERT
 import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
 
@@ -151,13 +151,34 @@ export default function ProfilePage() {
             <NotificationSettings />
           </div>
 
-          {/* 3. GPS EINSTELLUNGEN (NEU HINZUGEFÜGT) */}
+          {/* 3. GPS EINSTELLUNGEN */}
           <div className="mt-6 pt-6 border-t border-slate-100">
             <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
             <p className="text-xs text-slate-500 mb-3">
               Wird benötigt, damit Fahrer und Mitfahrer sich finden.
             </p>
             <LocationSettings />
+          </div>
+
+          {/* 4. KALENDER SYNC (NEU HINZUGEFÜGT) */}
+          <div className="mt-6 pt-6 border-t border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
+            <p className="text-xs text-slate-500 mb-3">
+              Abonniere die Gebetszeiten direkt in deinen Kalender (mit 20 Min Erinnerung).
+            </p>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-2 border-slate-300 text-slate-700"
+              onClick={() => {
+                // Ersetzt http/https durch webcal, damit die Kalender-App aufgeht
+                const calendarUrl = window.location.origin.replace('https', 'webcal').replace('http', 'webcal') + '/api/calendar';
+                window.location.href = calendarUrl;
+              }}
+            >
+              <Calendar size={18} />
+              Kalender abonnieren
+            </Button>
           </div>
 
         </CardContent>

@@ -1,0 +1,95 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export async function GET() {
+  try {
+    // 1. Gebetszeiten aus DB holen
+    const { data: prayers } = await supabase.from('prayer_times').select('*');
+    if (!prayers) return new NextResponse('Error', { status: 500 });
+
+    // 2. ICS Header bauen
+    let icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Ride2Salah//DE',
+      'NAME:Ride 2 Salah Gebetszeiten',
+      'X-WR-CALNAME:Ride 2 Salah Gebetszeiten',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT12H', // Handy soll alle 12h aktualisieren
+      'X-PUBLISHED-TTL:PT12H',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH'
+    ].join('\r\n');
+
+    // 3. Events für die nächsten 7 Tage generieren
+    const now = new Date();
+    
+    // Für die nächsten 7 Tage loopen
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(now);
+      day.setDate(day.getDate() + i); // Heute + i Tage
+
+      for (const p of prayers) {
+        if (!p.time) continue;
+
+        // Zeit parsen (z.B. "13:30")
+        const [h, m] = p.time.split(':').map(Number);
+        
+        // Startzeit setzen
+        const startDate = new Date(day);
+        startDate.setHours(h, m, 0, 0);
+
+        // Endzeit (wir nehmen einfach 30 min später an)
+        const endDate = new Date(startDate);
+        endDate.setMinutes(m + 30);
+
+        // Formatieren für ICS (YYYYMMDDTHHMMSSZ - muss UTC sein!)
+        // Wir ziehen hier simpel die Zeitzone ab, um UTC zu bekommen, oder nutzen toISOString und entfernen Striche
+        const startStr = formatDateToICS(startDate);
+        const endStr = formatDateToICS(endDate);
+
+        const eventBlock = [
+          'BEGIN:VEVENT',
+          `UID:${p.id}-${startStr}@ride2salah.app`, // Eindeutige ID pro Termin
+          `DTSTAMP:${formatDateToICS(new Date())}`,
+          `DTSTART:${startStr}`,
+          `DTEND:${endStr}`,
+          `SUMMARY:${p.name} Gebet`,
+          'DESCRIPTION:Fahrt buchen auf Ride 2 Salah.',
+          'LOCATION:Bashir Moschee Bensheim',
+          'BEGIN:VALARM',          // --- ERINNERUNG ---
+          'TRIGGER:-PT20M',        // 20 Minuten vorher
+          'DESCRIPTION:Bald ist Gebet!',
+          'ACTION:DISPLAY',
+          'END:VALARM',
+          'END:VEVENT'
+        ].join('\r\n');
+
+        icsContent += '\r\n' + eventBlock;
+      }
+    }
+
+    icsContent += '\r\nEND:VCALENDAR';
+
+    // 4. Als Kalender-Datei zurückgeben
+    return new NextResponse(icsContent, {
+      headers: {
+        'Content-Type': 'text/calendar; charset=utf-8',
+        'Content-Disposition': 'attachment; filename="gebetszeiten.ics"',
+      },
+    });
+
+  } catch (error) {
+    console.error(error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
+// Helfer: Datum in ICS Format (YYYYMMDDTHHMMSS)
+function formatDateToICS(date: Date) {
+  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
