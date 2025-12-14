@@ -6,28 +6,28 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+// Deine App-URL
+const APP_URL = "https://ride2salah.vercel.app";
+
 export async function GET() {
   try {
-    // 1. Gebetszeiten aus DB holen
     const { data: prayers } = await supabase.from('prayer_times').select('*');
     if (!prayers) return new NextResponse('Error', { status: 500 });
 
-    // 2. ICS Header
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Ride2Salah//DE',
       'NAME:Ride 2 Salah Gebetszeiten',
-      'X-WR-CALNAME:Ride 2 Salah Gebetszeiten',
-      'REFRESH-INTERVAL;VALUE=DURATION:PT12H', 
-      'X-PUBLISHED-TTL:PT12H',
+      'X-WR-CALNAME:Ride 2 Salah',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 
+      'X-PUBLISHED-TTL:PT1H',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
 
     const now = new Date();
     
-    // Für die nächsten 7 Tage
     for (let i = 0; i < 7; i++) {
       const day = new Date(now);
       day.setDate(day.getDate() + i); 
@@ -40,7 +40,6 @@ export async function GET() {
         const startDate = new Date(day);
         startDate.setHours(h, m, 0, 0);
 
-        // Dauer: 15 Min
         const endDate = new Date(startDate);
         endDate.setMinutes(m + 15);
 
@@ -53,18 +52,19 @@ export async function GET() {
           `DTSTAMP:${formatLocal(new Date())}`,
           `DTSTART:${startStr}`, 
           `DTEND:${endStr}`,
-          `SUMMARY:${p.name} Namaz`,
+          `SUMMARY:${p.name} Namaz 🕌`,
           'LOCATION:Bashir Moschee Bensheim',
-          'DESCRIPTION:Fahrt buchen auf Ride 2 Salah.',
           
-          // --- HIER IST DIE ERINNERUNG ---
-          'BEGIN:VALARM',
-          'TRIGGER:-PT20M',        // 20 Minuten vorher
-          'DESCRIPTION:Noch 20 min bis zum Namaz! Komm doch zur Moschee.', // <--- DEIN TEXT
-          'ACTION:DISPLAY',
-          'END:VALARM',
-          // -----------------------------
+          // --- HIER IST DER LINK ---
+          `URL:${APP_URL}`, // Für Kalender, die ein URL-Feld unterstützen
+          `DESCRIPTION:Noch 20 min bis zum Namaz!\\n\\nHier klicken um Fahrt zu buchen oder anzubieten:\\n${APP_URL}`,
+          // -------------------------
 
+          'BEGIN:VALARM',
+          'TRIGGER:-PT20M',
+          'ACTION:DISPLAY',
+          'DESCRIPTION:Noch 20 min bis zum Namaz! Komm doch zur Moschee.',
+          'END:VALARM',
           'END:VEVENT'
         ].join('\r\n');
 
@@ -87,7 +87,6 @@ export async function GET() {
   }
 }
 
-// Helfer
 function formatLocal(date: Date) {
   const pad = (n: number) => n < 10 ? '0' + n : n.toString();
   return date.getFullYear() +
