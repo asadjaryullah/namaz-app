@@ -5,28 +5,30 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-// 👇 ALLE Icons importiert:
 import { ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp, Car, User, Footprints, Check, RotateCcw } from "lucide-react";
 
-// --- KONFIGURATION DER ZIKRS ---
+// --- KONFIGURATION MIT FARBEN ---
 const ZIKR_LIST = [
   {
     key: 'zikr1_count',
     target: 200,
+    theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', ring: '#f43f5e', bar: 'bg-rose-500' },
     arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
-    title: "200x Tasbih & Salawat"
+    title: "Tasbih & Salawat"
   },
   {
     key: 'zikr2_count',
     target: 100,
+    theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', ring: '#0ea5e9', bar: 'bg-sky-500' },
     arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
-    title: "100x Istighfar"
+    title: "Istighfar"
   },
   {
     key: 'zikr3_count',
     target: 100,
+    theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', ring: '#f59e0b', bar: 'bg-amber-500' },
     arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
-    title: "100x Dua"
+    title: "Dua"
   }
 ];
 
@@ -34,15 +36,12 @@ export default function HistoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   
-  // Statistik Daten
-  const [allRides, setAllRides] = useState<{date: string, role: 'driver' | 'passenger' | 'walk-in'}[]>([]);
+  const [allRides, setAllRides] = useState<any[]>([]);
   const [viewDate, setViewDate] = useState(new Date());
 
-  // Zikr Daten (State)
   const [zikrData, setZikrData] = useState<any>({ zikr1_count: 0, zikr2_count: 0, zikr3_count: 0 });
   const [todayLogId, setTodayLogId] = useState<string | null>(null);
 
-  // Timer fürs Speichern
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -52,52 +51,30 @@ export default function HistoryPage() {
 
       const today = new Date().toLocaleDateString('en-CA');
 
-      // --- FAHRTEN LADEN ---
-      const { data: driverData } = await supabase
-        .from('rides')
-        .select('ride_date')
-        .eq('driver_id', user.id)
-        .eq('status', 'completed');
+      // Fahrten laden
+      const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
 
       const { data: myBookings } = await supabase.from('bookings').select('ride_id').eq('passenger_id', user.id);
       let passengerRides: any[] = [];
       if (myBookings && myBookings.length > 0) {
         const rideIds = myBookings.map(b => b.ride_id);
-        const { data: completedRides } = await supabase
-          .from('rides')
-          .select('ride_date')
-          .in('id', rideIds)
-          .eq('status', 'completed');
+        const { data: completedRides } = await supabase.from('rides').select('ride_date').in('id', rideIds).eq('status', 'completed');
         if (completedRides) passengerRides = completedRides.map(r => ({ date: r.ride_date, role: 'passenger' as const }));
       }
 
-      const { data: visitData } = await supabase
-        .from('mosque_visits')
-        .select('visit_date')
-        .eq('user_id', user.id);
-      
+      const { data: visitData } = await supabase.from('mosque_visits').select('visit_date').eq('user_id', user.id);
       const walkInRides = visitData?.map(v => ({ date: v.visit_date, role: 'walk-in' as const })) || [];
 
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      // --- ZIKR LADEN ---
-      const { data: zikrLog } = await supabase
-        .from('zikr_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('log_date', today)
-        .maybeSingle();
-
+      // Zikr laden
+      const { data: zikrLog } = await supabase.from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
       if (zikrLog) {
         setZikrData(zikrLog);
         setTodayLogId(zikrLog.id);
       } else {
-        const { data: newLog } = await supabase
-          .from('zikr_logs')
-          .insert({ user_id: user.id, log_date: today })
-          .select()
-          .single();
+        const { data: newLog } = await supabase.from('zikr_logs').insert({ user_id: user.id, log_date: today }).select().single();
         if (newLog) {
           setTodayLogId(newLog.id);
           setZikrData(newLog);
@@ -106,27 +83,21 @@ export default function HistoryPage() {
 
       setLoading(false);
     };
-
     fetchHistory();
   }, []);
 
-  // --- ZIKR FUNKTIONEN ---
   const saveToDb = (newData: any) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
-      if (todayLogId) {
-        await supabase.from('zikr_logs').update(newData).eq('id', todayLogId);
-      }
-    }, 1000); 
+      if (todayLogId) await supabase.from('zikr_logs').update(newData).eq('id', todayLogId);
+    }, 1000);
   };
 
   const handleZikrClick = (key: string, target: number) => {
     const currentVal = zikrData[key] || 0;
     if (currentVal >= target) return;
 
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(50);
-    }
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(10);
 
     const newVal = currentVal + 1;
     const newData = { ...zikrData, [key]: newVal };
@@ -137,13 +108,12 @@ export default function HistoryPage() {
   const handleReset = (e: React.MouseEvent, key: string) => {
     e.stopPropagation();
     if(!confirm("Zähler zurücksetzen?")) return;
-
     const newData = { ...zikrData, [key]: 0 };
     setZikrData(newData);
     saveToDb(newData);
   };
 
-  // --- KALENDER HELPER ---
+  // Kalender Helper
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const year = viewDate.getFullYear();
@@ -157,7 +127,7 @@ export default function HistoryPage() {
     const [rYear, rMonth] = r.date.split('-'); 
     return parseInt(rYear) === year && parseInt(rMonth) === month + 1;
   });
-
+  
   const totalCount = currentMonthRides.length;
   const driverCount = currentMonthRides.filter(r => r.role === 'driver').length;
   const passengerCount = currentMonthRides.filter(r => r.role === 'passenger').length;
@@ -191,69 +161,76 @@ export default function HistoryPage() {
       {loading ? ( <div className="py-20"><Loader2 className="animate-spin text-slate-400"/></div> ) : (
         <div className="w-full max-w-md space-y-8">
           
-          {/* --- ZIKR BEREICH --- */}
+          {/* --- ZIKR DESIGN --- */}
           <div>
-             <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
+             <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                📿 Täglicher Zikr
              </h2>
              <div className="space-y-4">
                {ZIKR_LIST.map((item) => {
                  const count = zikrData[item.key] || 0;
-                 const progress = (count / item.target) * 100;
+                 const progress = Math.min((count / item.target) * 100, 100);
                  const isDone = count >= item.target;
 
                  return (
                    <Card 
                       key={item.key}
-                      onClick={() => handleZikrClick(item.key, item.target)}
+                      onClick={() => !isDone && handleZikrClick(item.key, item.target)}
                       className={`
-                        relative overflow-hidden cursor-pointer transition-all active:scale-95 border-2
-                        ${isDone ? 'border-green-500 bg-green-50' : 'border-slate-200 bg-white hover:border-slate-300'}
+                        relative overflow-hidden transition-all duration-200 border-0 shadow-md
+                        ${isDone 
+                          ? 'bg-emerald-500 cursor-default'  
+                          : `cursor-pointer active:scale-95 ${item.theme.bg} ${item.theme.text}`}
                       `}
                    >
-                     {/* Fortschrittsbalken */}
-                     <div 
-                        className="absolute bottom-0 left-0 h-1 bg-green-500 transition-all duration-300" 
-                        style={{ width: `${progress}%` }}
-                     ></div>
+                     {/* Häkchen Hintergrund */}
+                     {isDone && (
+                        <div className="absolute right-[-20px] bottom-[-20px] text-white/20 transform rotate-12">
+                          <Check size={120} />
+                        </div>
+                     )}
 
-                     {/* Reset Button (Oben Rechts) */}
+                     {/* Balken */}
+                     {!isDone && (
+                        <div 
+                          className={`absolute bottom-0 left-0 h-1.5 transition-all duration-300 ${item.theme.bar}`} 
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                     )}
+
+                     {/* Reset Button */}
                      {count > 0 && !isDone && (
-                       <div className="absolute top-2 right-2 z-10">
+                       <div className="absolute top-3 left-3 z-10">
                          <button 
                            onClick={(e) => handleReset(e, item.key)}
-                           className="p-1 text-slate-300 hover:text-red-500 transition-colors"
-                           title="Zurücksetzen"
+                           className="p-1.5 bg-white/60 rounded-full text-slate-400 hover:text-red-500 hover:bg-white transition-all shadow-sm"
                          >
                            <RotateCcw size={14} />
                          </button>
                        </div>
                      )}
 
-                     <div className="p-4 flex items-center justify-between gap-4">
-                       <div className="flex-1">
-                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">{item.title}</p>
-                         <p className="text-xl font-bold text-slate-900 font-arabic leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
+                     <div className="p-5 flex items-center justify-between gap-4">
+                       
+                       <div className="shrink-0 flex flex-col items-center justify-center min-w-[3rem]">
+                          <span className={`text-2xl font-black ${isDone ? 'text-white' : ''}`}>
+                             {count}
+                          </span>
+                          <span className={`text-[10px] font-bold uppercase ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>
+                             {isDone ? 'FERTIG' : `von ${item.target}`}
+                          </span>
+                       </div>
+
+                       <div className="flex-1 flex flex-col items-end text-right">
+                         <p className={`text-xs font-bold uppercase mb-1 tracking-widest ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>
+                            {item.title}
+                         </p>
+                         <p className={`text-xl font-bold leading-loose font-arabic ${isDone ? 'text-white' : ''}`} 
+                            style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', lineHeight: '1.8' }}>
                            {item.arabic}
                          </p>
                        </div>
 
-                       {/* Runder Zähler */}
-                       <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                          {isDone ? (
-                            <div className="bg-green-500 text-white rounded-full p-2 shadow-lg animate-in zoom-in">
-                              <Check size={24} />
-                            </div>
-                          ) : (
-                            <div className="w-full h-full rounded-full flex items-center justify-center bg-slate-100 text-slate-700 font-bold border-4 border-slate-200"
-                                 style={{ background: `conic-gradient(#16a34a ${progress}%, #e2e8f0 0)` }}
-                            >
-                               <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center text-xs">
-                                 {count}
-                               </div>
-                            </div>
-                          )}
-                       </div>
                      </div>
                    </Card>
                  )
@@ -262,7 +239,6 @@ export default function HistoryPage() {
           </div>
           {/* ------------------------- */}
           
-          {/* STATISTIK BANNER */}
           <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
             <div className="relative z-10">
               <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">{monthName}</p>
@@ -274,7 +250,6 @@ export default function HistoryPage() {
             <div className="bg-white/10 p-3 rounded-full relative z-10"><TrendingUp size={32} /></div>
           </Card>
 
-          {/* DETAIL KÄSTCHEN */}
           <div className="grid grid-cols-3 gap-2">
             <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white">
               <div className="bg-slate-100 p-1.5 rounded-full text-slate-700"><Car size={16} /></div>
@@ -293,7 +268,6 @@ export default function HistoryPage() {
             </Card>
           </div>
 
-          {/* KALENDER */}
           <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
             <div className="flex justify-between items-center mb-6">
               <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
@@ -317,7 +291,6 @@ export default function HistoryPage() {
               })}
             </div>
           </Card>
-
         </div>
       )}
     </main>

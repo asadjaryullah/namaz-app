@@ -12,59 +12,59 @@ export async function GET() {
     const { data: prayers } = await supabase.from('prayer_times').select('*');
     if (!prayers) return new NextResponse('Error', { status: 500 });
 
-    // 2. ICS Header bauen
+    // 2. ICS Header
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Ride2Salah//DE',
       'NAME:Ride 2 Salah Gebetszeiten',
       'X-WR-CALNAME:Ride 2 Salah Gebetszeiten',
-      'REFRESH-INTERVAL;VALUE=DURATION:PT12H', // Handy soll alle 12h aktualisieren
+      'REFRESH-INTERVAL;VALUE=DURATION:PT12H', 
       'X-PUBLISHED-TTL:PT12H',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
 
-    // 3. Events für die nächsten 7 Tage generieren
     const now = new Date();
     
-    // Für die nächsten 7 Tage loopen
+    // Für die nächsten 7 Tage
     for (let i = 0; i < 7; i++) {
       const day = new Date(now);
-      day.setDate(day.getDate() + i); // Heute + i Tage
+      day.setDate(day.getDate() + i); 
 
       for (const p of prayers) {
         if (!p.time) continue;
 
-        // Zeit parsen (z.B. "13:30")
         const [h, m] = p.time.split(':').map(Number);
         
-        // Startzeit setzen
         const startDate = new Date(day);
         startDate.setHours(h, m, 0, 0);
 
-        // Endzeit (wir nehmen einfach 30 min später an)
+        // Dauer: 15 Min
         const endDate = new Date(startDate);
-        endDate.setMinutes(m + 30);
+        endDate.setMinutes(m + 15);
 
-        // Formatieren für ICS
         const startStr = formatLocal(startDate);
         const endStr = formatLocal(endDate);
 
         const eventBlock = [
           'BEGIN:VEVENT',
-          `UID:${p.id}-${startStr}@ride2salah.app`, // Eindeutige ID pro Termin
+          `UID:${p.id}-${startStr}@ride2salah.app`,
           `DTSTAMP:${formatLocal(new Date())}`,
-          `DTSTART:${startStr}`,
+          `DTSTART:${startStr}`, 
           `DTEND:${endStr}`,
-          `SUMMARY:${p.name} Gebet`,
-          'DESCRIPTION:Fahrt buchen auf Ride 2 Salah.',
+          `SUMMARY:${p.name} Namaz`,
           'LOCATION:Bashir Moschee Bensheim',
-          'BEGIN:VALARM',          // --- ERINNERUNG ---
+          'DESCRIPTION:Fahrt buchen auf Ride 2 Salah.',
+          
+          // --- HIER IST DIE ERINNERUNG ---
+          'BEGIN:VALARM',
           'TRIGGER:-PT20M',        // 20 Minuten vorher
-          'DESCRIPTION:Bald ist Gebet!',
+          'DESCRIPTION:Noch 20 min bis zum Namaz! Komm doch zur Moschee.', // <--- DEIN TEXT
           'ACTION:DISPLAY',
           'END:VALARM',
+          // -----------------------------
+
           'END:VEVENT'
         ].join('\r\n');
 
@@ -74,7 +74,6 @@ export async function GET() {
 
     icsContent += '\r\nEND:VCALENDAR';
 
-    // 4. Als Kalender-Datei zurückgeben
     return new NextResponse(icsContent, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
@@ -88,11 +87,9 @@ export async function GET() {
   }
 }
 
-// Helfer: Datum in ICS Format (YYYYMMDDTHHMMSS)
+// Helfer
 function formatLocal(date: Date) {
-  // HIER WAR DER FEHLER: Wir zwingen die Ausgabe jetzt zum String (.toString())
   const pad = (n: number) => n < 10 ? '0' + n : n.toString();
-  
   return date.getFullYear() +
     pad(date.getMonth() + 1) +
     pad(date.getDate()) +
