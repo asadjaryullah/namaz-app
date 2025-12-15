@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -23,10 +22,9 @@ function PassengerListContent() {
       const today = new Date().toLocaleDateString('en-CA');
       const { data: { user } } = await supabase.auth.getUser();
       
-      let myGender = 'male'; // Fallback
+      let myGender = 'male'; 
 
       if (user) {
-        // 1. Mein Geschlecht laden
         const { data: profile } = await supabase
           .from('profiles')
           .select('gender')
@@ -35,7 +33,6 @@ function PassengerListContent() {
         
         if (profile) myGender = profile.gender;
 
-        // 2. CHECK: Habe ich heute schon eine Fahrt?
         const { data: existingBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
@@ -52,22 +49,21 @@ function PassengerListContent() {
         }
       }
 
-      // 3. Fahrten laden (MIT GENDER FILTER)
+      // Fahrten laden
       const { data: ridesData, error: ridesError } = await supabase
         .from('rides')
         .select('*')
         .eq('prayer_id', prayerId)
         .eq('status', 'active')
         .eq('ride_date', today)
-        // 👇 WICHTIG: Nur Fahrten anzeigen, wo der Fahrer das gleiche Geschlecht hat
-        .eq('driver_gender', myGender);
+        .eq('driver_gender', myGender); // Nur gleiches Geschlecht anzeigen
 
       if (ridesError || !ridesData) {
         setLoading(false);
         return; 
       }
 
-      // 4. Buchungen laden
+      // Buchungen laden
       const rideIds = ridesData.map((r: any) => r.id);
       const { data: bookingsData } = await supabase
         .from('bookings')
@@ -75,7 +71,6 @@ function PassengerListContent() {
         .in('ride_id', rideIds)
         .eq('status', 'accepted');
 
-      // 5. Zusammenrechnen
       const ridesWithCounts = ridesData.map((ride: any) => {
         const takenSeats = bookingsData?.filter((b: any) => b.ride_id === ride.id).length || 0;
         const freeSeats = ride.seats - takenSeats;
@@ -105,11 +100,19 @@ function PassengerListContent() {
       return;
     }
 
+    // 1. HIER LADEN WIR DAS PROFIL ZUERST (Das war der Fehler!)
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
+
+    // 2. JETZT KÖNNEN WIR PRÜFEN
+    if (!profile || !profile.is_approved) {
+       alert("Dein Konto wurde noch nicht von einem Admin freigeschaltet.");
+       setBookingRideId(null);
+       return;
+    }
 
     if (!navigator.geolocation) {
       alert("GPS nicht verfügbar.");
@@ -129,8 +132,9 @@ function PassengerListContent() {
             body: JSON.stringify({
               ride_id: rideId,
               passenger_id: user.id,
-              passenger_name: profile?.full_name || "Mitfahrer",
-              passenger_phone: profile?.phone || "",
+              // Hier nutzen wir das oben geladene Profil sicher
+              passenger_name: profile.full_name || "Mitfahrer",
+              passenger_phone: profile.phone || "",
               pickup_lat: lat,
               pickup_lon: lon
             })
@@ -173,7 +177,9 @@ function PassengerListContent() {
       ) : rides.length === 0 ? (
         <div className="text-center mt-10 p-6 bg-white rounded-xl shadow border">
           <p className="text-lg font-semibold text-slate-700">Keine Fahrer gefunden 😔</p>
-          <p className="text-xs text-slate-400 mt-2">Es werden nur Fahrer deines Geschlechts angezeigt.</p>
+          <p className="text-xs text-slate-400 mt-2">
+            Es werden nur Fahrer deines Geschlechts angezeigt.
+          </p>
           <Button className="mt-4" onClick={() => router.push('/')}>Zurück</Button>
         </div>
       ) : (

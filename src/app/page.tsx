@@ -162,6 +162,7 @@ export default function HomePage() {
   // Eingeloggt
   const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isApproved = profile?.is_approved === true;
   const missingData = !profile?.phone  || !profile?.gender;
 
   return (
@@ -194,6 +195,19 @@ export default function HomePage() {
             <p className="text-sm font-bold text-red-800">Profil unvollständig</p>
             <p className="text-xs text-red-700 mt-1">Bitte trage deine Nummer ein.</p>
           </div>
+        </div>
+      )}
+      
+      {/* SPERRE: WENN NICHT FREIGEGEBEN */}
+      {!isApproved && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-4">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
+            <h3 className="font-bold text-yellow-800">Profil wird geprüft</h3>
+          </div>
+          <p className="text-sm text-yellow-700 mt-1">
+            Ein Admin muss dein Konto freischalten, bevor du Fahrten buchen oder anbieten kannst.
+          </p>
         </div>
       )}
 

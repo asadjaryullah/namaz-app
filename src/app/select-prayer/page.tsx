@@ -9,9 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Loader2, Save, LogOut, CheckCircle2 } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
-import ProfileBar from '@/components/ProfileBar'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
@@ -24,11 +23,11 @@ const getIcon = (id: string) => {
   }
 };
 
-// --- AUTO SITZPLAN KOMPONENTE (Angepasst für Gender) ---
+// --- AUTO SITZPLAN ---
 function CarSeatSelector({ 
   availableSeats, 
   onChange,
-  gender // <--- NEU: Wir bekommen das Geschlecht übergeben
+  gender 
 }: { 
   availableSeats: number, 
   onChange: (n: number) => void,
@@ -43,7 +42,6 @@ function CarSeatSelector({
     onChange(newSeats.filter(s => s).length);
   };
 
-  // Welches Bild nutzen wir?
   const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
 
   return (
@@ -53,23 +51,18 @@ function CarSeatSelector({
       </p>
       
       <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
-        {/* Windschutzscheibe */}
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
-
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
           
-          {/* FAHRER SITZ (Mit dynamischem Bild) */}
           <div className="flex flex-col items-center">
             <div className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center shadow-inner relative overflow-hidden ${gender === 'female' ? 'bg-pink-900 border-pink-700' : 'bg-slate-600 border-slate-500'}`}>
-               {/* Das Bild ändert sich je nach Geschlecht */}
                <Image 
                  src={driverImage} 
                  alt="Fahrer" 
                  fill
                  className="object-contain p-1"
-                 onError={(e) => { e.currentTarget.style.display = 'none'; }} // Fallback falls Bild fehlt
+                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                />
-               {/* Fallback Emoji, falls Bild nicht lädt */}
                <span className="absolute -z-10 text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
             </div>
             <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
@@ -80,12 +73,7 @@ function CarSeatSelector({
               {seats[i] ? '✔' : '❌'}
             </button>
           ))}
-          
-          <div className="col-span-2 flex justify-center -mt-2">
-             <button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-                 {seats[3] ? '✔' : '❌'}
-              </button>
-          </div>
+          <div className="col-span-2 flex justify-center -mt-2"><button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[3] ? '✔' : '❌'}</button></div>
         </div>
       </div>
       <p className="text-xs text-slate-400 mt-2">Tippe auf einen Sitz, um ihn zu blockieren.</p>
@@ -107,18 +95,11 @@ function SelectPrayerContent() {
   const [saving, setSaving] = useState(false);
   
   const [bookedPrayerIds, setBookedPrayerIds] = useState<string[]>([]);
-  
-  // HIER: Wir speichern das Geschlecht des Users
   const [userGender, setUserGender] = useState('male');
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-        setIsAdmin(true);
-      }
-
       const today = new Date().toLocaleDateString('en-CA');
 
       // 1. Gebete laden
@@ -126,11 +107,20 @@ function SelectPrayerContent() {
       if (prayersData) setPrayers(prayersData);
 
       if (user) {
-        // 2. Profil laden (für Geschlecht)
-        const { data: profile } = await supabase.from('profiles').select('gender').eq('id', user.id).single();
-        if (profile) setUserGender(profile.gender || 'male');
+        if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) setIsAdmin(true);
 
-        // 3. Prüfen: Wo bin ich schon Fahrer?
+        // 2. Profil laden (FIX: Wir laden ALLES (*), damit is_approved dabei ist)
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+        if (profile) {
+            setUserGender(profile.gender || 'male');
+            
+            // Sofort-Check beim Laden: Ist er freigeschaltet?
+            if (!profile.is_approved) {
+                // Optional: Hier könnte man schon warnen, aber wir machen es beim Klick
+            }
+        }
+
+        // 3. Blockierte Gebete laden
         const { data: myDrives } = await supabase
           .from('rides')
           .select('prayer_id')
@@ -138,7 +128,6 @@ function SelectPrayerContent() {
           .eq('ride_date', today)
           .eq('status', 'active');
 
-        // 4. Prüfen: Wo bin ich schon Mitfahrer?
         const { data: myRides } = await supabase
           .from('bookings')
           .select('ride_id, rides!inner(prayer_id, ride_date, status)')
@@ -150,7 +139,6 @@ function SelectPrayerContent() {
         const driveIds = myDrives?.map(d => d.prayer_id) || [];
         // @ts-ignore
         const rideIds = myRides?.map((r: any) => r.rides.prayer_id) || [];
-        
         setBookedPrayerIds([...driveIds, ...rideIds]);
       }
 
@@ -168,7 +156,7 @@ function SelectPrayerContent() {
     const { error } = await supabase.from('prayer_times').upsert(prayers);
     setSaving(false);
     if (error) alert("Fehler: " + error.message);
-    else alert("Zeiten erfolgreich für alle aktualisiert!");
+    else alert("Zeiten erfolgreich gespeichert!");
   };
 
   const handleNext = async () => {
@@ -177,22 +165,32 @@ function SelectPrayerContent() {
 
     if (role === 'driver') {
       setCreatingRide(true);
+
+      // --- NEU: Check auf Freischaltung ---
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      
+      if (!profile || !profile.is_approved) {
+          alert("Dein Konto wurde noch nicht von einem Admin freigeschaltet. Bitte warte auf Bestätigung.");
+          setCreatingRide(false);
+          return;
+      }
+      // ------------------------------------
+
       if (!navigator.geolocation) { alert("GPS fehlt."); setCreatingRide(false); return; }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-          const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
           const today = new Date().toLocaleDateString('en-CA');
 
           const { error } = await supabase.from('rides').insert({
             driver_id: user.id, 
             driver_name: profile?.full_name || "Unbekannt", 
             driver_phone: profile?.phone || "",
-            // 👇 WICHTIG: Das Geschlecht wird in die Fahrt gespeichert!
             driver_gender: profile?.gender || "male", 
             prayer_id: selectedPrayer.id, 
             prayer_time: selectedPrayer.time, 
@@ -209,6 +207,7 @@ function SelectPrayerContent() {
         (err) => { setCreatingRide(false); alert("GPS benötigt."); }
       );
     } else {
+      // Auch hier könnte man theoretisch auf is_approved prüfen, wenn gewünscht
       router.push(`/passenger/list?prayer=${selectedPrayer.id}&time=${selectedPrayer.time}`);
     }
   };
@@ -251,7 +250,6 @@ function SelectPrayerContent() {
                   <h3 className="font-bold text-slate-900">{prayer.name}</h3>
                   {isDisabled && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><CheckCircle2 size={10}/> BEREITS AKTIV</span>}
                 </div>
-                
                 {isAdmin ? (
                    <div onClick={(e) => e.stopPropagation()}>
                      <Input type="time" value={prayer.time} onChange={(e) => handleTimeChange(prayer.id, e.target.value)} className="w-24 text-center font-mono border-red-300 focus:border-red-600 bg-white" />
@@ -262,8 +260,7 @@ function SelectPrayerContent() {
               </Card>
             );
           })}
-
-          {/* 👇 HIER WIRD DAS GESCHLECHT ÜBERGEBEN */}
+          
           {role === 'driver' && selectedId && (
             <CarSeatSelector availableSeats={seats} onChange={setSeats} gender={userGender} />
           )}
