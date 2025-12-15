@@ -18,7 +18,7 @@ export async function GET() {
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Ride2Salah//DE',
-      'NAME:Ride 2 Salah Gebetszeiten',
+      'NAME:Ride 2 Salah',
       'X-WR-CALNAME:Ride 2 Salah',
       'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 
       'X-PUBLISHED-TTL:PT1H',
@@ -54,17 +54,17 @@ export async function GET() {
           `DTEND:${endStr}`,
           `SUMMARY:${p.name} Namaz 🕌`,
           'LOCATION:Bashir Moschee Bensheim',
+          `URL:${APP_URL}`,
+          `DESCRIPTION:Noch 20 min bis zum Namaz!\\n\\nHier klicken:\\n${APP_URL}`,
           
-          // --- HIER IST DER LINK ---
-          `URL:${APP_URL}`, // Für Kalender, die ein URL-Feld unterstützen
-          `DESCRIPTION:Noch 20 min bis zum Namaz!\\n\\nHier klicken um Fahrt zu buchen oder anzubieten:\\n${APP_URL}`,
-          // -------------------------
-
+          // --- DER NEUE, AGGRESSIVERE WECKER ---
           'BEGIN:VALARM',
-          'TRIGGER:-PT20M',
+          'TRIGGER;RELATED=START:-PT20M', // "Bezogen auf Startzeit, minus 20 Min"
           'ACTION:DISPLAY',
-          'DESCRIPTION:Noch 20 min bis zum Namaz! Komm doch zur Moschee.',
+          'DESCRIPTION:In 20 min ist Namaz!',
           'END:VALARM',
+          // -------------------------------------
+
           'END:VEVENT'
         ].join('\r\n');
 
