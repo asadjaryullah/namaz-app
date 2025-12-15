@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Car, User, Settings, Loader2, AlertTriangle, MapPin } from "lucide-react";
+// 👇 WICHTIG: Alle Icons importiert (auch BookOpen für Zikr)
+import { Car, User, Settings, Loader2, AlertTriangle, MapPin, BookOpen } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 
@@ -25,7 +26,7 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    // 1. SICHERHEITS-TIMER
+    // 1. SICHERHEITS-TIMER: Verhindert ewiges Laden
     const safetyTimer = setTimeout(() => {
       if (mounted) setLoading(false);
     }, 2000);
@@ -35,17 +36,15 @@ export default function HomePage() {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // OneSignal Login
+          // OneSignal Identifizierung
           if (typeof window !== 'undefined') {
-            try { 
-              OneSignal.login(session.user.id); 
-            } catch(e) { console.error(e); }
+            try { OneSignal.login(session.user.id); } catch(e) {}
           }
 
           if(mounted) setUser(session.user);
           
-          // Profil laden (mit .throwOnError für Sicherheit)
-          const { data: profileData, error: profileError } = await supabase
+          // Profil laden (Erzwingt frische Daten)
+          const { data: profileData } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
@@ -56,7 +55,7 @@ export default function HomePage() {
 
           const today = new Date().toLocaleDateString('en-CA');
           
-          // 1. FAHRER CHECK
+          // 1. FAHRER CHECK (Aktive Fahrt)
           const { data: driverRide } = await supabase
             .from('rides')
             .select('*')
@@ -67,7 +66,7 @@ export default function HomePage() {
           
           if(mounted && driverRide) setActiveDriverRide(driverRide);
 
-          // 2. MITFAHRER CHECK
+          // 2. MITFAHRER CHECK (Aktive Mitfahrt)
           const { data: myBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
@@ -108,7 +107,7 @@ export default function HomePage() {
     };
   }, [router]);
 
-  // Ladebildschirm
+  // --- ANSICHT: LADEN ---
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
@@ -120,7 +119,7 @@ export default function HomePage() {
     );
   }
 
-  // Nicht eingeloggt
+  // --- ANSICHT: NICHT EINGELOGGT ---
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
@@ -148,7 +147,7 @@ export default function HomePage() {
           <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95" onClick={() => router.push('/login')}>
             Anmelden
           </Button>
-          <p className="text-xs text-center text-slate-400">Einloggen via Email (Magic Link)</p>
+          <p className="text-xs text-center text-slate-400">Einloggen via Email (Code)</p>
         </div>
         <div className="w-full max-w-md mt-4 pointer-events-none"> 
            <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
@@ -159,11 +158,13 @@ export default function HomePage() {
     );
   }
 
-  // Eingeloggt
+  // --- ANSICHT: EINGELOGGT ---
   const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  
+  // Status-Checks
   const isApproved = profile?.is_approved === true;
-  const missingData = !profile?.phone  || !profile?.gender;
+  const missingData = !profile?.phone || !profile?.gender || !profile?.member_id;
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
@@ -173,7 +174,7 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* Jubiläums-Logo mit mehr Abstand */}
+      {/* JUBILÄUMS LOGO */}
       <div className="flex justify-center my-6"> 
         <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
           <Image 
@@ -185,6 +186,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* WARNUNG: DATEN FEHLEN (Rote Box) */}
       {missingData && (
         <div 
           onClick={() => router.push('/profile')}
@@ -193,13 +195,13 @@ export default function HomePage() {
           <AlertTriangle className="text-red-600 shrink-0" />
           <div>
             <p className="text-sm font-bold text-red-800">Profil unvollständig</p>
-            <p className="text-xs text-red-700 mt-1">Bitte trage deine Nummer ein.</p>
+            <p className="text-xs text-red-700 mt-1">Bitte ID und Handy eintragen.</p>
           </div>
         </div>
       )}
-      
-      {/* SPERRE: WENN NICHT FREIGEGEBEN */}
-      {!isApproved && (
+
+      {/* WARNUNG: NICHT FREIGEGEBEN (Gelbe Box) */}
+      {!isApproved && !missingData && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-4">
           <div className="flex items-center gap-2">
             <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
@@ -211,7 +213,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- BUTTON FÜR FAHRER (BLAU) --- */}
+      {/* BUTTON: LAUFENDE FAHRT (FAHRER) */}
       {activeDriverRide && (
         <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors" onClick={() => router.push('/driver/dashboard')}>
           <div><p className="font-bold text-lg">Du bist Fahrer</p><p className="text-blue-100 text-sm">Zur Navigation</p></div>
@@ -219,7 +221,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- BUTTON FÜR MITFAHRER (GRÜN) --- */}
+      {/* BUTTON: LAUFENDE FAHRT (MITFAHRER) */}
       {activePassengerRide && (
         <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors" onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}>
           <div><p className="font-bold text-lg">Du fährst mit</p><p className="text-green-100 text-sm">Standort ansehen</p></div>
@@ -227,23 +229,27 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- HIER WURDE GEÄNDERT: Die Karten sind jetzt IMMER sichtbar --- */}
-      <div className="grid grid-cols-1 gap-4">
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=driver')}
-        >
-          <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
-          <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
-        </Card>
+      {/* HAUPT-AUSWAHL (Nur wenn freigegeben oder Admin) */}
+      {(isApproved || isAdmin) && (
+        <div className="grid grid-cols-1 gap-4">
+          <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
+            <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
+            <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
+          </Card>
 
-        <Card 
-          className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md"
-          onClick={() => router.push('/select-prayer?role=passenger')}
-        >
-          <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
-          <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
-        </Card>
+          <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=passenger')}>
+            <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
+            <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
+          </Card>
+        </div>
+      )}
+
+      {/* BUTTON ZIKR & LOGBUCH (Immer sichtbar) */}
+      <div className="flex justify-center mt-2">
+        <Button variant="ghost" className="w-full h-12 text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-xl" onClick={() => router.push('/history')}>
+          <BookOpen className="mr-2 h-5 w-5" />
+          Zum Zikr & Logbuch
+        </Button>
       </div>
 
       <div className="w-full mt-2 h-[200px] rounded-2xl overflow-hidden shadow-xl bg-slate-200 relative">
@@ -252,8 +258,9 @@ export default function HomePage() {
 
       {isAdmin && (
         <div className="mt-8 pt-8 border-t border-slate-200">
-          <Button variant="outline" className="w-full" onClick={() => router.push('/admin')}>
-            <Settings size={18} className="mr-2" /> Admin Bereich
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Admin</p>
+          <Button variant="outline" className="w-full justify-start gap-3 h-12 text-slate-600" onClick={() => router.push('/admin')}>
+            <Settings size={18} /> Gebetszeiten bearbeiten
           </Button>
         </div>
       )}
