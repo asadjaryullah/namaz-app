@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { User, Phone, Save, Loader2, ArrowLeft, Calendar } from "lucide-react";
+import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo } from "lucide-react";
 
 import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
@@ -17,8 +17,12 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  // HIER: Gender hinzugefügt (Standard: 'male')
-  const [formData, setFormData] = useState({ fullName: '', phone: '', gender: 'male' });
+  const [formData, setFormData] = useState({ 
+    fullName: '', 
+    phone: '', 
+    gender: 'male', 
+    memberId: '' 
+  });
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,7 +47,8 @@ export default function ProfilePage() {
           setFormData({
             fullName: profile.full_name || '',
             phone: profile.phone || '',
-            gender: profile.gender || 'male' // Laden oder Standard
+            gender: profile.gender || 'male',
+            memberId: profile.member_id || '' 
           });
         }
       } catch (err) {
@@ -69,7 +74,8 @@ export default function ProfilePage() {
           id: userId,
           full_name: formData.fullName,
           phone: formData.phone,
-          gender: formData.gender // <--- Wird mitgespeichert
+          gender: formData.gender,
+          member_id: formData.memberId
         });
 
       if (error) throw error;
@@ -108,10 +114,9 @@ export default function ProfilePage() {
         </CardHeader>
         
         <CardContent>
-          {/* 1. DAS FORMULAR */}
           <form onSubmit={handleSave} className="space-y-4">
             
-            {/* --- NEU: GESCHLECHT AUSWAHL --- */}
+            {/* GESCHLECHT AUSWAHL */}
             <div className="space-y-2">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
               <div className="grid grid-cols-2 gap-2">
@@ -133,7 +138,20 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-            {/* ------------------------------- */}
+
+            {/* --- ID NUMMER (Text geändert) --- */}
+            <div className="space-y-1">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">ID-Nummer</label>
+              <div className="relative">
+                <BadgeInfo className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input 
+                  value={formData.memberId}
+                  onChange={(e) => setFormData({...formData, memberId: e.target.value})}
+                  className="pl-9"
+                  placeholder="z.B. 12345"
+                />
+              </div>
+            </div>
 
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
@@ -169,42 +187,35 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* 2. PUSH EINSTELLUNGEN */}
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
-            <p className="text-xs text-slate-500 mb-3">
-              Erlaube Push-Nachrichten, um zu erfahren, wann der Fahrer ankommt.
-            </p>
-            <NotificationSettings />
-          </div>
+          {/* SETTINGS */}
+          <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
+              <p className="text-xs text-slate-500 mb-3">Erlaube Push-Nachrichten für Fahrten.</p>
+              <NotificationSettings />
+            </div>
 
-          {/* 3. GPS EINSTELLUNGEN */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
-            <p className="text-xs text-slate-500 mb-3">
-              Wird benötigt, damit Fahrer und Mitfahrer sich finden.
-            </p>
-            <LocationSettings />
-          </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
+              <p className="text-xs text-slate-500 mb-3">Wird benötigt, damit Fahrer und Mitfahrer sich finden.</p>
+              <LocationSettings />
+            </div>
 
-          {/* 4. KALENDER SYNC */}
-          <div className="mt-6 pt-6 border-t border-slate-100">
-            <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
-            <p className="text-xs text-slate-500 mb-3">
-              Abonniere die Gebetszeiten direkt in deinen Kalender (mit 20 Min Erinnerung).
-            </p>
-            
-            <Button 
-              variant="outline" 
-              className="w-full justify-start gap-2 border-slate-300 text-slate-700"
-              onClick={() => {
-                const calendarUrl = window.location.origin.replace('https', 'webcal').replace('http', 'webcal') + '/api/calendar';
-                window.location.href = calendarUrl;
-              }}
-            >
-              <Calendar size={18} />
-              Kalender abonnieren
-            </Button>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
+              <p className="text-xs text-slate-500 mb-3">Abonniere die Gebetszeiten direkt in deinen Kalender.</p>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start gap-2 border-slate-300 text-slate-700"
+                onClick={() => {
+                  const calendarUrl = window.location.origin.replace('https', 'webcal').replace('http', 'webcal') + '/api/calendar';
+                  window.location.href = calendarUrl;
+                }}
+              >
+                <Calendar size={18} />
+                Kalender abonnieren
+              </Button>
+            </div>
           </div>
 
         </CardContent>
