@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
@@ -19,12 +20,22 @@ function PassengerListContent() {
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
-      // 1. Datum von Heute (Lokalzeit korrigiert!)
       const today = new Date().toLocaleDateString('en-CA');
-
-      // 2. CHECK: Habe ich heute schon eine Fahrt?
       const { data: { user } } = await supabase.auth.getUser();
+      
+      let myGender = 'male'; // Fallback
+
       if (user) {
+        // 1. Mein Geschlecht laden
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gender')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) myGender = profile.gender;
+
+        // 2. CHECK: Habe ich heute schon eine Fahrt?
         const { data: existingBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
@@ -41,20 +52,22 @@ function PassengerListContent() {
         }
       }
 
-      // 3. Fahrten laden
+      // 3. Fahrten laden (MIT GENDER FILTER)
       const { data: ridesData, error: ridesError } = await supabase
         .from('rides')
         .select('*')
         .eq('prayer_id', prayerId)
         .eq('status', 'active')
-        .eq('ride_date', today);
+        .eq('ride_date', today)
+        // 👇 WICHTIG: Nur Fahrten anzeigen, wo der Fahrer das gleiche Geschlecht hat
+        .eq('driver_gender', myGender);
 
       if (ridesError || !ridesData) {
         setLoading(false);
         return; 
       }
 
-      // 4. Buchungen laden (Plätze zählen)
+      // 4. Buchungen laden
       const rideIds = ridesData.map((r: any) => r.id);
       const { data: bookingsData } = await supabase
         .from('bookings')
@@ -75,13 +88,12 @@ function PassengerListContent() {
 
     fetchRidesAndBookings();
     
-    // Live-Update alle 5 Sek
     const interval = setInterval(fetchRidesAndBookings, 5000);
     return () => clearInterval(interval);
 
   }, [prayerId, router]); 
 
-  // --- BUCHUNGS-LOGIK (MIT PUSH NACHRICHT) ---
+  // --- BUCHUNGS-LOGIK ---
   const handleBookRide = async (rideId: string) => {
     setBookingRideId(rideId); 
 
@@ -110,7 +122,6 @@ function PassengerListContent() {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        // 👇 WICHTIG: HIER RUFEN WIR JETZT DIE API AUF (STATT DIREKT DB)
         try {
           const response = await fetch('/api/book-ride', {
             method: 'POST',
@@ -126,21 +137,18 @@ function PassengerListContent() {
           });
 
           const result = await response.json();
-
           if (!response.ok) throw new Error(result.error);
-
-          // Erfolg -> Weiterleiten
+          
           router.push(`/passenger/dashboard?rideId=${rideId}`);
 
         } catch (err: any) {
           alert("Fehler bei der Buchung: " + err.message);
           setBookingRideId(null);
         }
-        // -----------------------------------------------------------
       },
       (err) => {
         setBookingRideId(null);
-        alert("GPS wird benötigt, damit der Fahrer dich findet!");
+        alert("GPS wird benötigt!");
       }
     );
   };
@@ -165,6 +173,7 @@ function PassengerListContent() {
       ) : rides.length === 0 ? (
         <div className="text-center mt-10 p-6 bg-white rounded-xl shadow border">
           <p className="text-lg font-semibold text-slate-700">Keine Fahrer gefunden 😔</p>
+          <p className="text-xs text-slate-400 mt-2">Es werden nur Fahrer deines Geschlechts angezeigt.</p>
           <Button className="mt-4" onClick={() => router.push('/')}>Zurück</Button>
         </div>
       ) : (

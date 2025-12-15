@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image'; // <--- WICHTIG: Image Import hinzugefügt
+import Image from 'next/image'; 
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { ChevronLeft, Loader2, Save, LogOut, CheckCircle2 } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import ProfileBar from '@/components/ProfileBar'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 const getIcon = (id: string) => {
   switch(id) {
@@ -24,13 +24,15 @@ const getIcon = (id: string) => {
   }
 };
 
-// --- AUTO SITZPLAN KOMPONENTE (Mit driver-icon.png) ---
+// --- AUTO SITZPLAN KOMPONENTE (Angepasst für Gender) ---
 function CarSeatSelector({ 
   availableSeats, 
-  onChange 
+  onChange,
+  gender // <--- NEU: Wir bekommen das Geschlecht übergeben
 }: { 
   availableSeats: number, 
-  onChange: (n: number) => void 
+  onChange: (n: number) => void,
+  gender: string 
 }) {
   const [seats, setSeats] = useState([true, true, true, true]);
 
@@ -38,9 +40,11 @@ function CarSeatSelector({
     const newSeats = [...seats];
     newSeats[index] = !newSeats[index];
     setSeats(newSeats);
-    const count = newSeats.filter(s => s).length;
-    onChange(count);
+    onChange(newSeats.filter(s => s).length);
   };
+
+  // Welches Bild nutzen wir?
+  const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
 
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
@@ -49,37 +53,33 @@ function CarSeatSelector({
       </p>
       
       <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
-        
         {/* Windschutzscheibe */}
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
           
-          {/* FAHRER SITZ (Mit Bild) */}
+          {/* FAHRER SITZ (Mit dynamischem Bild) */}
           <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg bg-slate-600 border-2 border-slate-500 flex items-center justify-center shadow-inner relative overflow-hidden">
-               {/* HIER IST DAS BILD */}
+            <div className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center shadow-inner relative overflow-hidden ${gender === 'female' ? 'bg-pink-900 border-pink-700' : 'bg-slate-600 border-slate-500'}`}>
+               {/* Das Bild ändert sich je nach Geschlecht */}
                <Image 
-                 src="/driver-icon.png" 
+                 src={driverImage} 
                  alt="Fahrer" 
                  fill
                  className="object-contain p-1"
+                 onError={(e) => { e.currentTarget.style.display = 'none'; }} // Fallback falls Bild fehlt
                />
+               {/* Fallback Emoji, falls Bild nicht lädt */}
+               <span className="absolute -z-10 text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
             </div>
             <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
           </div>
 
-          <button onClick={() => toggleSeat(0)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[0] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-            {seats[0] ? '✔' : '❌'}
-          </button>
-
-          <button onClick={() => toggleSeat(1)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[1] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-             {seats[1] ? '✔' : '❌'}
-          </button>
-
-          <button onClick={() => toggleSeat(2)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[2] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
-             {seats[2] ? '✔' : '❌'}
-          </button>
+          {[0,1,2].map(i => (
+            <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
+              {seats[i] ? '✔' : '❌'}
+            </button>
+          ))}
           
           <div className="col-span-2 flex justify-center -mt-2">
              <button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>
@@ -106,8 +106,10 @@ function SelectPrayerContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [saving, setSaving] = useState(false);
   
-  // Speichert die IDs der Gebete, die der User heute schon gebucht/angeboten hat
   const [bookedPrayerIds, setBookedPrayerIds] = useState<string[]>([]);
+  
+  // HIER: Wir speichern das Geschlecht des Users
+  const [userGender, setUserGender] = useState('male');
 
   useEffect(() => {
     const init = async () => {
@@ -124,7 +126,11 @@ function SelectPrayerContent() {
       if (prayersData) setPrayers(prayersData);
 
       if (user) {
-        // 2. Prüfen: Wo bin ich schon Fahrer?
+        // 2. Profil laden (für Geschlecht)
+        const { data: profile } = await supabase.from('profiles').select('gender').eq('id', user.id).single();
+        if (profile) setUserGender(profile.gender || 'male');
+
+        // 3. Prüfen: Wo bin ich schon Fahrer?
         const { data: myDrives } = await supabase
           .from('rides')
           .select('prayer_id')
@@ -132,7 +138,7 @@ function SelectPrayerContent() {
           .eq('ride_date', today)
           .eq('status', 'active');
 
-        // 3. Prüfen: Wo bin ich schon Mitfahrer?
+        // 4. Prüfen: Wo bin ich schon Mitfahrer?
         const { data: myRides } = await supabase
           .from('bookings')
           .select('ride_id, rides!inner(prayer_id, ride_date, status)')
@@ -142,9 +148,9 @@ function SelectPrayerContent() {
           .eq('rides.status', 'active');
 
         const driveIds = myDrives?.map(d => d.prayer_id) || [];
+        // @ts-ignore
         const rideIds = myRides?.map((r: any) => r.rides.prayer_id) || [];
         
-        // Alle blockierten Gebete zusammenführen
         setBookedPrayerIds([...driveIds, ...rideIds]);
       }
 
@@ -183,8 +189,17 @@ function SelectPrayerContent() {
           const today = new Date().toLocaleDateString('en-CA');
 
           const { error } = await supabase.from('rides').insert({
-            driver_id: user.id, driver_name: profile?.full_name || "Unbekannt", driver_phone: profile?.phone || "",
-            prayer_id: selectedPrayer.id, prayer_time: selectedPrayer.time, seats: seats, start_lat: lat, start_lon: lon, ride_date: today
+            driver_id: user.id, 
+            driver_name: profile?.full_name || "Unbekannt", 
+            driver_phone: profile?.phone || "",
+            // 👇 WICHTIG: Das Geschlecht wird in die Fahrt gespeichert!
+            driver_gender: profile?.gender || "male", 
+            prayer_id: selectedPrayer.id, 
+            prayer_time: selectedPrayer.time, 
+            seats: seats, 
+            start_lat: lat, 
+            start_lon: lon, 
+            ride_date: today
           });
 
           setCreatingRide(false);
@@ -218,10 +233,7 @@ function SelectPrayerContent() {
             const Icon = getIcon(prayer.id);
             const isSelected = selectedId === prayer.id;
             
-            // Check: Ist dieses Gebet schon erledigt?
             const isAlreadyBooked = bookedPrayerIds.includes(prayer.id);
-
-            // Wenn schon gebucht, machen wir die Karte blass und nicht klickbar (außer für Admin)
             const isDisabled = isAlreadyBooked && !isAdmin;
 
             return (
@@ -250,7 +262,11 @@ function SelectPrayerContent() {
               </Card>
             );
           })}
-          {role === 'driver' && selectedId && <CarSeatSelector availableSeats={seats} onChange={setSeats} />}
+
+          {/* 👇 HIER WIRD DAS GESCHLECHT ÜBERGEBEN */}
+          {role === 'driver' && selectedId && (
+            <CarSeatSelector availableSeats={seats} onChange={setSeats} gender={userGender} />
+          )}
           
           {isAdmin && (
             <Button className="w-full bg-red-600 hover:bg-red-700 text-white mt-4" onClick={handleSaveTimes} disabled={saving}>
@@ -275,7 +291,6 @@ function SelectPrayerContent() {
 export default function SelectPrayerPage() {
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col">
-      <ProfileBar />
       <div className="p-6 flex flex-col items-center">
         <Suspense fallback={<div>Lade...</div>}>
           <SelectPrayerContent />

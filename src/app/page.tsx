@@ -162,7 +162,7 @@ export default function HomePage() {
   // Eingeloggt
   const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  const missingData = !profile?.phone;
+  const missingData = !profile?.phone  || !profile?.gender;
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">

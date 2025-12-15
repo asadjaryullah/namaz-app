@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-// 👇 "Calendar" Icon hinzugefügt
 import { User, Phone, Save, Loader2, ArrowLeft, Calendar } from "lucide-react";
 
 import NotificationSettings from '@/components/NotificationSettings';
@@ -17,7 +16,9 @@ export default function ProfilePage() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({ fullName: '', phone: '' });
+  
+  // HIER: Gender hinzugefügt (Standard: 'male')
+  const [formData, setFormData] = useState({ fullName: '', phone: '', gender: 'male' });
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +42,8 @@ export default function ProfilePage() {
         if (profile) {
           setFormData({
             fullName: profile.full_name || '',
-            phone: profile.phone || ''
+            phone: profile.phone || '',
+            gender: profile.gender || 'male' // Laden oder Standard
           });
         }
       } catch (err) {
@@ -66,7 +68,8 @@ export default function ProfilePage() {
         .upsert({
           id: userId,
           full_name: formData.fullName,
-          phone: formData.phone
+          phone: formData.phone,
+          gender: formData.gender // <--- Wird mitgespeichert
         });
 
       if (error) throw error;
@@ -108,6 +111,30 @@ export default function ProfilePage() {
           {/* 1. DAS FORMULAR */}
           <form onSubmit={handleSave} className="space-y-4">
             
+            {/* --- NEU: GESCHLECHT AUSWAHL --- */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
+              <div className="grid grid-cols-2 gap-2">
+                <div 
+                  onClick={() => setFormData({...formData, gender: 'male'})}
+                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 select-none
+                    ${formData.gender === 'male' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                >
+                  <span className="text-xl">🧔🏻‍♂️</span>
+                  <span className="text-sm font-bold">Bruder</span>
+                </div>
+                <div 
+                  onClick={() => setFormData({...formData, gender: 'female'})}
+                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 select-none
+                    ${formData.gender === 'female' ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-200 text-slate-500 hover:border-pink-200'}`}
+                >
+                  <span className="text-xl">🧕🏻</span>
+                  <span className="text-sm font-bold">Schwester</span>
+                </div>
+              </div>
+            </div>
+            {/* ------------------------------- */}
+
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
               <div className="relative">
@@ -160,7 +187,7 @@ export default function ProfilePage() {
             <LocationSettings />
           </div>
 
-          {/* 4. KALENDER SYNC (NEU HINZUGEFÜGT) */}
+          {/* 4. KALENDER SYNC */}
           <div className="mt-6 pt-6 border-t border-slate-100">
             <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
             <p className="text-xs text-slate-500 mb-3">
@@ -171,7 +198,6 @@ export default function ProfilePage() {
               variant="outline" 
               className="w-full justify-start gap-2 border-slate-300 text-slate-700"
               onClick={() => {
-                // Ersetzt http/https durch webcal, damit die Kalender-App aufgeht
                 const calendarUrl = window.location.origin.replace('https', 'webcal').replace('http', 'webcal') + '/api/calendar';
                 window.location.href = calendarUrl;
               }}
