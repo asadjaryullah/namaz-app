@@ -6,17 +6,18 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-// 👇 WICHTIG: Alle Icons importiert (auch BookOpen für Zikr)
+// 👇 Alle Icons (inklusive BookOpen für Zikr)
 import { Car, User, Settings, Loader2, AlertTriangle, MapPin, BookOpen } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
   
-  const [loading, setLoading] = useState(true); 
+  // Status
+  const [isInitializing, setIsInitializing] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   
@@ -26,48 +27,66 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    // 1. SICHERHEITS-TIMER: Verhindert ewiges Laden
-    const safetyTimer = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 2000);
-
-    const checkSession = async () => {
+    // 1. App initialisieren
+    const initApp = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
-          // OneSignal Identifizierung
-          if (typeof window !== 'undefined') {
-            try { OneSignal.login(session.user.id); } catch(e) {}
+        // Fall A: Nicht eingeloggt
+        if (!session?.user) {
+          if(mounted) {
+            setUser(null);
+            setIsInitializing(false);
           }
+          return;
+        }
 
-          if(mounted) setUser(session.user);
-          
-          // Profil laden (Erzwingt frische Daten)
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-            .throwOnError(); 
-          
-          if(mounted && profileData) setProfile(profileData);
+        // Fall B: Eingeloggt -> Daten laden
+        
+        // OneSignal verbinden
+        if (typeof window !== 'undefined') {
+            try { OneSignal.login(session.user.id); } catch(e) { console.error(e); }
+        }
 
-          const today = new Date().toLocaleDateString('en-CA');
-          
-          // 1. FAHRER CHECK (Aktive Fahrt)
-          const { data: driverRide } = await supabase
+        // Profil laden (Sicher mit maybeSingle)
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        // SELBSTHEILUNG: Falls User da ist, aber Profil gelöscht wurde
+        if (!profileData) {
+          console.warn("User ohne Profil gefunden - Auto-Logout.");
+          await supabase.auth.signOut();
+          if(mounted) {
+             setUser(null);
+             setIsInitializing(false);
+          }
+          return;
+        }
+
+        if(mounted) {
+            setUser(session.user);
+            setProfile(profileData);
+        }
+
+        // Fahrten prüfen (mit korrektem Datum)
+        const today = new Date().toLocaleDateString('en-CA');
+        
+        // 1. Bin ich Fahrer?
+        const { data: driverRide } = await supabase
             .from('rides')
             .select('*')
             .eq('driver_id', session.user.id)
             .eq('status', 'active')
             .eq('ride_date', today)
             .maybeSingle();
-          
-          if(mounted && driverRide) setActiveDriverRide(driverRide);
+        
+        if(mounted && driverRide) setActiveDriverRide(driverRide);
 
-          // 2. MITFAHRER CHECK (Aktive Mitfahrt)
-          const { data: myBooking } = await supabase
+        // 2. Bin ich Mitfahrer?
+        const { data: myBooking } = await supabase
             .from('bookings')
             .select('ride_id, rides!inner(status, ride_date)')
             .eq('passenger_id', session.user.id)
@@ -76,94 +95,54 @@ export default function HomePage() {
             .eq('rides.ride_date', today)
             .maybeSingle();
 
-          if (mounted && myBooking) {
-             setActivePassengerRide(myBooking.ride_id);
-          }
-        }
+        if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
+
       } catch (error) {
-        console.error("Fehler beim Laden:", error);
+        console.error("Fehler beim Start:", error);
       } finally {
-        if(mounted) setLoading(false);
+        if(mounted) setIsInitializing(false);
       }
     };
 
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-        if(!session?.user) {
-           setProfile(null);
-           setActiveDriverRide(null);
-           setActivePassengerRide(null);
-        }
-      }
-    });
-
-    return () => {
-      mounted = false;
-      clearTimeout(safetyTimer);
-      subscription.unsubscribe();
-    };
+    initApp();
   }, [router]);
 
-  // --- ANSICHT: LADEN ---
-  if (loading) {
+  // --- ANSICHT 1: LADEN ---
+  if (isInitializing) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <div className="relative w-24 h-24 animate-pulse">
-           <Image src="/icon.png" alt="Logo" fill className="object-contain" />
-        </div>
-        <Loader2 className="animate-spin text-slate-400 h-6 w-6"/>
+        <Loader2 className="animate-spin text-slate-400 h-8 w-8"/>
       </div>
     );
   }
 
-  // --- ANSICHT: NICHT EINGELOGGT ---
+  // --- ANSICHT 2: LOGIN SCREEN ---
   if (!user) {
     return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8">
-        <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-500">
+      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8 animate-in fade-in duration-500">
+        <div className="flex flex-col items-center text-center">
           <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
-          <div className="space-y-6 mt-2">
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
-                حَيَّ عَلَىٰ ٱلصَّلَاةِ
-              </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Gebet"</p>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
-                حَيَّ عَلَىٰ ٱلْفَلَاحِ
-              </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Erfolg"</p>
-            </div>
+          
+          <div className="w-full max-w-xs space-y-4 mt-4">
+            <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl" onClick={() => router.push('/login')}>
+              Anmelden
+            </Button>
+            <p className="text-xs text-center text-slate-400">Einloggen via Code (Sicher)</p>
           </div>
-        </div>
-        <div className="w-full max-w-xs space-y-4 mt-4">
-          <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95" onClick={() => router.push('/login')}>
-            Anmelden
-          </Button>
-          <p className="text-xs text-center text-slate-400">Einloggen via Email (Code)</p>
-        </div>
-        <div className="w-full max-w-md mt-4 pointer-events-none"> 
-           <div className="h-[180px] w-full rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200">
-             <MapComponent />
-           </div>
         </div>
       </main>
     );
   }
 
-  // --- ANSICHT: EINGELOGGT ---
-  const firstName = profile?.full_name?.split(' ')[0] || user.user_metadata?.full_name?.split(' ')[0] || "Nutzer";
-  const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  // --- ANSICHT 3: DASHBOARD ---
+  const firstName = profile?.full_name?.split(' ')[0] || "Nutzer";
+  const isAdmin = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
   
-  // Status-Checks
   const isApproved = profile?.is_approved === true;
+  // Prüft auf Handy, Gender UND Member ID
   const missingData = !profile?.phone || !profile?.gender || !profile?.member_id;
 
   return (
@@ -174,24 +153,15 @@ export default function HomePage() {
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      {/* JUBILÄUMS LOGO */}
       <div className="flex justify-center my-6"> 
         <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-          <Image 
-            src="/jubilaeum.png" 
-            alt="20 Jahre Jubiläum" 
-            fill 
-            className="object-contain"
-          />
+          <Image src="/jubilaeum.png" alt="20 Jahre Jubiläum" fill className="object-contain" />
         </div>
       </div>
 
-      {/* WARNUNG: DATEN FEHLEN (Rote Box) */}
+      {/* WARNUNG: DATEN FEHLEN */}
       {missingData && (
-        <div 
-          onClick={() => router.push('/profile')}
-          className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors"
-        >
+        <div onClick={() => router.push('/profile')} className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors">
           <AlertTriangle className="text-red-600 shrink-0" />
           <div>
             <p className="text-sm font-bold text-red-800">Profil unvollständig</p>
@@ -200,20 +170,18 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* WARNUNG: NICHT FREIGEGEBEN (Gelbe Box) */}
+      {/* WARNUNG: NICHT FREIGEGEBEN */}
       {!isApproved && !missingData && (
         <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-4">
           <div className="flex items-center gap-2">
             <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
-            <h3 className="font-bold text-yellow-800">Profil wird geprüft</h3>
+            <h3 className="font-bold text-yellow-800">Warte auf Freigabe</h3>
           </div>
-          <p className="text-sm text-yellow-700 mt-1">
-            Ein Admin muss dein Konto freischalten, bevor du Fahrten buchen oder anbieten kannst.
-          </p>
+          <p className="text-sm text-yellow-700 mt-1">Ein Admin prüft deine ID.</p>
         </div>
       )}
 
-      {/* BUTTON: LAUFENDE FAHRT (FAHRER) */}
+      {/* ACTIVE RIDE BUTTONS */}
       {activeDriverRide && (
         <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-blue-700 transition-colors" onClick={() => router.push('/driver/dashboard')}>
           <div><p className="font-bold text-lg">Du bist Fahrer</p><p className="text-blue-100 text-sm">Zur Navigation</p></div>
@@ -221,7 +189,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* BUTTON: LAUFENDE FAHRT (MITFAHRER) */}
       {activePassengerRide && (
         <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between hover:bg-green-700 transition-colors" onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}>
           <div><p className="font-bold text-lg">Du fährst mit</p><p className="text-green-100 text-sm">Standort ansehen</p></div>
@@ -232,23 +199,22 @@ export default function HomePage() {
       {/* HAUPT-AUSWAHL (Nur wenn freigegeben oder Admin) */}
       {(isApproved || isAdmin) && (
         <div className="grid grid-cols-1 gap-4">
-          <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-slate-900 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
+          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
             <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
             <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
           </Card>
 
-          <Card className="p-6 flex items-center gap-5 cursor-pointer hover:border-blue-600 transition-all border-2 border-transparent bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=passenger')}>
+          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=passenger')}>
             <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
             <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
           </Card>
         </div>
       )}
-
-      {/* BUTTON ZIKR & LOGBUCH (Immer sichtbar) */}
+      
+      {/* ZIKR BUTTON (Immer sichtbar) */}
       <div className="flex justify-center mt-2">
         <Button variant="ghost" className="w-full h-12 text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-xl" onClick={() => router.push('/history')}>
-          <BookOpen className="mr-2 h-5 w-5" />
-          Zum Zikr & Logbuch
+          <BookOpen className="mr-2 h-5 w-5" /> Zum Zikr & Logbuch
         </Button>
       </div>
 
@@ -258,9 +224,8 @@ export default function HomePage() {
 
       {isAdmin && (
         <div className="mt-8 pt-8 border-t border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Admin</p>
-          <Button variant="outline" className="w-full justify-start gap-3 h-12 text-slate-600" onClick={() => router.push('/admin')}>
-            <Settings size={18} /> Gebetszeiten bearbeiten
+          <Button variant="outline" className="w-full" onClick={() => router.push('/admin')}>
+            <Settings size={18} className="mr-2" /> Admin Bereich
           </Button>
         </div>
       )}
