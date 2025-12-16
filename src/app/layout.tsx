@@ -3,7 +3,6 @@ import { Amiri } from "next/font/google";
 import Image from "next/image"; 
 import "./globals.css";
 
-// Wir importieren sie, nutzen sie aber gleich erst mal NICHT
 import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
