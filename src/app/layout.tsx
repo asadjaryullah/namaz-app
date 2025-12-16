@@ -3,11 +3,13 @@ import { Amiri } from "next/font/google";
 import Image from "next/image"; 
 import "./globals.css";
 
+// Alle Komponenten importieren
 import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
-import InstallPrompt from "@/components/InstallPrompt"; 
+import InstallPrompt from "@/components/InstallPrompt"; // <--- NEU
 import OneSignalInit from "@/components/OneSignalInit";
+
 
 const amiri = Amiri({
   subsets: ["arabic"],
@@ -43,26 +45,45 @@ export default function RootLayout({
     <html lang="de">
       <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
+        {/* --- HINTERGRUND-KOMPONENTEN --- */}
+         <OneSignalInit />
+        <InstallPrompt />      {/* Zeigt Installations-Hilfe auf iPhone */}
+        <NotificationManager /> {/* Push Nachrichten Logik */}
+        <MosqueDetector />      {/* GPS Auto-Checkin */}
         
-        {/* <OneSignalInit /> */}
-        {/* <InstallPrompt /> */}
-        {/* <NotificationManager /> */}
-        {/* <MosqueDetector /> */}
+        {/* --- NAVIGATION --- */}
+        <ProfileBar />
         
-        {/* <ProfileBar /> */}
-        
-        {/* --- HAUPTINHALT (Das muss sichtbar sein!) --- */}
-        <div className="flex-1 flex flex-col">
-           {/* Notfall-Header, damit du dich orientieren kannst */}
-           <div className="bg-red-100 text-red-800 p-2 text-center text-xs font-bold">
-             DEBUG MODUS
-           </div>
-           {children}
+        {/* --- HAUPTINHALT --- */}
+        <div className="flex-1">
+          {children}
         </div>
 
         {/* --- FOOTER --- */}
         <footer className="py-8 text-center text-slate-400 text-xs mt-4 border-t border-slate-100/50">
+          
+          {/* JUBILÄUMSLOGO (Klein & Dezent) */}
+          <div className="flex justify-center mb-3">
+            <div className="relative w-14 h-14 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500 cursor-pointer">
+              <Image 
+                src="/jubilaeum.png" 
+                alt="100 Jahre Jubiläum" 
+                fill 
+                className="object-contain"
+              />
+            </div>
+          </div>
+
           <p className="mb-2 font-medium">© {new Date().getFullYear()} Ride 2 Salah</p>
+          
+          <div className="flex justify-center gap-4">
+            <a href="/impressum" className="hover:text-slate-600 transition-colors underline-offset-4 hover:underline">
+              Impressum
+            </a>
+            <a href="/datenschutz" className="hover:text-slate-600 transition-colors underline-offset-4 hover:underline">
+              Datenschutz
+            </a>
+          </div>
         </footer>
 
       </body>

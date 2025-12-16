@@ -1,227 +1,103 @@
+// app/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Car, User, Settings, Loader2, AlertTriangle, MapPin, BookOpen, LogOut } from "lucide-react";
-import MapComponent from '@/components/MapComponent'; 
-import OneSignal from 'react-onesignal'; 
-
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+import { supabase } from '@/lib/supabase'; // Sicherstellen, dass der Pfad korrekt ist
+import Image from 'next/image'; // Für Bilder
 
 export default function HomePage() {
   const router = useRouter();
-  
-  // Wir starten im "Loading"-Modus
-  const [loading, setLoading] = useState(true); 
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  
-  const [activeDriverRide, setActiveDriverRide] = useState<any>(null);
-  const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
-
-  // NOTFALL-LOGOUT FUNKTION
-  const forceLogout = async () => {
-    console.log("Führe Notfall-Logout durch...");
-    await supabase.auth.signOut();
-    localStorage.clear(); // Alles löschen
-    sessionStorage.clear();
-    window.location.reload(); // Seite neu laden
-  };
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+    });
 
-    const initApp = async () => {
-      try {
-        // 1. Session holen
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Session Fehler:", sessionError);
-          await forceLogout();
-          return;
-        }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setLoading(false);
+    });
 
-        // FALL A: Nicht eingeloggt -> Fertig, zeige Login-Screen
-        if (!session?.user) {
-          if(mounted) {
-            setUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        // FALL B: Eingeloggt -> Versuche Profil zu laden
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle(); // WICHTIG: maybeSingle stürzt nicht ab
-
-        // ZOMBIE-CHECK: User ist da, aber Profil ist weg (durch DB Löschung)
-        if (!profileData) {
-          console.warn("Zombie-Session erkannt! User existiert nicht mehr in DB.");
-          await forceLogout(); // Rauswerfen!
-          return;
-        }
-
-        // Alles okay -> Daten setzen
-        if(mounted) {
-            setUser(session.user);
-            setProfile(profileData);
-        }
-
-        // OneSignal (nur wenn alles okay ist)
-        if (typeof window !== 'undefined') {
-            try { OneSignal.login(session.user.id); } catch(e) {}
-        }
-
-        // Fahrten laden
-        const today = new Date().toLocaleDateString('en-CA');
-        
-        const { data: driverRide } = await supabase.from('rides').select('*').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle();
-        if(mounted && driverRide) setActiveDriverRide(driverRide);
-
-        const { data: myBooking } = await supabase.from('bookings').select('ride_id, rides!inner(status, ride_date)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle();
-        if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
-
-      } catch (error) {
-        console.error("Kritischer App-Fehler:", error);
-        await forceLogout();
-      } finally {
-        if(mounted) setLoading(false);
-      }
-    };
-
-    initApp();
+    return () => subscription.unsubscribe();
   }, []);
 
-  // --- 1. LADEBILDSCHIRM ---
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <Loader2 className="animate-spin text-slate-400 h-8 w-8"/>
-        <p className="text-xs text-slate-400">Lade App...</p>
-        {/* Notfall-Knopf, falls es ewig lädt */}
-        <button onClick={forceLogout} className="text-xs text-red-400 underline mt-4">
-          Hängt es? Hier klicken zum Reset.
-        </button>
+      <div className="flex items-center justify-center min-h-screen">
+        Lade...
       </div>
     );
   }
 
-  // --- 2. LOGIN SCREEN (Wenn nicht eingeloggt) ---
-  if (!user) {
-    return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8 animate-in fade-in duration-500">
-        <div className="flex flex-col items-center text-center">
-          <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
-            <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
-          </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
-          
-          <div className="w-full max-w-xs space-y-4 mt-4">
-            <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl" onClick={() => router.push('/login')}>
-              Anmelden
-            </Button>
-            <p className="text-xs text-center text-slate-400">Einloggen via Code (Sicher)</p>
-          </div>
-        </div>
-      </main>
-    );
+  if (session) {
+    // Wenn der Benutzer angemeldet ist, zum Dashboard weiterleiten
+    // Oder die Dashboard-Komponente direkt hier rendern, falls du keine separate Route hast
+    router.push('/dashboard'); // Beispiel: Weiterleitung zum Dashboard
+    return null; // Oder ein Lade-Spinner
   }
 
-  // --- 3. DASHBOARD (Wenn eingeloggt) ---
-  const firstName = profile?.full_name?.split(' ')[0] || "Nutzer";
-  const isAdmin = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
-  const isApproved = profile?.is_approved === true;
-  const missingData = !profile?.phone || !profile?.gender || !profile?.member_id;
-
+  // Pre-Login UI (basierend auf deinem ersten Screenshot)
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 text-center">
+      {/* Logo */}
+      <div className="mb-8">
+        <Image
+          src="/path/to/your/logo.png" // Pfad zu deinem Ride2Salah Logo
+          alt="Ride2Salah Bashier Moschee Logo"
+          width={180}
+          height={180}
+          priority
+        />
+      </div>
+
+      <h1 className="text-3xl font-bold mb-4 text-gray-800">Ride 2 Salah</h1>
       
-      <div className="mt-4">
-        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋</h1>
-        <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
+      <div className="text-xl mb-8">
+        <p className="font-arabic text-gray-700">
+          حَيَّ عَلَى الصَّلاةِ
+        </p>
+        <p className="text-sm text-gray-500 mb-4">"KOMMT ZUM GEBET"</p>
+        <p className="font-arabic text-gray-700">
+          حَيَّ عَلَى الْفَلاحِ
+        </p>
+        <p className="text-sm text-gray-500">"KOMMT ZUM ERFOLG"</p>
       </div>
 
-      <div className="flex justify-center my-6"> 
-        <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-          <Image src="/jubilaeum.png" alt="20 Jahre Jubiläum" fill className="object-contain" />
-        </div>
+      {/* Anmelden Button - Weiterleitung zur Login-Seite */}
+      <button
+        onClick={() => router.push('/login')} // Oder direkt hier Magic Link auslösen
+        className="bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:bg-blue-800 transition-colors mb-4 text-lg"
+      >
+        Anmelden
+      </button>
+      <p className="text-sm text-gray-600">Einloggen via Email (Magic Link)</p>
+
+      {/* Karte (Platzhalter) */}
+      <div className="mt-12 w-full max-w-lg rounded-lg shadow-md overflow-hidden border border-gray-200">
+        {/* Hier würde die Google Maps Integration hinkommen */}
+        <Image
+          src="/path/to/your/map.png" // Platzhalterbild für die Karte, falls du keines hast
+          alt="Moschee auf Karte"
+          width={600}
+          height={300}
+          layout="responsive"
+        />
       </div>
 
-      {/* WARNUNGEN */}
-      {missingData && (
-        <div onClick={() => router.push('/profile')} className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors">
-          <AlertTriangle className="text-red-600 shrink-0" />
-          <div>
-            <p className="text-sm font-bold text-red-800">Profil unvollständig</p>
-            <p className="text-xs text-red-700 mt-1">Bitte ID und Handy eintragen.</p>
-          </div>
+      {/* Footer */}
+      <footer className="mt-12 text-sm text-gray-500">
+        <p>&copy; 2025 Ride 2 Salah</p>
+        <div className="flex justify-center gap-4 mt-1">
+          <a href="/impressum" className="hover:underline">Impressum</a>
+          <a href="/datenschutz" className="hover:underline">Datenschutz</a>
         </div>
-      )}
-
-      {!isApproved && !missingData && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-xl mb-4">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
-            <h3 className="font-bold text-yellow-800">Warte auf Freigabe</h3>
-          </div>
-          <p className="text-sm text-yellow-700 mt-1">Ein Admin prüft deine ID.</p>
-        </div>
-      )}
-
-      {/* BUTTONS */}
-      {activeDriverRide && (
-        <div className="bg-blue-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between" onClick={() => router.push('/driver/dashboard')}>
-          <div><p className="font-bold text-lg">Du bist Fahrer</p><p className="text-blue-100 text-sm">Zur Navigation</p></div>
-          <div className="bg-white/20 p-2 rounded-full animate-pulse"><Car /></div>
-        </div>
-      )}
-
-      {activePassengerRide && (
-        <div className="bg-green-600 rounded-2xl p-4 text-white shadow-lg cursor-pointer flex items-center justify-between" onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}>
-          <div><p className="font-bold text-lg">Du fährst mit</p><p className="text-green-100 text-sm">Standort ansehen</p></div>
-          <div className="bg-white/20 p-2 rounded-full animate-pulse"><User /></div>
-        </div>
-      )}
-
-      {(isApproved || isAdmin) && (
-        <div className="grid grid-cols-1 gap-4">
-          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=driver')}>
-            <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
-            <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
-          </Card>
-
-          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm" onClick={() => router.push('/select-prayer?role=passenger')}>
-            <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
-            <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
-          </Card>
-        </div>
-      )}
-      
-      <div className="flex justify-center mt-2">
-        <Button variant="ghost" className="w-full h-12 text-slate-500" onClick={() => router.push('/history')}>
-          <BookOpen className="mr-2 h-5 w-5" /> Zum Zikr & Logbuch
-        </Button>
-      </div>
-
-      <div className="w-full mt-2 h-[200px] rounded-2xl overflow-hidden shadow-xl bg-slate-200 relative">
-         <MapComponent />
-      </div>
-
-      {isAdmin && (
-        <div className="mt-8 pt-8 border-t border-slate-200">
-          <Button variant="outline" className="w-full" onClick={() => router.push('/admin')}>
-            <Settings size={18} className="mr-2" /> Admin Bereich
-          </Button>
-        </div>
-      )}
-    </main>
+      </footer>
+    </div>
   );
 }
