@@ -43,7 +43,7 @@ export default function RootLayout({
     <html lang="de">
       <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
-        {/* --- FEHLERSUCHE: ALLES AUSKOMMENTIERT --- */}
+        
         {/* <OneSignalInit /> */}
         {/* <InstallPrompt /> */}
         {/* <NotificationManager /> */}
