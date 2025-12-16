@@ -1,100 +1,72 @@
-'use client';
+import type { Metadata, Viewport } from "next";
+import { Amiri } from "next/font/google"; 
+import Image from "next/image"; 
+import "./globals.css";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { UserCircle, LogOut, Settings, Home } from "lucide-react"; 
+// Wir importieren sie, nutzen sie aber gleich erst mal NICHT
+import ProfileBar from "@/components/ProfileBar";
+import NotificationManager from "@/components/NotificationManager";
+import MosqueDetector from "@/components/MosqueDetector";
+import InstallPrompt from "@/components/InstallPrompt"; 
+import OneSignalInit from "@/components/OneSignalInit";
 
-export default function ProfileBar() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+const amiri = Amiri({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-amiri",
+});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      setUser(user);
+export const metadata: Metadata = {
+  title: "Ride 2 Salah",
+  description: "Gemeinsam zur Moschee",
+  manifest: "/manifest.json", 
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ride 2 Salah",
+  },
+};
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#0f172a",
+};
 
-      if (data) setProfile(data);
-      setLoading(false);
-    };
-
-    fetchData();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/'; 
-  };
-
-  if (loading || !user) return null;
-
-  const fullName = profile?.full_name || user.user_metadata?.full_name || "";
-  const firstName = fullName.split(' ')[0] || "Nutzer"; 
-
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    // Sticky Header: Bleibt beim Scrollen oben kleben
-    <div className="w-full bg-white/95 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
-      
-      {/* 🏠 LINKS: HOME BUTTON */}
-      <button 
-        onClick={() => router.push('/')}
-        className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors"
-        title="Zur Startseite"
-      >
-        <Home className="h-6 w-6" />
-      </button>
-
-      {/* RECHTS: PROFIL-MENÜ */}
-      <div className="flex items-center gap-1">
+    <html lang="de">
+      <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
-        {/* 1. BUTTON: ZUR STATISTIK (Klick auf Name) */}
-        <div 
-          onClick={() => router.push('/history')} 
-          className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 group mr-1"
-          title="Zum Logbuch & Zikr"
-        >
-          <div className="flex flex-col items-end">
-            <span className="font-bold text-sm text-slate-900 leading-none group-hover:text-blue-700 transition-colors">
-              Salam, {firstName} 👋
-            </span>
-          </div>
-
-          <div className="bg-white p-1 rounded-full border border-slate-200 group-hover:border-blue-300">
-            <UserCircle className="h-5 w-5 text-slate-700 group-hover:text-blue-600" />
-          </div>
+        {/* --- FEHLERSUCHE: ALLES AUSKOMMENTIERT --- */}
+        {/* <OneSignalInit /> */}
+        {/* <InstallPrompt /> */}
+        {/* <NotificationManager /> */}
+        {/* <MosqueDetector /> */}
+        
+        {/* <ProfileBar /> */}
+        
+        {/* --- HAUPTINHALT (Das muss sichtbar sein!) --- */}
+        <div className="flex-1 flex flex-col">
+           {/* Notfall-Header, damit du dich orientieren kannst */}
+           <div className="bg-red-100 text-red-800 p-2 text-center text-xs font-bold">
+             DEBUG MODUS
+           </div>
+           {children}
         </div>
 
-        {/* 2. BUTTON: EINSTELLUNGEN (Zahnrad) */}
-        <button 
-          onClick={() => router.push('/profile')} 
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors"
-          title="Profil bearbeiten"
-        >
-          <Settings className="h-5 w-5" />
-        </button>
+        {/* --- FOOTER --- */}
+        <footer className="py-8 text-center text-slate-400 text-xs mt-4 border-t border-slate-100/50">
+          <p className="mb-2 font-medium">© {new Date().getFullYear()} Ride 2 Salah</p>
+        </footer>
 
-        {/* 3. BUTTON: LOGOUT */}
-        <button 
-          onClick={handleLogout}
-          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-          title="Abmelden"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
-      </div>
-
-    </div>
+      </body>
+    </html>
   );
 }
