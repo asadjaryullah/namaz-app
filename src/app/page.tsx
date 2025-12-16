@@ -157,8 +157,7 @@ const isApproved = profile?.is_approved === true;
 const missingData = !profile?.phone  || !profile?.gender;
 return (
 <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
-code
-Code
+  
 <div className="mt-4">
     <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋</h1>
     <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>

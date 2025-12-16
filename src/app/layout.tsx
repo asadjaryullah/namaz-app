@@ -7,9 +7,8 @@ import "./globals.css";
 import ProfileBar from "@/components/ProfileBar";
 import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
-import InstallPrompt from "@/components/InstallPrompt"; // <--- NEU
+import InstallPrompt from "@/components/InstallPrompt";
 import OneSignalInit from "@/components/OneSignalInit";
-
 
 const amiri = Amiri({
   subsets: ["arabic"],
@@ -45,13 +44,13 @@ export default function RootLayout({
     <html lang="de">
       <body className={`antialiased bg-slate-50 flex flex-col min-h-screen ${amiri.variable}`} suppressHydrationWarning>
         
-        {/* --- HINTERGRUND-KOMPONENTEN --- */}
-         <OneSignalInit />
-        <InstallPrompt />      {/* Zeigt Installations-Hilfe auf iPhone */}
-        <NotificationManager /> {/* Push Nachrichten Logik */}
-        <MosqueDetector />      {/* GPS Auto-Checkin */}
+        {/* --- HINTERGRUND-DIENSTE (Wieder aktiv!) --- */}
+        <OneSignalInit />
+        <InstallPrompt />
+        <NotificationManager />
+        <MosqueDetector />
         
-        {/* --- NAVIGATION --- */}
+        {/* --- NAVIGATION (Profil-Leiste ist wieder da) --- */}
         <ProfileBar />
         
         {/* --- HAUPTINHALT --- */}
@@ -61,8 +60,6 @@ export default function RootLayout({
 
         {/* --- FOOTER --- */}
         <footer className="py-8 text-center text-slate-400 text-xs mt-4 border-t border-slate-100/50">
-          
-          {/* JUBILÄUMSLOGO (Klein & Dezent) */}
           <div className="flex justify-center mb-3">
             <div className="relative w-14 h-14 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500 cursor-pointer">
               <Image 
