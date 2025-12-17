@@ -56,7 +56,7 @@ export default function ProfileBar() {
         >
           <div className="flex flex-col items-end mr-1">
             <span className="font-bold text-sm text-slate-900 leading-none group-hover:text-blue-700 transition-colors">
-              Salam, {firstName} 👋
+              Salam, {firstName} 👋🏼
             </span>
           </div>
 
