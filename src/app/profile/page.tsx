@@ -6,9 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-// 👇 Lock Icon hinzugefügt
+// Alle Icons
 import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock } from "lucide-react";
 
+// Komponenten Import
 import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
 
@@ -18,6 +19,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
+  // Alle Daten inkl. ID
   const [formData, setFormData] = useState({ 
     fullName: '', 
     phone: '', 
@@ -26,7 +28,7 @@ export default function ProfilePage() {
   });
   const [userId, setUserId] = useState<string | null>(null);
   
-  // HIER: Sperre für das Geschlecht
+  // Sperre für das Geschlecht
   const [isGenderLocked, setIsGenderLocked] = useState(false);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function ProfilePage() {
             memberId: profile.member_id || '' 
           });
 
-          // Wenn ein Geschlecht da ist (und nicht leer), sperren wir es
+          // Wenn Geschlecht in DB steht -> Sperren
           if (profile.gender) setIsGenderLocked(true);
         }
       } catch (err) {
@@ -81,8 +83,7 @@ export default function ProfilePage() {
           id: userId,
           full_name: formData.fullName,
           phone: formData.phone,
-          // Wir speichern das Geschlecht immer mit (falls es das erste Mal ist)
-          gender: formData.gender, 
+          gender: formData.gender,
           member_id: formData.memberId
         });
 
@@ -124,7 +125,7 @@ export default function ProfilePage() {
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
             
-            {/* GESCHLECHT AUSWAHL (MIT SPERRE) */}
+            {/* 1. GESCHLECHT AUSWAHL (Gesperrt wenn vorhanden) */}
             <div className="space-y-2">
               <div className="flex justify-between">
                  <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
@@ -132,7 +133,6 @@ export default function ProfilePage() {
               </div>
               <div className={`grid grid-cols-2 gap-2 ${isGenderLocked ? 'opacity-60 cursor-not-allowed' : ''}`}>
                 <div 
-                  // Nur klickbar, wenn NICHT gesperrt
                   onClick={() => !isGenderLocked && setFormData({...formData, gender: 'male'})}
                   className={`rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 
                     ${formData.gender === 'male' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500'}
@@ -153,7 +153,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* ID NUMMER */}
+            {/* 2. ID NUMMER */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">ID-Nummer</label>
               <div className="relative">
@@ -167,7 +167,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* NAME */}
+            {/* 3. NAME */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
               <div className="relative">
@@ -181,7 +181,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* TELEFON */}
+            {/* 4. HANDY */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
               <div className="relative">
@@ -203,45 +203,44 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* SETTINGS */}
+          {/* EINSTELLUNGEN */}
           <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
+            
+            {/* Push */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
               <p className="text-xs text-slate-500 mb-3">Erlaube Push-Nachrichten für Fahrten.</p>
               <NotificationSettings />
             </div>
 
+            {/* GPS */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
               <p className="text-xs text-slate-500 mb-3">Wird benötigt, damit Fahrer und Mitfahrer sich finden.</p>
               <LocationSettings />
             </div>
 
+            {/* Kalender */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
               <p className="text-xs text-slate-500 mb-3">Abonniere die Gebetszeiten direkt in deinen Kalender.</p>
               <Button 
                 variant="outline" 
                 className="w-full justify-start gap-2 border-slate-300 text-slate-700"
-                
                 onClick={() => {
-                // Wir erzwingen HTTPS und bauen die URL manuell sauber zusammen
-                const protocol = window.location.protocol === 'http:' ? 'webcal:' : 'webcals:';
-                const host = window.location.host;
-                const calendarUrl = `${protocol}//${host}/api/calendar`;
-                
-                // Falls es auf Vercel läuft, erzwingen wir 'webcals' (das ist https für Kalender)
-                if (host.includes('vercel.app')) {
-                   window.location.href = `webcals://${host}/api/calendar`;
-                } else {
-                   window.location.href = calendarUrl;
-                }
-              }}
+                  // Sichere URL Konstruktion für iPhone (webcals)
+                  const protocol = window.location.protocol === 'http:' ? 'webcal:' : 'webcals:';
+                  const host = window.location.host;
+                  const calendarUrl = `${protocol}//${host}/api/calendar`;
+                  
+                  window.location.href = calendarUrl;
+                }}
               >
                 <Calendar size={18} />
                 Kalender abonnieren
               </Button>
             </div>
+
           </div>
 
         </CardContent>
