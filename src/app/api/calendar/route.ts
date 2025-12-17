@@ -61,9 +61,9 @@ export async function GET() {
           // -------------------------
 
           'BEGIN:VALARM',
-          'TRIGGER:-PT20M',
+          'TRIGGER:-PT15M',
           'ACTION:DISPLAY',
-          'DESCRIPTION:Noch 20 min bis zum Namaz! Komm doch zur Moschee.',
+          'DESCRIPTION:Noch 15 min bis zum Namaz! Komm doch zur Moschee.',
           'END:VALARM',
           'END:VEVENT'
         ].join('\r\n');

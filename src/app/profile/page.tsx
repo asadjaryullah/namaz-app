@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-// 👇 HIER HABE ICH 'BadgeInfo' HINZUGEFÜGT:
-import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo } from "lucide-react";
+// 👇 Lock Icon hinzugefügt
+import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock } from "lucide-react";
 
 import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
@@ -25,6 +25,9 @@ export default function ProfilePage() {
     memberId: '' 
   });
   const [userId, setUserId] = useState<string | null>(null);
+  
+  // HIER: Sperre für das Geschlecht
+  const [isGenderLocked, setIsGenderLocked] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -51,6 +54,9 @@ export default function ProfilePage() {
             gender: profile.gender || 'male',
             memberId: profile.member_id || '' 
           });
+
+          // Wenn ein Geschlecht da ist (und nicht leer), sperren wir es
+          if (profile.gender) setIsGenderLocked(true);
         }
       } catch (err) {
         console.error("Fehler beim Laden:", err);
@@ -75,7 +81,8 @@ export default function ProfilePage() {
           id: userId,
           full_name: formData.fullName,
           phone: formData.phone,
-          gender: formData.gender,
+          // Wir speichern das Geschlecht immer mit (falls es das erste Mal ist)
+          gender: formData.gender, 
           member_id: formData.memberId
         });
 
@@ -117,22 +124,28 @@ export default function ProfilePage() {
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
             
-            {/* GESCHLECHT AUSWAHL */}
+            {/* GESCHLECHT AUSWAHL (MIT SPERRE) */}
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex justify-between">
+                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
+                 {isGenderLocked && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Lock size={10}/> Festgelegt</span>}
+              </div>
+              <div className={`grid grid-cols-2 gap-2 ${isGenderLocked ? 'opacity-60 cursor-not-allowed' : ''}`}>
                 <div 
-                  onClick={() => setFormData({...formData, gender: 'male'})}
-                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 select-none
-                    ${formData.gender === 'male' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                  // Nur klickbar, wenn NICHT gesperrt
+                  onClick={() => !isGenderLocked && setFormData({...formData, gender: 'male'})}
+                  className={`rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 
+                    ${formData.gender === 'male' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500'}
+                    ${!isGenderLocked ? 'cursor-pointer hover:border-slate-300' : ''}`}
                 >
                   <span className="text-xl">🧔🏻‍♂️</span>
                   <span className="text-sm font-bold">Bruder</span>
                 </div>
                 <div 
-                  onClick={() => setFormData({...formData, gender: 'female'})}
-                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 select-none
-                    ${formData.gender === 'female' ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-200 text-slate-500 hover:border-pink-200'}`}
+                  onClick={() => !isGenderLocked && setFormData({...formData, gender: 'female'})}
+                  className={`rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1
+                    ${formData.gender === 'female' ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-200 text-slate-500'}
+                    ${!isGenderLocked ? 'cursor-pointer hover:border-pink-200' : ''}`}
                 >
                   <span className="text-xl">🧕🏻</span>
                   <span className="text-sm font-bold">Schwester</span>
@@ -154,6 +167,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* NAME */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
               <div className="relative">
@@ -167,6 +181,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
+            {/* TELEFON */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
               <div className="relative">
