@@ -96,15 +96,19 @@ export default function ProfilePage() {
     }
   };
 
-  // Hilfsfunktion für Kalender-URLs (iPhone Fix)
+  // 👇 HIER IST DER FIX FÜR DAS IPHONE 👇
   const openCalendar = (apiUrl: string) => {
-    // Wenn wir auf https sind (Vercel), nutzen wir webcals (sicher)
-    // Wenn wir auf http sind (localhost), nutzen wir webcal (unsicher)
-    const protocol = window.location.protocol === 'http:' ? 'webcal:' : 'webcals:';
+    // Wir holen den Host (z.B. ride2salah.vercel.app)
     const host = window.location.host;
-    const url = `${protocol}//${host}${apiUrl}`;
+    
+    // Wir erzwingen IMMER 'webcal://'. 
+    // Das iPhone macht daraus automatisch eine sichere Verbindung, wenn möglich.
+    // 'webcals://' verursacht oft den Fehler "Ungültige Adresse".
+    const url = `webcal://${host}${apiUrl}`;
+    
     window.location.href = url;
   };
+  // 👆 ----------------------------------
 
   if (loading) {
     return (
@@ -210,7 +214,7 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* SETTINGS BEREICH */}
+          {/* SETTINGS */}
           <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
             
             {/* Push */}
@@ -227,7 +231,7 @@ export default function ProfilePage() {
               <LocationSettings />
             </div>
 
-            {/* KALENDER SYNC (NEU: 2 Buttons) */}
+            {/* KALENDER */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Abos</h3>
               <p className="text-xs text-slate-500 mb-3">
@@ -243,7 +247,7 @@ export default function ProfilePage() {
                   onClick={() => openCalendar('/api/calendar-events')}
                 >
                   <Calendar size={18} />
-                  Veranstaltungen (Wichtig!)
+                  Veranstaltungen
                 </Button>
 
                 {/* Button 2: Gebetszeiten */}
@@ -253,7 +257,7 @@ export default function ProfilePage() {
                   onClick={() => openCalendar('/api/calendar')}
                 >
                   <Calendar size={18} />
-                  Gebetszeiten (Täglich)
+                  Gebetszeiten
                 </Button>
 
               </div>
