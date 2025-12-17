@@ -96,6 +96,16 @@ export default function ProfilePage() {
     }
   };
 
+  // Hilfsfunktion für Kalender-URLs (iPhone Fix)
+  const openCalendar = (apiUrl: string) => {
+    // Wenn wir auf https sind (Vercel), nutzen wir webcals (sicher)
+    // Wenn wir auf http sind (localhost), nutzen wir webcal (unsicher)
+    const protocol = window.location.protocol === 'http:' ? 'webcal:' : 'webcals:';
+    const host = window.location.host;
+    const url = `${protocol}//${host}${apiUrl}`;
+    window.location.href = url;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -178,7 +188,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* TELEFON */}
+            {/* HANDY */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
               <div className="relative">
@@ -200,37 +210,53 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* SETTINGS */}
+          {/* SETTINGS BEREICH */}
           <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
+            
+            {/* Push */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
               <p className="text-xs text-slate-500 mb-3">Erlaube Push-Nachrichten für Fahrten.</p>
               <NotificationSettings />
             </div>
 
+            {/* GPS */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
               <p className="text-xs text-slate-500 mb-3">Wird benötigt, damit Fahrer und Mitfahrer sich finden.</p>
               <LocationSettings />
             </div>
 
-            {/* KALENDER BUTTON (KORRIGIERT: webcal:// ohne s) */}
+            {/* KALENDER SYNC (NEU: 2 Buttons) */}
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Sync</h3>
-              <p className="text-xs text-slate-500 mb-3">Abonniere die Gebetszeiten direkt in deinen Kalender.</p>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start gap-2 border-slate-300 text-slate-700"
-                onClick={() => {
-                  // Standard webcal:// nutzen, das funktioniert am besten.
-                  const host = window.location.host;
-                  const calendarUrl = `webcal://${host}/api/calendar`;
-                  window.location.href = calendarUrl;
-                }}
-              >
-                <Calendar size={18} />
-                Kalender abonnieren
-              </Button>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Abos</h3>
+              <p className="text-xs text-slate-500 mb-3">
+                Wähle, was du im Handy-Kalender sehen möchtest.
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                
+                {/* Button 1: Veranstaltungen */}
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2 border-orange-200 text-orange-800 bg-orange-50 hover:bg-orange-100"
+                  onClick={() => openCalendar('/api/calendar-events')}
+                >
+                  <Calendar size={18} />
+                  Veranstaltungen (Wichtig!)
+                </Button>
+
+                {/* Button 2: Gebetszeiten */}
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2 border-slate-300 text-slate-700"
+                  onClick={() => openCalendar('/api/calendar')}
+                >
+                  <Calendar size={18} />
+                  Gebetszeiten (Täglich)
+                </Button>
+
+              </div>
             </div>
 
           </div>
