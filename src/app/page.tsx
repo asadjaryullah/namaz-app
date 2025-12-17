@@ -10,7 +10,7 @@ import { Car, User, Settings, Loader2, AlertTriangle, MapPin, BookOpen } from "l
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
