@@ -223,10 +223,20 @@ export default function ProfilePage() {
               <Button 
                 variant="outline" 
                 className="w-full justify-start gap-2 border-slate-300 text-slate-700"
+                
                 onClick={() => {
-                  const calendarUrl = window.location.origin.replace('https', 'webcal').replace('http', 'webcal') + '/api/calendar';
-                  window.location.href = calendarUrl;
-                }}
+                // Wir erzwingen HTTPS und bauen die URL manuell sauber zusammen
+                const protocol = window.location.protocol === 'http:' ? 'webcal:' : 'webcals:';
+                const host = window.location.host;
+                const calendarUrl = `${protocol}//${host}/api/calendar`;
+                
+                // Falls es auf Vercel läuft, erzwingen wir 'webcals' (das ist https für Kalender)
+                if (host.includes('vercel.app')) {
+                   window.location.href = `webcals://${host}/api/calendar`;
+                } else {
+                   window.location.href = calendarUrl;
+                }
+              }}
               >
                 <Calendar size={18} />
                 Kalender abonnieren
