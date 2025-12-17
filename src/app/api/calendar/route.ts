@@ -6,73 +6,67 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Deine App-URL
 const APP_URL = "https://ride2salah.vercel.app";
 
 export async function GET() {
   try {
-    // 1. Gebetszeiten aus DB holen
+    // 1. Gebetszeiten holen
     const { data: prayers } = await supabase.from('prayer_times').select('*');
+    // 2. Events holen (Nur zukünftige oder aktuelle)
+    const { data: events } = await supabase.from('mosque_events').select('*');
+
     if (!prayers) return new NextResponse('Error', { status: 500 });
 
-    // 2. ICS Header bauen
     let icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Ride2Salah//DE',
-      'NAME:Ride 2 Salah Gebetszeiten',
-      'X-WR-CALNAME:Ride 2 Salah',
+      'NAME:Ride 2 Salah & Events',
+      'X-WR-CALNAME:Bashir Moschee',
       'REFRESH-INTERVAL;VALUE=DURATION:PT1H', 
-      'X-PUBLISHED-TTL:PT1H',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
 
+    // A) GEBETSZEITEN (Nächste 7 Tage)
     const now = new Date();
-    
-    // Für die nächsten 7 Tage
     for (let i = 0; i < 7; i++) {
       const day = new Date(now);
       day.setDate(day.getDate() + i); 
 
       for (const p of prayers) {
         if (!p.time) continue;
-
         const [h, m] = p.time.split(':').map(Number);
         
         const startDate = new Date(day);
         startDate.setHours(h, m, 0, 0);
-
-        // Dauer: 15 Min
         const endDate = new Date(startDate);
         endDate.setMinutes(m + 15);
 
-        const startStr = formatLocal(startDate);
-        const endStr = formatLocal(endDate);
+        icsContent += '\r\n' + createEventBlock(
+          `prayer-${p.id}-${i}`,
+          startDate,
+          endDate,
+          `${p.name} Namaz 🕌`,
+          `Komm zur Moschee! Buchung: ${APP_URL}`
+        );
+      }
+    }
 
-        const eventBlock = [
-          'BEGIN:VEVENT',
-          `UID:${p.id}-${startStr}@ride2salah.app`,
-          `DTSTAMP:${formatLocal(new Date())}`,
-          `DTSTART:${startStr}`, 
-          `DTEND:${endStr}`,
-          `SUMMARY:${p.name} Namaz 🕌`,
-          'LOCATION:Bashir Moschee Bensheim',
-          `URL:${APP_URL}`,
-          `DESCRIPTION:In 15 min ist Namaz!\\n\\nHier klicken:\\n${APP_URL}`,
-          
-          // --- ALARM: 15 MIN VORHER ---
-          'BEGIN:VALARM',
-          'TRIGGER;RELATED=START:-PT15M', 
-          'ACTION:DISPLAY',
-          'DESCRIPTION:In 15 min ist Namaz! Komm zur Moschee.',
-          'END:VALARM',
-          // ----------------------------
+    // B) EVENTS (Echte Termine aus DB)
+    if (events) {
+      for (const e of events) {
+        const start = new Date(e.event_date);
+        const end = new Date(start);
+        end.setHours(start.getHours() + 1); // Standarddauer 1 Std
 
-          'END:VEVENT'
-        ].join('\r\n');
-
-        icsContent += '\r\n' + eventBlock;
+        icsContent += '\r\n' + createEventBlock(
+          `event-${e.id}`,
+          start,
+          end,
+          `📅 ${e.title}`,
+          e.description || "Veranstaltung in der Bashir Moschee"
+        );
       }
     }
 
@@ -81,17 +75,35 @@ export async function GET() {
     return new NextResponse(icsContent, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="gebetszeiten.ics"',
+        'Content-Disposition': 'attachment; filename="moschee_kalender.ics"',
       },
     });
 
   } catch (error) {
-    console.error(error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return new NextResponse('Error', { status: 500 });
   }
 }
 
-// Helfer: Formatiert Datum ohne Zeitzone (Floating Time)
+// Helfer zum Erstellen eines Events
+function createEventBlock(uid: string, start: Date, end: Date, title: string, desc: string) {
+  return [
+    'BEGIN:VEVENT',
+    `UID:${uid}@ride2salah.app`,
+    `DTSTAMP:${formatLocal(new Date())}`,
+    `DTSTART:${formatLocal(start)}`,
+    `DTEND:${formatLocal(end)}`,
+    `SUMMARY:${title}`,
+    'LOCATION:Bashir Moschee Bensheim',
+    `DESCRIPTION:${desc}`,
+    'BEGIN:VALARM',
+    'TRIGGER;RELATED=START:-PT20M',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Gleich geht es los!',
+    'END:VALARM',
+    'END:VEVENT'
+  ].join('\r\n');
+}
+
 function formatLocal(date: Date) {
   const pad = (n: number) => n < 10 ? '0' + n : n.toString();
   return date.getFullYear() +

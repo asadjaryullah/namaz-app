@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Loader2, Save, ArrowLeft, ShieldAlert, Download, BellRing, Send, Check, X } from "lucide-react";
+import { Loader2, Save, ArrowLeft, ShieldAlert, Download, BellRing, Send, Check, X, CalendarPlus, Trash2 } from "lucide-react";
 
 // 👇 Nur wer mit DIESER Email eingeloggt ist, darf die Seite sehen.
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
@@ -14,12 +14,20 @@ const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  
+  // Daten States
   const [prayers, setPrayers] = useState<any[]>([]);
-  const [pendingUsers, setPendingUsers] = useState<any[]>([]); // <--- NEU
+  const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]); // <--- NEU: Events
+
+  // Inputs für neue Events
+  const [newEventTitle, setNewEventTitle] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // State für Push-Nachricht
+  // Push States
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
@@ -28,6 +36,7 @@ export default function AdminPage() {
     const checkAdminAndLoadData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
+      // Sicherheits-Check
       if (!user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
         alert("Zugriff verweigert! Du bist nicht als Admin erkannt.");
         router.push('/'); 
@@ -36,12 +45,16 @@ export default function AdminPage() {
 
       setIsAuthorized(true);
 
-      // 1. Daten laden (Gebetszeiten)
+      // 1. Gebetszeiten laden
       const { data: prayersData } = await supabase.from('prayer_times').select('*').order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
-      // 2. Nicht freigegebene User laden (NEU)
+      // 2. Nicht freigegebene User laden
       await fetchPendingUsers();
+
+      // 3. Events laden (NEU)
+      const { data: eventsData } = await supabase.from('mosque_events').select('*').order('event_date', { ascending: true });
+      if (eventsData) setEvents(eventsData);
       
       setLoading(false);
     };
@@ -49,40 +62,47 @@ export default function AdminPage() {
     checkAdminAndLoadData();
   }, [router]);
 
-  // Funktion: Neue User laden
+  // --- USER FREIGABE ---
   const fetchPendingUsers = async () => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
-      .eq('is_approved', false) // Nur unbestätigte User
+      .eq('is_approved', false)
       .order('full_name', { ascending: true });
-    
     if (data) setPendingUsers(data);
   };
 
-  // Funktion: User freischalten
   const approveUser = async (id: string, name: string) => {
-    if(!confirm(`${name} wirklich freischalten?`)) return;
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_approved: true })
-      .eq('id', id);
-
+    if(!confirm(`${name} freischalten?`)) return;
+    const { error } = await supabase.from('profiles').update({ is_approved: true }).eq('id', id);
     if (error) alert("Fehler: " + error.message);
-    else {
-      // Liste aktualisieren
-      fetchPendingUsers();
-    }
+    else fetchPendingUsers();
   };
 
-  // Funktion: User ablehnen (löschen aus Profilen)
   const deleteUser = async (id: string) => {
-    if(!confirm("User wirklich ablehnen/löschen?")) return;
+    if(!confirm("User ablehnen/löschen?")) return;
     await supabase.from('profiles').delete().eq('id', id);
     fetchPendingUsers();
   };
 
+  // --- EVENTS (NEU) ---
+  const handleAddEvent = async () => {
+    if (!newEventTitle || !newEventDate) return alert("Bitte Titel und Datum angeben");
+    const { error } = await supabase.from('mosque_events').insert({
+      title: newEventTitle,
+      event_date: new Date(newEventDate).toISOString()
+    });
+    if (error) alert("Fehler: " + error.message);
+    else window.location.reload();
+  };
+
+  const handleDeleteEvent = async (id: string) => {
+    if(!confirm("Termin löschen?")) return;
+    await supabase.from('mosque_events').delete().eq('id', id);
+    setEvents(events.filter(e => e.id !== id));
+  };
+
+  // --- GEBETSZEITEN ---
   const handleTimeChange = (id: string, newTime: string) => {
     setPrayers(prayers.map(p => p.id === id ? { ...p, time: newTime } : p));
   };
@@ -92,12 +112,13 @@ export default function AdminPage() {
     const { error } = await supabase.from('prayer_times').upsert(prayers);
     setSaving(false);
     if (error) alert("Fehler: " + error.message);
-    else alert("Zeiten erfolgreich gespeichert!");
+    else alert("Zeiten gespeichert!");
   };
 
+  // --- PUSH ---
   const handleSendPush = async () => {
-    if(!pushTitle || !pushMessage) return alert("Bitte Titel und Nachricht eingeben");
-    if(!confirm(`Nachricht an ALLE senden?\n\nTitel: ${pushTitle}`)) return;
+    if(!pushTitle || !pushMessage) return alert("Eingaben fehlen");
+    if(!confirm(`Nachricht an ALLE senden?`)) return;
     setSendingPush(true);
     try {
       await fetch('/api/send-push', {
@@ -105,12 +126,12 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: pushTitle, message: pushMessage })
       });
-      alert("Nachricht wurde gesendet! 🚀");
-      setPushTitle(""); setPushMessage("");
-    } catch (e) { alert("Technischer Fehler beim Senden."); } 
+      alert("Gesendet!"); setPushTitle(""); setPushMessage("");
+    } catch (e) { alert("Fehler."); } 
     finally { setSendingPush(false); }
   };
 
+  // --- EXPORT ---
   const downloadCsv = async (tableName: string) => {
     const { data } = await supabase.from(tableName).select('*');
     if (!data || data.length === 0) { alert("Keine Daten."); return; }
@@ -124,7 +145,7 @@ export default function AdminPage() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.setAttribute('href', url);
-    a.setAttribute('download', `${tableName}_${new Date().toISOString().split('T')[0]}.csv`);
+    a.setAttribute('download', `${tableName}.csv`);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -154,7 +175,7 @@ export default function AdminPage() {
         </span>
       </div>
 
-      {/* --- NEU: NUTZER FREIGABE --- */}
+      {/* 1. NUTZER FREIGABE */}
       <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-blue-600">
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -170,7 +191,7 @@ export default function AdminPage() {
               <div key={u.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border">
                 <div>
                   <p className="font-bold text-sm">{u.full_name}</p>
-                  <p className="text-xs text-slate-500">{u.gender === 'male' ? 'Bruder' : 'Schwester'} • {u.phone}</p>
+                  <p className="text-xs text-slate-500">{u.gender === 'male' ? 'Bruder' : 'Schwester'} • {u.member_id || 'Keine ID'}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50 h-8 w-8" onClick={() => deleteUser(u.id)}>
@@ -185,33 +206,52 @@ export default function AdminPage() {
           )}
         </CardContent>
       </Card>
-      {/* --------------------------- */}
 
-      {/* 1. GEBETSZEITEN */}
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-red-600 mb-6">
+      {/* 2. VERANSTALTUNGEN (EVENTS) */}
+      <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-orange-500">
         <CardHeader>
-          <CardTitle>Gebetszeiten verwalten</CardTitle>
+          <div className="flex items-center gap-2">
+            <CalendarPlus className="text-orange-500" />
+            <CardTitle>Veranstaltungen</CardTitle>
+          </div>
         </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold text-slate-500">Neuer Termin:</label>
+            <Input placeholder="Titel (z.B. Iftar)" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} />
+            <Input type="datetime-local" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+            <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddEvent}>Hinzufügen</Button>
+          </div>
+
+          <div className="pt-4 border-t space-y-2">
+             {events.length === 0 ? <p className="text-sm text-slate-400">Keine Termine.</p> : events.map(e => (
+               <div key={e.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm">
+                  <div>
+                    <p className="font-bold">{e.title}</p>
+                    <p className="text-xs text-slate-500">{new Date(e.event_date).toLocaleDateString('de-DE')} {new Date(e.event_date).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})}</p>
+                  </div>
+                  <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+               </div>
+             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. GEBETSZEITEN */}
+      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-red-600 mb-6">
+        <CardHeader><CardTitle>Gebetszeiten</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           {prayers.map((prayer) => (
             <div key={prayer.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
               <span className="font-bold text-slate-700 w-24 capitalize">{prayer.name}</span>
-              <Input 
-                type="time" 
-                value={prayer.time}
-                onChange={(e) => handleTimeChange(prayer.id, e.target.value)}
-                className="w-32 font-mono text-center text-lg border-slate-300 focus:ring-red-500"
-              />
+              <Input type="time" value={prayer.time} onChange={(e) => handleTimeChange(prayer.id, e.target.value)} className="w-32 font-mono text-center bg-white" />
             </div>
           ))}
-          <Button className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white h-12 text-lg" onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />}
-            Speichern
-          </Button>
+          <Button className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white" onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />} Speichern</Button>
         </CardContent>
       </Card>
 
-      {/* 2. PUSH NACHRICHTEN */}
+      {/* 4. PUSH NACHRICHTEN */}
       <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white">
         <CardHeader>
           <div className="flex items-center gap-2 text-slate-900">
@@ -220,41 +260,22 @@ export default function AdminPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Input 
-            placeholder="Titel (z.B. Wichtige Info)" 
-            value={pushTitle}
-            onChange={(e) => setPushTitle(e.target.value)}
-          />
-          <Input 
-            placeholder="Nachricht (z.B. Eid Gebet ist um...)" 
-            value={pushMessage}
-            onChange={(e) => setPushMessage(e.target.value)}
-          />
+          <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)}/>
+          <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)}/>
           <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSendPush} disabled={sendingPush}>
-            {sendingPush ? <Loader2 className="animate-spin mr-2"/> : <Send className="mr-2 h-4 w-4" />} 
-            Jetzt Senden
+            {sendingPush ? <Loader2 className="animate-spin mr-2"/> : <Send className="mr-2 h-4 w-4" />} Jetzt Senden
           </Button>
         </CardContent>
       </Card>
 
-      {/* 3. DATEN EXPORT */}
+      {/* 5. DATEN EXPORT */}
       <Card className="w-full max-w-md shadow-sm border-0 bg-slate-50">
-        <CardHeader>
-          <CardTitle className="text-base text-slate-500">Daten Export (CSV)</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle className="text-base text-slate-500">Daten Export (CSV)</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">
-          <Button variant="outline" onClick={() => downloadCsv('rides')} className="bg-white hover:bg-slate-100">
-            <Download className="mr-2 h-4 w-4" /> Fahrten
-          </Button>
-          <Button variant="outline" onClick={() => downloadCsv('bookings')} className="bg-white hover:bg-slate-100">
-            <Download className="mr-2 h-4 w-4" /> Buchungen
-          </Button>
-          <Button variant="outline" onClick={() => downloadCsv('profiles')} className="bg-white hover:bg-slate-100">
-            <Download className="mr-2 h-4 w-4" /> Profile
-          </Button>
-          <Button variant="outline" onClick={() => downloadCsv('mosque_visits')} className="bg-white hover:bg-slate-100">
-            <Download className="mr-2 h-4 w-4" /> Besuche
-          </Button>
+          <Button variant="outline" onClick={() => downloadCsv('rides')}><Download className="mr-2 h-4 w-4"/> Fahrten</Button>
+          <Button variant="outline" onClick={() => downloadCsv('bookings')}><Download className="mr-2 h-4 w-4"/> Buchungen</Button>
+          <Button variant="outline" onClick={() => downloadCsv('profiles')}><Download className="mr-2 h-4 w-4"/> Profile</Button>
+          <Button variant="outline" onClick={() => downloadCsv('mosque_visits')}><Download className="mr-2 h-4 w-4"/> Besuche</Button>
         </CardContent>
       </Card>
 
