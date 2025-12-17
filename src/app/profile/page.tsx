@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+// 👇 HIER HABE ICH 'BadgeInfo' HINZUGEFÜGT:
 import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo } from "lucide-react";
 
 import NotificationSettings from '@/components/NotificationSettings';
@@ -139,7 +140,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* --- ID NUMMER (Text geändert) --- */}
+            {/* ID NUMMER */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">ID-Nummer</label>
               <div className="relative">

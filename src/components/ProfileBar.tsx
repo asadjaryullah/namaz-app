@@ -11,55 +11,56 @@ export default function ProfileBar() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  // Funktion zum Laden der Daten
+  const fetchProfileData = async (currentUser: any) => {
+    if (!currentUser) return;
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+    if (data) setProfile(data);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setLoading(false);
-          return;
-        }
+    // 1. Initialer Check
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
         setUser(user);
-
-        // HIER WAR DAS PROBLEM: Wir nutzen jetzt maybeSingle()
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .maybeSingle(); // <--- Stürzt nicht ab, wenn Profil fehlt!
-
-        if (data) {
-          setProfile(data);
-        } else {
-          // Wenn User da, aber Profil weg (DB Reset) -> Logout erzwingen
-          console.warn("Profil fehlt - Auto-Logout in Bar");
-          await supabase.auth.signOut();
-          window.location.href = '/';
-          return;
-        }
-      } catch (e) {
-        console.error("Bar Fehler:", e);
-      } finally {
-        setLoading(false);
+        await fetchProfileData(user);
       }
+      setLoading(false);
     };
+    init();
 
-    fetchData();
+    // 2. LISTENER: Hört auf Login/Logout Events!
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        await fetchProfileData(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/'; 
+    router.push('/login'); // Explizit zum Login leiten
   };
 
+  // Solange wir laden oder kein User da ist -> Nichts anzeigen
   if (loading || !user) return null;
 
   const fullName = profile?.full_name || user.user_metadata?.full_name || "";
   const firstName = fullName.split(' ')[0] || "Nutzer"; 
 
   return (
-    <div className="w-full bg-white/95 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
+    <div className="w-full bg-white/95 backdrop-blur-sm border-b px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
       
       <button onClick={() => router.push('/')} className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors">
         <Home className="h-6 w-6" />
