@@ -13,7 +13,7 @@ import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
 
 // HIER DEINE NUMMER FÜR BUGS EINTRAGEN (Format: 49...)
-const ADMIN_WHATSAPP = "4917612345678"; 
+const ADMIN_WHATSAPP = "+4915904273761"; 
 
 export default function ProfilePage() {
   const router = useRouter();

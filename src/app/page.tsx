@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Car, User, Settings, Loader2, AlertTriangle, MapPin, Calendar, ArrowRight } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
-import OneSignal from 'react-onesignal';
-import DashboardSkeleton from '@/components/DashboardSkeleton';
+import OneSignal from 'react-onesignal'; 
 
-const ADMIN_EMAIL = "asad.jaryullah@googlemail.com"; 
+// 👇 HIER IST DAS WIDGET WIEDER
+import ZikrWidget from '@/components/ZikrWidget'; 
+
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
 export default function HomePage() {
   const router = useRouter();
@@ -27,9 +29,7 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    const safetyTimer = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 2000);
+    // ❌ TIMER ENTFERNT (Damit kein 2s Crash passiert)
 
     const initApp = async () => {
       try {
@@ -55,23 +55,26 @@ export default function HomePage() {
           .eq('id', session.user.id)
           .maybeSingle();
 
+        // Kein Auto-Logout, nur Warnung (UI)
         if (mounted && profileData) {
            setProfile(profileData);
         }
 
         const today = new Date().toLocaleDateString('en-CA');
         
+        // Fahrten laden
         const { data: driverRide } = await supabase.from('rides').select('*').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle();
         if(mounted && driverRide) setActiveDriverRide(driverRide);
 
         const { data: myBooking } = await supabase.from('bookings').select('ride_id, rides!inner(status, ride_date)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle();
         if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
 
+        // Events laden
         const { data: events } = await supabase.from('mosque_events').select('*').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3);
         if(mounted && events) setUpcomingEvents(events);
 
       } catch (error) {
-        console.error("Fehler beim Start:", error);
+        console.error("Start-Fehler:", error);
       } finally {
         if(mounted) setLoading(false);
       }
@@ -83,8 +86,6 @@ export default function HomePage() {
       if (event === 'SIGNED_OUT') {
          setUser(null);
          setProfile(null);
-         setActiveDriverRide(null);
-         setActivePassengerRide(null);
       } else if (event === 'SIGNED_IN' && session) {
          setUser(session.user);
       }
@@ -92,19 +93,20 @@ export default function HomePage() {
 
     return () => {
       mounted = false;
-      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [router]);
 
-  // ... imports ...
-
-  // Ladebildschirm (JETZT NEU MIT SKELETON)
   if (loading) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <div className="relative w-24 h-24 animate-pulse">
+           <Image src="/icon.png" alt="Logo" fill className="object-contain" />
+        </div>
+        <Loader2 className="animate-spin text-slate-400 h-6 w-6"/>
+      </div>
+    );
   }
-  
-  // ... weiter wie bisher ...
 
   if (!user) {
     return (
@@ -114,7 +116,6 @@ export default function HomePage() {
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
-          
           <div className="w-full max-w-xs space-y-4 mt-4">
             <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl" onClick={() => router.push('/login')}>
               Anmelden
@@ -145,7 +146,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* WARNUNGEN */}
       {missingData && (
         <div onClick={() => router.push('/profile')} className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3 cursor-pointer hover:bg-red-100 transition-colors">
           <AlertTriangle className="text-red-600 shrink-0" />
@@ -166,10 +166,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* KALENDER / TERMINE KARTE */}
-      {/* (Immer sichtbar, auch wenn nicht freigegeben, damit man Termine sieht) */}
+      {/* --- 1. DAS ZIKR WIDGET (NEU) --- */}
+      {user && <ZikrWidget userId={user.id} />}
+      
+      {/* --- 2. EVENTS KARTE --- */}
       <div 
-        onClick={() => router.push('/history')}
+        onClick={() => router.push('/history')} // Link zum Kalender/Events Tab
         className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
       >
         <div className="flex items-center justify-between mb-3">
@@ -196,8 +198,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="text-center py-4 text-slate-400 text-sm italic">
-            Keine anstehenden Termine.<br/>
-            <span className="text-xs text-blue-500 font-bold">Hier klicken für Zikr & Logbuch</span>
+            Keine anstehenden Termine.
           </div>
         )}
       </div>
@@ -216,7 +217,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* HAUPT-AUSWAHL (Sperre greift hier!) */}
       {(isApproved || isAdmin) && (
         <div className="grid grid-cols-1 gap-4 mt-4">
           <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
@@ -230,7 +230,7 @@ export default function HomePage() {
           </Card>
         </div>
       )}
-      
+
       <div className="w-full mt-6 h-[200px] rounded-2xl overflow-hidden shadow-xl bg-slate-200 relative">
          <MapComponent />
       </div>
