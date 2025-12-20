@@ -9,8 +9,6 @@ import { Card } from "@/components/ui/card";
 import { Car, User, Settings, Loader2, AlertTriangle, MapPin, Calendar, ArrowRight } from "lucide-react";
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
-
-// 👇 HIER IST DAS WIDGET WIEDER
 import ZikrWidget from '@/components/ZikrWidget'; 
 
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
@@ -29,7 +27,10 @@ export default function HomePage() {
   useEffect(() => {
     let mounted = true;
 
-    // ❌ TIMER ENTFERNT (Damit kein 2s Crash passiert)
+    // Sicherheits-Timer: Beendet das Laden nach 2 Sekunden, falls DB hängt
+    const safetyTimer = setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 2000);
 
     const initApp = async () => {
       try {
@@ -49,13 +50,13 @@ export default function HomePage() {
 
         if(mounted) setUser(session.user);
         
+        // Profil laden
         const { data: profileData } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .maybeSingle();
 
-        // Kein Auto-Logout, nur Warnung (UI)
         if (mounted && profileData) {
            setProfile(profileData);
         }
@@ -74,7 +75,7 @@ export default function HomePage() {
         if(mounted && events) setUpcomingEvents(events);
 
       } catch (error) {
-        console.error("Start-Fehler:", error);
+        console.error("Start Fehler:", error);
       } finally {
         if(mounted) setLoading(false);
       }
@@ -86,6 +87,8 @@ export default function HomePage() {
       if (event === 'SIGNED_OUT') {
          setUser(null);
          setProfile(null);
+         setActiveDriverRide(null);
+         setActivePassengerRide(null);
       } else if (event === 'SIGNED_IN' && session) {
          setUser(session.user);
       }
@@ -93,10 +96,12 @@ export default function HomePage() {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [router]);
 
+  // --- LADEBILDSCHIRM ---
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
@@ -108,16 +113,38 @@ export default function HomePage() {
     );
   }
 
+  // --- ANSICHT: NICHT EINGELOGGT (Startseite mit Arabisch) ---
   if (!user) {
     return (
       <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8 animate-in fade-in duration-500">
         <div className="flex flex-col items-center text-center">
+          
+          {/* Logo */}
           <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
+          
           <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
-          <div className="w-full max-w-xs space-y-4 mt-4">
-            <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl" onClick={() => router.push('/login')}>
+          
+          {/* 👇 HIER IST DER ARABISCHE TEXT WIEDER DRIN 👇 */}
+          <div className="space-y-6 mt-2">
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
+                حَيَّ عَلَىٰ ٱلصَّلَاةِ
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Gebet"</p>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
+                حَيَّ عَلَىٰ ٱلْفَلَاحِ
+              </p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Erfolg"</p>
+            </div>
+          </div>
+          {/* 👆 ------------------------------------------ 👆 */}
+
+          <div className="w-full max-w-xs space-y-4 mt-8">
+            <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95" onClick={() => router.push('/login')}>
               Anmelden
             </Button>
             <p className="text-xs text-center text-slate-400">Einloggen via Code (Sicher)</p>
@@ -127,6 +154,7 @@ export default function HomePage() {
     );
   }
 
+  // --- ANSICHT: EINGELOGGT ---
   const firstName = profile?.full_name?.split(' ')[0] || "Nutzer";
   const isAdmin = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
   const isApproved = profile?.is_approved === true;
@@ -166,12 +194,12 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- 1. DAS ZIKR WIDGET (NEU) --- */}
-      {user && <ZikrWidget userId={user.id} />}
-      
-      {/* --- 2. EVENTS KARTE --- */}
+      {/* ZIKR WIDGET */}
+      <ZikrWidget userId={user.id} />
+
+      {/* EVENTS KARTE */}
       <div 
-        onClick={() => router.push('/history')} // Link zum Kalender/Events Tab
+        onClick={() => router.push('/history')}
         className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
       >
         <div className="flex items-center justify-between mb-3">
