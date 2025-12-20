@@ -18,11 +18,12 @@ export default function AdminPage() {
   // Daten States
   const [prayers, setPrayers] = useState<any[]>([]);
   const [pendingUsers, setPendingUsers] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]); // <--- NEU: Events
+  const [events, setEvents] = useState<any[]>([]); 
 
   // Inputs für neue Events
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventStart, setNewEventStart] = useState("");
+  const [newEventEnd, setNewEventEnd] = useState(""); // <--- NEU: End-Datum
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -52,7 +53,7 @@ export default function AdminPage() {
       // 2. Nicht freigegebene User laden
       await fetchPendingUsers();
 
-      // 3. Events laden (NEU)
+      // 3. Events laden
       const { data: eventsData } = await supabase.from('mosque_events').select('*').order('event_date', { ascending: true });
       if (eventsData) setEvents(eventsData);
       
@@ -85,13 +86,26 @@ export default function AdminPage() {
     fetchPendingUsers();
   };
 
-  // --- EVENTS (NEU) ---
+  // --- EVENTS (MIT END-DATUM LOGIK) ---
   const handleAddEvent = async () => {
-    if (!newEventTitle || !newEventDate) return alert("Bitte Titel und Datum angeben");
+    if (!newEventTitle || !newEventStart) return alert("Bitte Titel und Startdatum angeben");
+    
+    // Wenn kein Ende angegeben, nehmen wir Start + 2 Stunden
+    let end = newEventEnd;
+    if (!end) {
+        const d = new Date(newEventStart);
+        d.setHours(d.getHours() + 2);
+        end = d.toISOString();
+    } else {
+        end = new Date(newEventEnd).toISOString();
+    }
+
     const { error } = await supabase.from('mosque_events').insert({
       title: newEventTitle,
-      event_date: new Date(newEventDate).toISOString()
+      event_date: new Date(newEventStart).toISOString(),
+      event_end_date: end // <--- WICHTIG: Enddatum speichern
     });
+
     if (error) alert("Fehler: " + error.message);
     else window.location.reload();
   };
@@ -207,7 +221,7 @@ export default function AdminPage() {
         </CardContent>
       </Card>
 
-      {/* 2. VERANSTALTUNGEN (EVENTS) */}
+      {/* 2. VERANSTALTUNGEN (MIT START & ENDE) */}
       <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-orange-500">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -218,17 +232,33 @@ export default function AdminPage() {
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-slate-500">Neuer Termin:</label>
-            <Input placeholder="Titel (z.B. Iftar)" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} />
-            <Input type="datetime-local" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+            <Input placeholder="Titel (z.B. Jalsa Salana)" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} />
+            
+            <div className="grid grid-cols-2 gap-2">
+                <div>
+                    <label className="text-[10px] text-slate-500 uppercase font-bold">Start</label>
+                    <Input type="datetime-local" value={newEventStart} onChange={e => setNewEventStart(e.target.value)} />
+                </div>
+                <div>
+                    <label className="text-[10px] text-slate-500 uppercase font-bold">Ende (Optional)</label>
+                    <Input type="datetime-local" value={newEventEnd} onChange={e => setNewEventEnd(e.target.value)} />
+                </div>
+            </div>
+            
             <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddEvent}>Hinzufügen</Button>
           </div>
 
           <div className="pt-4 border-t space-y-2">
+             <label className="text-xs font-bold text-slate-500 mb-2 block">Geplante Termine:</label>
              {events.length === 0 ? <p className="text-sm text-slate-400">Keine Termine.</p> : events.map(e => (
                <div key={e.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm">
                   <div>
                     <p className="font-bold">{e.title}</p>
-                    <p className="text-xs text-slate-500">{new Date(e.event_date).toLocaleDateString('de-DE')} {new Date(e.event_date).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})}</p>
+                    <p className="text-xs text-slate-500">
+                        {new Date(e.event_date).toLocaleDateString('de-DE')} 
+                        {/* Enddatum anzeigen falls vorhanden */}
+                        {e.event_end_date && ` - ${new Date(e.event_end_date).toLocaleDateString('de-DE')}`}
+                    </p>
                   </div>
                   <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
                </div>
@@ -247,7 +277,7 @@ export default function AdminPage() {
               <Input type="time" value={prayer.time} onChange={(e) => handleTimeChange(prayer.id, e.target.value)} className="w-32 font-mono text-center bg-white" />
             </div>
           ))}
-          <Button className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white" onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />} Speichern</Button>
+          <Button className="w-full mt-6 bg-red-600 text-white" onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />} Speichern</Button>
         </CardContent>
       </Card>
 

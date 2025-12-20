@@ -17,7 +17,7 @@ export default function EventsPage() {
       const { data } = await supabase
         .from('mosque_events')
         .select('*')
-        .gte('event_date', new Date().toISOString()) // Nur Zukunft
+        .gte('event_date', new Date().toISOString())
         .order('event_date', { ascending: true });
       
       if (data) setEvents(data);
@@ -25,6 +25,32 @@ export default function EventsPage() {
     };
     fetchEvents();
   }, []);
+
+  // Helfer für Datumsanzeige (z.B. "22. Dez - 26. Dez")
+  const formatDateRange = (startStr: string, endStr?: string) => {
+    const start = new Date(startStr);
+    const sDate = start.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+    const sTime = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+    if (endStr) {
+      const end = new Date(endStr);
+      // Wenn gleicher Tag
+      if (start.toDateString() === end.toDateString()) {
+         return `${sDate}, ${sTime} - ${end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+      // Wenn verschiedene Tage
+      const eDate = end.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
+      return `${sDate} - ${eDate}`;
+    }
+
+    return `${sDate}, ${sTime} Uhr`;
+  };
+
+  const openCalendar = () => {
+    const host = window.location.host;
+    const url = `webcal://${host}/api/calendar-events`;
+    window.location.href = url;
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4">
@@ -43,26 +69,24 @@ export default function EventsPage() {
       ) : (
         <div className="w-full max-w-md space-y-4">
           {events.map((e) => {
-            const date = new Date(e.event_date);
+            const start = new Date(e.event_date);
             return (
               <Card key={e.id} className="p-0 overflow-hidden flex flex-col shadow-sm border border-slate-200">
-                {/* Datums-Header */}
-                <div className="bg-slate-100 p-3 flex items-center gap-3 border-b border-slate-200">
-                  <div className="bg-white p-2 rounded-lg text-center min-w-[3.5rem] shadow-sm">
-                     <span className="block text-xs font-bold text-slate-400 uppercase">{date.toLocaleDateString('de-DE', { month: 'short' })}</span>
-                     <span className="block text-xl font-black text-slate-800 leading-none">{date.getDate()}</span>
+                <div className="bg-orange-50 p-4 border-b border-orange-100 flex gap-4 items-center">
+                  <div className="bg-white text-orange-600 rounded-xl p-2 text-center min-w-[3.5rem] shadow-sm border border-orange-100">
+                     <span className="block text-xs font-bold uppercase">{start.toLocaleDateString('de-DE', { month: 'short' })}</span>
+                     <span className="block text-xl font-black leading-none">{start.getDate()}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-700">{date.toLocaleDateString('de-DE', { weekday: 'long' })}</p>
-                    <p className="text-xs text-slate-500">{date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr</p>
+                    <h3 className="text-lg font-bold text-slate-900 leading-tight">{e.title}</h3>
+                    <p className="text-xs font-bold text-orange-600 mt-1 uppercase tracking-wide">
+                      {formatDateRange(e.event_date, e.event_end_date)}
+                    </p>
                   </div>
                 </div>
                 
-                {/* Inhalt */}
                 <div className="p-4">
-                   <h3 className="text-lg font-bold text-slate-900 mb-1">{e.title}</h3>
-                   <p className="text-sm text-slate-600 mb-3">{e.description || "Keine Beschreibung verfügbar."}</p>
-                   
+                   <p className="text-sm text-slate-600 mb-3">{e.description || "Gemeinschaftliche Veranstaltung."}</p>
                    <div className="flex items-center gap-1 text-xs text-slate-400">
                      <MapPin size={12} /> Bashir Moschee Bensheim
                    </div>
@@ -72,6 +96,20 @@ export default function EventsPage() {
           })}
         </div>
       )}
+
+      {/* BUTTON GANZ UNTEN & KLEIN */}
+      <div className="mt-10 mb-6">
+        <Button 
+          variant="ghost" 
+          size="sm"
+          className="text-slate-400 hover:text-slate-600 text-xs"
+          onClick={openCalendar}
+        >
+          <Calendar className="mr-2 h-3 w-3" />
+          Diesen Kalender abonnieren
+        </Button>
+      </div>
+
     </main>
   );
 }

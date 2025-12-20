@@ -8,11 +8,10 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // Nur Events laden (Zukünftige)
     const { data: events } = await supabase
       .from('mosque_events')
       .select('*')
-      .gte('event_date', new Date().toISOString()); // Nur was in Zukunft liegt
+      .gte('event_date', new Date().toISOString());
 
     if (!events) return new NextResponse('Error', { status: 500 });
 
@@ -22,15 +21,22 @@ export async function GET() {
       'PRODID:-//Ride2Salah//DE',
       'NAME:Bashir Moschee Events',
       'X-WR-CALNAME:Moschee Veranstaltungen',
-      'REFRESH-INTERVAL;VALUE=DURATION:PT4H', // Alle 4 Stunden checken
+      'REFRESH-INTERVAL;VALUE=DURATION:PT4H',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
 
     for (const e of events) {
       const start = new Date(e.event_date);
-      const end = new Date(start);
-      end.setHours(start.getHours() + 2); // Wir nehmen an: Ein Event dauert ca 2 Std
+      
+      // HIER DIE ÄNDERUNG: Enddatum nutzen!
+      let end;
+      if (e.event_end_date) {
+        end = new Date(e.event_end_date);
+      } else {
+        end = new Date(start);
+        end.setHours(start.getHours() + 2); // Fallback: 2 Std
+      }
 
       const startStr = formatLocal(start);
       const endStr = formatLocal(end);
@@ -43,22 +49,12 @@ export async function GET() {
         `DTEND:${endStr}`,
         `SUMMARY:📅 ${e.title}`,
         'LOCATION:Bashir Moschee Bensheim',
-        `DESCRIPTION:${e.description || 'Veranstaltung der Gemeinde'}`,
-        
-        // Alarm 1: 1 Tag vorher
+        `DESCRIPTION:Veranstaltung der Gemeinde.`,
         'BEGIN:VALARM',
         'TRIGGER;RELATED=START:-P1D',
         'ACTION:DISPLAY',
-        'DESCRIPTION:Morgen ist Veranstaltung in der Moschee!',
+        'DESCRIPTION:Morgen ist Veranstaltung!',
         'END:VALARM',
-
-        // Alarm 2: 1 Stunde vorher
-        'BEGIN:VALARM',
-        'TRIGGER;RELATED=START:-PT1H',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:In 1 Stunde geht es los!',
-        'END:VALARM',
-
         'END:VEVENT'
       ].join('\r\n');
 
