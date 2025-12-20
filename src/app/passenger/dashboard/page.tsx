@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Button } from "@/components/ui/button";
-// 👇 ArrowLeft HINZUGEFÜGT
 import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle, ArrowLeft } from "lucide-react";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
-// Diese Komponente zeichnet die grüne Linie (Route)
+// Route zeichnen
 function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -47,8 +46,11 @@ function PassengerDashboardContent() {
 
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Eigener Standort
+  const [myPos, setMyPos] = useState<{lat: number, lng: number} | null>(null);
 
-  // Fahrt laden und alle 5 Sekunden aktualisieren (Live-Tracking!)
+  // Fahrt laden und überwachen
   useEffect(() => {
     if (!rideId) return;
     
@@ -67,6 +69,39 @@ function PassengerDashboardContent() {
     const interval = setInterval(fetchRide, 5000);
     return () => clearInterval(interval);
   }, [rideId]);
+
+  // --- LIVE TRACKING DES MITFAHRERS ---
+  useEffect(() => {
+    if (!rideId) return;
+
+    const trackLocation = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const watcher = navigator.geolocation.watchPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          
+          setMyPos({ lat, lng: lon });
+
+          // Update in der Datenbank
+          await supabase
+            .from('bookings')
+            .update({ pickup_lat: lat, pickup_lon: lon })
+            .eq('ride_id', rideId)
+            .eq('passenger_id', user.id);
+        },
+        (err) => console.error("GPS Fehler:", err),
+        { enableHighAccuracy: true } // <--- HIER KORRIGIERT (distanceFilter entfernt)
+      );
+
+      return () => navigator.geolocation.clearWatch(watcher);
+    };
+
+    trackLocation();
+  }, [rideId]);
+  // ----------------------------------------
 
   const handleCancel = async () => {
     if(!confirm("Möchtest du die Buchung wirklich stornieren?")) return;
@@ -87,7 +122,7 @@ function PassengerDashboardContent() {
   if (loading) return <div className="h-screen flex justify-center items-center"><Loader2 className="animate-spin"/></div>;
   if (!ride) return <div className="p-10 text-center">Fahrt nicht gefunden.</div>;
 
-  // Wenn Fahrt beendet -> Weiterleitung zur Ankunfts-Seite
+  // Wenn Fahrt beendet -> Ankunfts-Seite
   if (ride.status === 'completed') {
     return (
       <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
@@ -108,7 +143,7 @@ function PassengerDashboardContent() {
     );
   }
 
-  // Wo steht das Auto gerade? (Wenn keine Live-Daten da sind, nimm Startpunkt)
+  // Wo steht das Auto?
   const currentCarPosition = {
     lat: ride.current_lat || ride.start_lat,
     lng: ride.current_lon || ride.start_lon
@@ -119,7 +154,7 @@ function PassengerDashboardContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
       
-      {/* 👇 HIER IST DER NEUE ZURÜCK-BUTTON (Schwebend) */}
+      {/* Zurück-Button */}
       <div className="absolute top-4 left-4 z-50">
         <Button 
           size="icon" 
@@ -135,13 +170,9 @@ function PassengerDashboardContent() {
         <APIProvider apiKey={MAP_API_KEY}>
           <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={13} disableDefaultUI={true} mapId="DEMO_MAP_ID">
             
-            {/* Grüne Route */}
             <Directions startPoint={driverStart} />
             
-            {/* Ziel: Moschee */}
-            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee">
-               <div className="text-3xl">🕌</div>
-            </AdvancedMarker>
+            <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
 
             {/* LIVE POSITION DES FAHRERS */}
             <AdvancedMarker position={currentCarPosition} title="Fahrer">
@@ -149,6 +180,13 @@ function PassengerDashboardContent() {
                  🚗 {ride.driver_name}
                </div>
             </AdvancedMarker>
+
+            {/* EIGENE POSITION (Blauer Punkt) */}
+            {myPos && (
+              <AdvancedMarker position={myPos} title="Ich">
+                <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+              </AdvancedMarker>
+            )}
 
           </Map>
         </APIProvider>
@@ -160,9 +198,15 @@ function PassengerDashboardContent() {
         
         <div className="flex items-center gap-3 mb-6 bg-green-50 p-4 rounded-xl border border-green-100">
           <CheckCircle2 className="text-green-600 h-8 w-8" />
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-green-800">Du bist dabei!</h1>
-            <p className="text-sm text-green-700">Fahrer benachrichtigt.</p>
+            <div className="flex items-center gap-2 mt-1">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                <p className="text-xs text-green-700 font-medium">Standort wird live geteilt</p>
+            </div>
           </div>
         </div>
 

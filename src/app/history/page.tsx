@@ -5,14 +5,24 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp, Car, User, Footprints, Check, RotateCcw, Calendar } from "lucide-react";
+import { 
+  ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp, 
+  Car, User, Footprints, Check, RotateCcw, Calendar 
+} from "lucide-react";
 
 // --- KONFIGURATION ZIKR ---
 const ZIKR_LIST = [
   {
     key: 'zikr1_count',
     target: 200,
-    theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', ring: '#f43f5e', bar: 'bg-rose-500' },
+    // Pastell Rot
+    theme: { 
+      bg: 'bg-rose-50 border-rose-100', 
+      text: 'text-rose-900', 
+      ring: '#f43f5e', 
+      bar: 'bg-rose-500', 
+      iconBg: 'bg-rose-100' 
+    },
     arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
     translation: "Heilig ist Allah und jeder Verehrung würdig. Erhaben ist Allah, der Größte. O Allah, schütte Deine Gnade aus über Muhammad (saw) und seinen Anhängern.",
     title: "Tasbih & Salawat"
@@ -20,7 +30,14 @@ const ZIKR_LIST = [
   {
     key: 'zikr2_count',
     target: 100,
-    theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', ring: '#0ea5e9', bar: 'bg-sky-500' },
+    // Pastell Blau
+    theme: { 
+      bg: 'bg-sky-50 border-sky-100', 
+      text: 'text-sky-900', 
+      ring: '#0ea5e9', 
+      bar: 'bg-sky-500', 
+      iconBg: 'bg-sky-100' 
+    },
     arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
     translation: "Ich ersuche Vergebung bei Allah, meinem Herrn, für all meine Sünden und wende mich zu Ihm in Reue.",
     title: "Istighfar"
@@ -28,7 +45,14 @@ const ZIKR_LIST = [
   {
     key: 'zikr3_count',
     target: 100,
-    theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', ring: '#f59e0b', bar: 'bg-amber-500' },
+    // Pastell Orange
+    theme: { 
+      bg: 'bg-amber-50 border-amber-100', 
+      text: 'text-amber-900', 
+      ring: '#f59e0b', 
+      bar: 'bg-amber-500', 
+      iconBg: 'bg-amber-100' 
+    },
     arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
     translation: "O mein Herr, alles ist Dein Diener. O mein Herr, beschütze mich und hilf mir und sei mir gnädig.",
     title: "Dua"
@@ -38,22 +62,29 @@ const ZIKR_LIST = [
 export default function HistoryPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  
+  // TABS: 'zikr' oder 'calendar'
   const [activeTab, setActiveTab] = useState<'zikr' | 'calendar'>('zikr');
+
   const [allRides, setAllRides] = useState<any[]>([]);
   const [viewDate, setViewDate] = useState(new Date());
+
   const [zikrData, setZikrData] = useState<any>({ zikr1_count: 0, zikr2_count: 0, zikr3_count: 0 });
   const [todayLogId, setTodayLogId] = useState<string | null>(null);
+
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
       const today = new Date().toLocaleDateString('en-CA');
 
-      // Fahrten & Visits laden
+      // --- 1. FAHRTEN LADEN ---
       const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
+
       const { data: myBookings } = await supabase.from('bookings').select('ride_id').eq('passenger_id', user.id);
       let passengerRides: any[] = [];
       if (myBookings && myBookings.length > 0) {
@@ -61,11 +92,13 @@ export default function HistoryPage() {
         const { data: completedRides } = await supabase.from('rides').select('ride_date').in('id', rideIds).eq('status', 'completed');
         if (completedRides) passengerRides = completedRides.map(r => ({ date: r.ride_date, role: 'passenger' as const }));
       }
+
       const { data: visitData } = await supabase.from('mosque_visits').select('visit_date').eq('user_id', user.id);
       const walkInRides = visitData?.map(v => ({ date: v.visit_date, role: 'walk-in' as const })) || [];
+
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      // Zikr laden
+      // --- 2. ZIKR LADEN ---
       const { data: zikrLog } = await supabase.from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
       if (zikrLog) {
         setZikrData(zikrLog);
@@ -79,6 +112,7 @@ export default function HistoryPage() {
       }
       setLoading(false);
     };
+
     fetchHistory();
   }, []);
 
@@ -88,15 +122,19 @@ export default function HistoryPage() {
       if (todayLogId) await supabase.from('zikr_logs').update(newData).eq('id', todayLogId);
     }, 1000);
   };
+
   const handleZikrClick = (key: string, target: number) => {
     const currentVal = zikrData[key] || 0;
     if (currentVal >= target) return;
+
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
+
     const newVal = currentVal + 1;
     const newData = { ...zikrData, [key]: newVal };
     setZikrData(newData);
     saveToDb(newData);
   };
+
   const handleReset = (e: React.MouseEvent, key: string) => {
     e.stopPropagation();
     if(!confirm("Zähler zurücksetzen?")) return;
@@ -105,6 +143,7 @@ export default function HistoryPage() {
     saveToDb(newData);
   };
 
+  // --- Kalender Helper ---
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
   const year = viewDate.getFullYear();
@@ -113,23 +152,29 @@ export default function HistoryPage() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   let startDay = new Date(year, month, 1).getDay();
   startDay = startDay === 0 ? 6 : startDay - 1;
+
   const currentMonthRides = allRides.filter(r => {
     const [rYear, rMonth] = r.date.split('-'); 
     return parseInt(rYear) === year && parseInt(rMonth) === month + 1;
   });
+
   const totalCount = currentMonthRides.length;
   const driverCount = currentMonthRides.filter(r => r.role === 'driver').length;
   const passengerCount = currentMonthRides.filter(r => r.role === 'passenger').length;
   const walkInCount = currentMonthRides.filter(r => r.role === 'walk-in').length;
+
   const getDailyCount = (day: number) => {
     const dayStr = day.toString().padStart(2, '0');
     const fullDate = `${year}-${(month+1).toString().padStart(2, '0')}-${dayStr}`;
     return allRides.filter(r => r.date === fullDate).length;
   };
+
   const getRingStyle = (count: number) => {
     const percentage = Math.min(count * 20, 100); 
     let color = '#cbd5e1'; 
-    if (count >= 5) color = '#16a34a'; else if (count >= 3) color = '#3b82f6'; else if (count > 0) color = '#f97316'; 
+    if (count >= 5) color = '#16a34a'; 
+    else if (count >= 3) color = '#3b82f6'; 
+    else if (count > 0) color = '#f97316'; 
     return { background: `conic-gradient(${color} ${percentage}%, #f1f5f9 0)` };
   };
 
@@ -146,6 +191,7 @@ export default function HistoryPage() {
       {loading ? ( <div className="py-20"><Loader2 className="animate-spin text-slate-400"/></div> ) : (
         <div className="w-full max-w-md space-y-6">
           
+          {/* --- TABS --- */}
           <div className="flex p-1 bg-slate-200 rounded-xl mb-4">
             <button 
               onClick={() => setActiveTab('zikr')}
@@ -163,6 +209,7 @@ export default function HistoryPage() {
             </button>
           </div>
 
+          {/* --- ANSICHT 1: ZIKR --- */}
           {activeTab === 'zikr' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
               {ZIKR_LIST.map((item) => {
@@ -193,12 +240,18 @@ export default function HistoryPage() {
                     )}
 
                     <div className="p-5 flex items-start justify-between gap-4">
+                      
+                      {/* Zähler LINKS */}
                       <div className="shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] pt-2">
                          <span className={`text-3xl font-black ${isDone ? 'text-white' : item.theme.text}`}>{count}</span>
                          <span className={`text-[9px] font-bold uppercase ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>{isDone ? 'FERTIG' : `von ${item.target}`}</span>
                       </div>
+
+                      {/* Text RECHTS */}
                       <div className="flex-1 flex flex-col items-end text-right">
-                        <p className={`text-xs font-bold uppercase mb-2 tracking-widest ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>{item.title}</p>
+                        <p className={`text-xs font-bold uppercase mb-2 tracking-widest ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>
+                           {item.title}
+                        </p>
                         <p className={`text-xl font-bold leading-loose font-arabic ${isDone ? 'text-white' : 'text-slate-800'}`} style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', lineHeight: '1.8' }}>
                           {item.arabic}
                         </p>
@@ -206,6 +259,7 @@ export default function HistoryPage() {
                           {item.translation}
                         </p>
                       </div>
+
                     </div>
                   </Card>
                 )
@@ -213,6 +267,7 @@ export default function HistoryPage() {
             </div>
           )}
 
+          {/* --- ANSICHT 2: KALENDER --- */}
           {activeTab === 'calendar' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
@@ -231,7 +286,18 @@ export default function HistoryPage() {
                 <div className="grid grid-cols-7 gap-y-4 gap-x-2">
                   {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}
                   {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`}></div>))}
-                  {Array.from({ length: daysInMonth }).map((_, i) => { const dayNum = i + 1; const count = getDailyCount(dayNum); return (<div key={dayNum} className="flex flex-col items-center justify-center relative"><div className="w-10 h-10 rounded-full flex items-center justify-center transition-all" style={getRingStyle(count)}><div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">{dayNum}</div></div>{count > 0 && <span className="text-[9px] text-slate-400 font-medium absolute -bottom-4">{count}/5</span>}</div>); })}
+                  {Array.from({ length: daysInMonth }).map((_, i) => { 
+                    const dayNum = i + 1; 
+                    const count = getDailyCount(dayNum); 
+                    return (
+                      <div key={dayNum} className="flex flex-col items-center justify-center relative">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center transition-all" style={getRingStyle(count)}>
+                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">{dayNum}</div>
+                        </div>
+                        {count > 0 && <span className="text-[9px] text-slate-400 font-medium absolute -bottom-4">{count}/5</span>}
+                      </div>
+                    ); 
+                  })}
                 </div>
               </Card>
             </div>

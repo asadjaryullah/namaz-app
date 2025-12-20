@@ -6,10 +6,14 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock } from "lucide-react";
+// Alle Icons (inkl. List & MessageSquareWarning)
+import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock, MessageSquareWarning, List } from "lucide-react";
 
 import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
+
+// HIER DEINE NUMMER FÜR BUGS EINTRAGEN (Format: 49...)
+const ADMIN_WHATSAPP = "4917612345678"; 
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -96,19 +100,13 @@ export default function ProfilePage() {
     }
   };
 
-  // 👇 HIER IST DER FIX FÜR DAS IPHONE 👇
+  // Hilfsfunktion für Kalender-URLs (iPhone Fix)
   const openCalendar = (apiUrl: string) => {
-    // Wir holen den Host (z.B. ride2salah.vercel.app)
     const host = window.location.host;
-    
-    // Wir erzwingen IMMER 'webcal://'. 
-    // Das iPhone macht daraus automatisch eine sichere Verbindung, wenn möglich.
-    // 'webcals://' verursacht oft den Fehler "Ungültige Adresse".
+    // Wir erzwingen 'webcal://' (funktioniert am besten auf allen Geräten)
     const url = `webcal://${host}${apiUrl}`;
-    
     window.location.href = url;
   };
-  // 👆 ----------------------------------
 
   if (loading) {
     return (
@@ -136,7 +134,7 @@ export default function ProfilePage() {
         <CardContent>
           <form onSubmit={handleSave} className="space-y-4">
             
-            {/* GESCHLECHT AUSWAHL */}
+            {/* 1. GESCHLECHT AUSWAHL */}
             <div className="space-y-2">
               <div className="flex justify-between">
                  <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
@@ -164,7 +162,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* ID NUMMER */}
+            {/* 2. ID NUMMER */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">ID-Nummer</label>
               <div className="relative">
@@ -178,7 +176,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* NAME */}
+            {/* 3. NAME */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
               <div className="relative">
@@ -192,7 +190,7 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* HANDY */}
+            {/* 4. HANDY */}
             <div className="space-y-1">
               <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
               <div className="relative">
@@ -214,10 +212,10 @@ export default function ProfilePage() {
 
           </form>
 
-          {/* SETTINGS */}
+          {/* EINSTELLUNGEN */}
           <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
             
-            {/* Push */}
+            {/* PUSH */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
               <p className="text-xs text-slate-500 mb-3">Erlaube Push-Nachrichten für Fahrten.</p>
@@ -231,9 +229,9 @@ export default function ProfilePage() {
               <LocationSettings />
             </div>
 
-            {/* KALENDER */}
+            {/* KALENDER SYNC */}
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender Abos</h3>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender</h3>
               <p className="text-xs text-slate-500 mb-3">
                 Wähle, was du im Handy-Kalender sehen möchtest.
               </p>
@@ -247,7 +245,7 @@ export default function ProfilePage() {
                   onClick={() => openCalendar('/api/calendar-events')}
                 >
                   <Calendar size={18} />
-                  Veranstaltungen
+                  Veranstaltungen (Abo)
                 </Button>
 
                 {/* Button 2: Gebetszeiten */}
@@ -257,10 +255,35 @@ export default function ProfilePage() {
                   onClick={() => openCalendar('/api/calendar')}
                 >
                   <Calendar size={18} />
-                  Gebetszeiten
+                  Gebetszeiten (Abo)
+                </Button>
+                
+                {/* Button 3: Web-Liste (Der fehlende Button!) */}
+                <Button 
+                  variant="secondary" 
+                  className="w-full justify-start gap-2 text-slate-600 bg-slate-100"
+                  onClick={() => router.push('/events')}
+                >
+                  <List size={18} />
+                  Liste ansehen (Web)
                 </Button>
 
               </div>
+            </div>
+
+            {/* SUPPORT / BUG REPORT */}
+            <div className="pt-4 border-t border-dashed border-slate-200">
+               <h3 className="text-sm font-bold text-slate-900 mb-2">Hilfe & Support</h3>
+               <a 
+                 href={`https://wa.me/${ADMIN_WHATSAPP}?text=Salam, ich habe einen Fehler in der App gefunden:`}
+                 target="_blank"
+                 rel="noopener noreferrer"
+               >
+                 <Button variant="secondary" className="w-full justify-start gap-2 text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200">
+                    <MessageSquareWarning size={18} />
+                    Fehler melden (WhatsApp)
+                 </Button>
+               </a>
             </div>
 
           </div>
