@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { 
   ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp, 
-  Car, User, Footprints, Check, RotateCcw, Calendar 
+  Car, User, Footprints, Check, RotateCcw, Calendar, MapPin
 } from "lucide-react";
 
 // --- KONFIGURATION ZIKR ---
@@ -38,7 +38,6 @@ const ZIKR_LIST = [
   }
 ];
 
-// --- HAUPTINHALT (Ausgelagert für Suspense) ---
 function HistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -90,8 +89,8 @@ function HistoryContent() {
         }
       }
 
-      // 3. EVENTS LADEN
-      const { data: eventsData } = await supabase.from('mosque_events').select('*').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true });
+      // 3. EVENTS LADEN (Alle, damit wir sie im Kalender anzeigen können)
+      const { data: eventsData } = await supabase.from('mosque_events').select('*').order('event_date', { ascending: true });
       if (eventsData) setEvents(eventsData);
 
       setLoading(false);
@@ -127,14 +126,19 @@ function HistoryContent() {
     const url = `webcal://${host}${apiUrl}`;
     window.location.href = url;
   };
+
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   const prevMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
+  
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth(); 
   const monthName = viewDate.toLocaleString('de-DE', { month: 'long' });
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
   let startDay = new Date(year, month, 1).getDay();
   startDay = startDay === 0 ? 6 : startDay - 1;
+
+  // STATISTIK Helper
   const currentMonthRides = allRides.filter(r => { const [y, m] = r.date.split('-'); return parseInt(y) === year && parseInt(m) === month + 1; });
   const totalCount = currentMonthRides.length;
   const driverCount = currentMonthRides.filter(r => r.role === 'driver').length;
@@ -152,6 +156,15 @@ function HistoryContent() {
     return { background: `conic-gradient(${color} ${percentage}%, #f1f5f9 0)` };
   };
 
+  // EVENT Helper
+  const getEventForDay = (day: number) => {
+    const dayStr = day.toString().padStart(2, '0');
+    // Format YYYY-MM-DD
+    const dateKey = `${year}-${(month+1).toString().padStart(2, '0')}-${dayStr}`;
+    // Find event that starts on this day
+    return events.find(e => e.event_date.startsWith(dateKey));
+  };
+
   return (
     <div className="w-full max-w-md space-y-6">
        {/* TABS */}
@@ -161,9 +174,9 @@ function HistoryContent() {
          <button onClick={() => setActiveTab('calendar')} className={`flex-1 py-2 px-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'calendar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>📊 Statistik</button>
        </div>
 
-       {/* INHALTE */}
        {loading ? (<div className="py-10"><Loader2 className="animate-spin text-slate-400 mx-auto"/></div>) : (
          <>
+           {/* ANSICHT 1: ZIKR */}
            {activeTab === 'zikr' && (
              <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
                {ZIKR_LIST.map((item) => {
@@ -185,15 +198,67 @@ function HistoryContent() {
              </div>
            )}
 
+           {/* ANSICHT 2: TERMINE (JETZT ALS KALENDER GRID) */}
            {activeTab === 'events' && (
               <div className="space-y-4 animate-in fade-in duration-300">
-                <Card className="p-5 border-l-4 border-l-orange-500 shadow-sm bg-white"><h2 className="font-bold text-lg text-slate-900 mb-2">Veranstaltungen</h2><p className="text-sm text-slate-500 mb-4">Hier siehst du alle kommenden Termine.</p><Button variant="outline" className="w-full text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100" onClick={() => openCalendar('/api/calendar-events')}><Calendar className="mr-2 h-4 w-4"/> Kalender abonnieren</Button></Card>
-                <div className="space-y-3">{events.length === 0 ? <p className="text-center text-slate-400 py-4">Keine Termine geplant.</p> : events.map(e => (
-                    <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4"><div className="bg-slate-100 p-3 rounded-xl text-center min-w-[4rem]"><span className="block text-xs font-bold text-slate-400 uppercase">{new Date(e.event_date).toLocaleDateString('de-DE', {month: 'short'})}</span><span className="block text-2xl font-black text-slate-800">{new Date(e.event_date).getDate()}</span></div><div><h3 className="font-bold text-slate-900">{e.title}</h3><p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">{new Date(e.event_date).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} UHR</p>{e.description && <p className="text-sm text-slate-600 mt-2">{e.description}</p>}</div></div>
-                ))}</div>
+                {/* --- NEUER EVENT KALENDER --- */}
+                <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
+                  <div className="flex justify-between items-center mb-6">
+                    <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
+                    <div className="text-center"><h2 className="text-lg font-bold text-slate-900">{monthName}</h2><p className="text-xs text-slate-400 font-bold uppercase">{year}</p></div>
+                    <Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-y-4 gap-x-2">
+                    {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}
+                    {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`}></div>))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => { 
+                      const dayNum = i + 1; 
+                      // Prüfen ob Event an diesem Tag
+                      const hasEvent = getEventForDay(dayNum);
+                      return (
+                        <div key={dayNum} className="flex flex-col items-center justify-center relative">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${hasEvent ? 'bg-orange-100 text-orange-700 font-bold border-2 border-orange-200' : 'bg-slate-50 text-slate-400'}`}>
+                            {dayNum}
+                          </div>
+                          {hasEvent && <div className="w-1.5 h-1.5 bg-orange-500 rounded-full absolute -bottom-1"></div>}
+                        </div>
+                      ); 
+                    })}
+                  </div>
+                </Card>
+
+                {/* LISTE DER EVENTS UNTER DEM KALENDER */}
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Termine im {monthName}</h3>
+                  {events.filter(e => new Date(e.event_date).getMonth() === month && new Date(e.event_date).getFullYear() === year).length === 0 ? (
+                    <p className="text-sm text-slate-400 italic">Keine Termine in diesem Monat.</p>
+                  ) : (
+                    events.filter(e => new Date(e.event_date).getMonth() === month && new Date(e.event_date).getFullYear() === year).map(e => (
+                      <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4">
+                          <div className="bg-orange-50 p-3 rounded-xl text-center min-w-[4rem]">
+                            <span className="block text-xs font-bold text-orange-600 uppercase">{new Date(e.event_date).toLocaleDateString('de-DE', {month: 'short'})}</span>
+                            <span className="block text-2xl font-black text-slate-800">{new Date(e.event_date).getDate()}</span>
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-900">{e.title}</h3>
+                            <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">{new Date(e.event_date).toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} UHR</p>
+                            {/* Ort Anzeige */}
+                            <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                               <MapPin size={12} /> Moschee
+                            </div>
+                          </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <Button variant="outline" className="w-full text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 mt-4" onClick={() => openCalendar('/api/calendar-events')}>
+                   <Calendar className="mr-2 h-4 w-4"/> Kalender abonnieren
+                </Button>
               </div>
            )}
 
+           {/* ANSICHT 3: STATISTIK */}
            {activeTab === 'calendar' && (
              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                 <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden"><div className="relative z-10"><p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">{monthName}</p><div className="flex items-baseline gap-2"><span className="text-5xl font-black">{totalCount}</span><span className="text-sm font-medium text-slate-400">Gebete</span></div></div><div className="bg-white/10 p-3 rounded-full relative z-10"><TrendingUp size={32} /></div></Card>
@@ -202,7 +267,12 @@ function HistoryContent() {
                   <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white"><div className="bg-blue-50 p-1.5 rounded-full text-blue-600"><User size={16} /></div><span className="block text-lg font-bold text-slate-900">{passengerCount}</span><span className="text-[9px] text-slate-400 uppercase font-bold">Mitfahrer</span></Card>
                   <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white"><div className="bg-green-50 p-1.5 rounded-full text-green-600"><Footprints size={16} /></div><span className="block text-lg font-bold text-slate-900">{walkInCount}</span><span className="text-[9px] text-slate-400 uppercase font-bold">Besucher</span></Card>
                 </div>
-                <Card className="p-6 bg-white shadow-lg rounded-3xl border-0"><div className="flex justify-between items-center mb-6"><Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button><div className="text-center"><h2 className="text-lg font-bold text-slate-900">{monthName}</h2><p className="text-xs text-slate-400 font-bold uppercase">{year}</p></div><Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button></div><div className="grid grid-cols-7 gap-y-4 gap-x-2">{['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}{Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`}></div>))}{Array.from({ length: daysInMonth }).map((_, i) => { const dayNum = i + 1; const count = getDailyCount(dayNum); return (<div key={dayNum} className="flex flex-col items-center justify-center relative"><div className="w-10 h-10 rounded-full flex items-center justify-center transition-all" style={getRingStyle(count)}><div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">{dayNum}</div></div>{count > 0 && <span className="text-[9px] text-slate-400 font-medium absolute -bottom-4">{count}/5</span>}</div>); })}</div></Card>
+                <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
+                  <div className="flex justify-between items-center mb-6"><Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button><div className="text-center"><h2 className="text-lg font-bold text-slate-900">{monthName}</h2><p className="text-xs text-slate-400 font-bold uppercase">{year}</p></div><Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button></div>
+                  <div className="grid grid-cols-7 gap-y-4 gap-x-2">
+                    {['Mo','Di','Mi','Do','Fr','Sa','So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}{Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`}></div>))}{Array.from({ length: daysInMonth }).map((_, i) => { const dayNum = i + 1; const count = getDailyCount(dayNum); return (<div key={dayNum} className="flex flex-col items-center justify-center relative"><div className="w-10 h-10 rounded-full flex items-center justify-center transition-all" style={getRingStyle(count)}><div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">{dayNum}</div></div>{count > 0 && <span className="text-[9px] text-slate-400 font-medium absolute -bottom-4">{count}/5</span>}</div>); })}
+                  </div>
+                </Card>
              </div>
           )}
          </>
@@ -211,7 +281,7 @@ function HistoryContent() {
   );
 }
 
-// --- HAUPT EXPORT MIT SUSPENSE ---
+// --- HAUPT EXPORT ---
 export default function HistoryPage() {
   const router = useRouter();
   
