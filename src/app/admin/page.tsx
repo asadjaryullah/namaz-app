@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Loader2, Save, ArrowLeft, ShieldAlert, Download, BellRing, Send, Check, X, CalendarPlus, Trash2 } from "lucide-react";
+import { Loader2, Save, ArrowLeft, ShieldAlert, Download, CalendarPlus, Trash2, Check, X } from "lucide-react";
 
 // 👇 Nur wer mit DIESER Email eingeloggt ist, darf die Seite sehen.
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
@@ -23,15 +23,10 @@ export default function AdminPage() {
   // Inputs für neue Events
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventStart, setNewEventStart] = useState("");
-  const [newEventEnd, setNewEventEnd] = useState(""); // <--- NEU: End-Datum
+  const [newEventEnd, setNewEventEnd] = useState(""); 
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Push States
-  const [pushTitle, setPushTitle] = useState("");
-  const [pushMessage, setPushMessage] = useState("");
-  const [sendingPush, setSendingPush] = useState(false);
 
   useEffect(() => {
     const checkAdminAndLoadData = async () => {
@@ -103,7 +98,7 @@ export default function AdminPage() {
     const { error } = await supabase.from('mosque_events').insert({
       title: newEventTitle,
       event_date: new Date(newEventStart).toISOString(),
-      event_end_date: end // <--- WICHTIG: Enddatum speichern
+      event_end_date: end 
     });
 
     if (error) alert("Fehler: " + error.message);
@@ -127,22 +122,6 @@ export default function AdminPage() {
     setSaving(false);
     if (error) alert("Fehler: " + error.message);
     else alert("Zeiten gespeichert!");
-  };
-
-  // --- PUSH ---
-  const handleSendPush = async () => {
-    if(!pushTitle || !pushMessage) return alert("Eingaben fehlen");
-    if(!confirm(`Nachricht an ALLE senden?`)) return;
-    setSendingPush(true);
-    try {
-      await fetch('/api/send-push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: pushTitle, message: pushMessage })
-      });
-      alert("Gesendet!"); setPushTitle(""); setPushMessage("");
-    } catch (e) { alert("Fehler."); } 
-    finally { setSendingPush(false); }
   };
 
   // --- EXPORT ---
@@ -256,7 +235,6 @@ export default function AdminPage() {
                     <p className="font-bold">{e.title}</p>
                     <p className="text-xs text-slate-500">
                         {new Date(e.event_date).toLocaleDateString('de-DE')} 
-                        {/* Enddatum anzeigen falls vorhanden */}
                         {e.event_end_date && ` - ${new Date(e.event_end_date).toLocaleDateString('de-DE')}`}
                     </p>
                   </div>
@@ -274,31 +252,19 @@ export default function AdminPage() {
           {prayers.map((prayer) => (
             <div key={prayer.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
               <span className="font-bold text-slate-700 w-24 capitalize">{prayer.name}</span>
-              <Input type="time" value={prayer.time} onChange={(e) => handleTimeChange(prayer.id, e.target.value)} className="w-32 font-mono text-center bg-white" />
+              <Input 
+                type="time" 
+                value={prayer.time}
+                onChange={(e) => handleTimeChange(prayer.id, e.target.value)}
+                className="w-32 font-mono text-center text-lg border-slate-300 focus:ring-red-500"
+              />
             </div>
           ))}
-          <Button className="w-full mt-6 bg-red-600 text-white" onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />} Speichern</Button>
+          <Button className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white h-12 text-lg" onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-5 w-5" />} Speichern</Button>
         </CardContent>
       </Card>
 
-      {/* 4. PUSH NACHRICHTEN */}
-      <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-slate-900">
-            <BellRing className="text-blue-600" />
-            <CardTitle className="text-lg">Nachricht an Alle</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)}/>
-          <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)}/>
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSendPush} disabled={sendingPush}>
-            {sendingPush ? <Loader2 className="animate-spin mr-2"/> : <Send className="mr-2 h-4 w-4" />} Jetzt Senden
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 5. DATEN EXPORT */}
+      {/* 4. DATEN EXPORT */}
       <Card className="w-full max-w-md shadow-sm border-0 bg-slate-50">
         <CardHeader><CardTitle className="text-base text-slate-500">Daten Export (CSV)</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">
