@@ -15,25 +15,25 @@ const ZIKR_LIST = [
   {
     key: 'zikr1_count',
     target: 200,
-    theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', ring: '#f43f5e', bar: 'bg-rose-500', iconBg: 'bg-rose-100' },
+    theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', bar: 'bg-rose-500' },
     arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
-    translation: "Heilig ist Allah und jeder Verehrung würdig. Erhaben ist Allah, der Größte. O Allah, schütte Deine Gnade aus über Muhammad (saw) und seinen Anhängern.",
+    translation: "Heilig ist Allah ...",
     title: "Tasbih & Salawat"
   },
   {
     key: 'zikr2_count',
     target: 100,
-    theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', ring: '#0ea5e9', bar: 'bg-sky-500', iconBg: 'bg-sky-100' },
+    theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', bar: 'bg-sky-500' },
     arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
-    translation: "Ich ersuche Vergebung bei Allah, meinem Herrn, für all meine Sünden und wende mich zu Ihm in Reue.",
+    translation: "Ich ersuche Vergebung ...",
     title: "Istighfar"
   },
   {
     key: 'zikr3_count',
     target: 100,
-    theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', ring: '#f59e0b', bar: 'bg-amber-500', iconBg: 'bg-amber-100' },
+    theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', bar: 'bg-amber-500' },
     arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
-    translation: "O mein Herr, alles ist Dein Diener. O mein Herr, beschütze mich und hilf mir und sei mir gnädig.",
+    translation: "O mein Herr ...",
     title: "Dua"
   }
 ];
@@ -41,9 +41,9 @@ const ZIKR_LIST = [
 function HistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(true);
-
   const initialTab = (searchParams.get('tab') as 'zikr' | 'events' | 'calendar') || 'zikr';
+
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'zikr' | 'events' | 'calendar'>(initialTab);
 
   const [allRides, setAllRides] = useState<any[]>([]);
@@ -54,6 +54,80 @@ function HistoryContent() {
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ---------- DATE HELPERS (für mehrtägige Events) ----------
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  const parseEventEnd = (e: any) => new Date(e.event_end_date || e.event_date);
+
+  // Event gilt für Tag, wenn Tag zwischen Start und Ende liegt (date-only)
+  const eventCoversDay = (e: any, day: Date) => {
+    const s = startOfDay(new Date(e.event_date)).getTime();
+    const en = startOfDay(parseEventEnd(e)).getTime();
+    const d = startOfDay(day).getTime();
+    return d >= s && d <= en;
+  };
+
+  // Für Overlap am Tag: reale Zeit-Intervalle am Tag schneiden
+  const getDayInterval = (e: any, day: Date) => {
+    const s = new Date(e.event_date).getTime();
+    const en = parseEventEnd(e).getTime();
+    const ds = startOfDay(day).getTime();
+    const de = endOfDay(day).getTime();
+    return { start: Math.max(s, ds), end: Math.min(en, de) };
+  };
+
+  const hasOverlap = (dayEvents: any[], day: Date) => {
+    if (dayEvents.length < 2) return false;
+    const intervals = dayEvents
+      .map(e => getDayInterval(e, day))
+      .sort((a, b) => a.start - b.start);
+
+    let prevEnd = intervals[0].end;
+    for (let i = 1; i < intervals.length; i++) {
+      if (intervals[i].start < prevEnd) return true;
+      prevEnd = Math.max(prevEnd, intervals[i].end);
+    }
+    return false;
+  };
+
+  const formatTimeRange = (startStr: string, endStr?: string | null) => {
+    const start = new Date(startStr);
+    const startFmt = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+
+    if (!endStr) return `${startFmt} Uhr`;
+    const end = new Date(endStr);
+    const diffMs = end.getTime() - start.getTime();
+    if (diffMs <= 60_000) return `${startFmt} Uhr`;
+
+    const endFmt = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return `${startFmt} - ${endFmt} Uhr`;
+  };
+
+  // ✅ wichtig: Uhrzeit nur bei eintägig, sonst Datumsspanne
+  const formatEventMeta = (e: any) => {
+    const s = new Date(e.event_date);
+    const en = parseEventEnd(e);
+    if (isSameDay(s, en)) return formatTimeRange(e.event_date, e.event_end_date);
+
+    // mehrtägig: Datumsspanne
+    const sFmt = s.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    const eFmt = en.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    return `${sFmt} - ${eFmt}`;
+  };
+
+  // Für die linke "DEZ 22" Box: bei mehrtägig "22–23"
+  const formatDayBox = (e: any) => {
+    const s = new Date(e.event_date);
+    const en = parseEventEnd(e);
+    const monthLabel = s.toLocaleDateString('de-DE', { month: 'short' }).toUpperCase(); // DEZ
+    if (isSameDay(s, en)) return { monthLabel, dayLabel: String(s.getDate()) };
+    return { monthLabel, dayLabel: `${s.getDate()}–${en.getDate()}` };
+  };
+
+  // ---------- FETCH ----------
   useEffect(() => {
     const fetchHistory = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -61,7 +135,7 @@ function HistoryContent() {
 
       const today = new Date().toLocaleDateString('en-CA');
 
-      // FAHRTEN
+      // Fahrten (wie gehabt)
       const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
 
@@ -77,7 +151,7 @@ function HistoryContent() {
       const walkInRides = visitData?.map(v => ({ date: v.visit_date, role: 'walk-in' as const })) || [];
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      // ZIKR
+      // Zikr
       const { data: zikrLog } = await supabase.from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
       if (zikrLog) {
         setZikrData(zikrLog);
@@ -87,7 +161,7 @@ function HistoryContent() {
         if (newLog) { setTodayLogId(newLog.id); setZikrData(newLog); }
       }
 
-      // EVENTS (Future) ✅ mit explizitem select
+      // Events (Future) – wichtig: end_date + location etc. explizit
       const { data: eventsData } = await supabase
         .from('mosque_events')
         .select('id,title,event_date,event_end_date,location,description')
@@ -102,21 +176,7 @@ function HistoryContent() {
     fetchHistory();
   }, []);
 
-  // ✅ Endzeit robust: nur Range wenn Ende wirklich später ist
-  const formatTimeRange = (startStr: string, endStr?: string | null) => {
-    const start = new Date(startStr);
-    const startFmt = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-
-    if (!endStr) return `${startFmt} Uhr`;
-
-    const end = new Date(endStr);
-    const diffMs = end.getTime() - start.getTime();
-    if (diffMs <= 60_000) return `${startFmt} Uhr`; // gleich/zu kurz -> keine Range
-
-    const endFmt = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    return `${startFmt} - ${endFmt} Uhr`;
-  };
-
+  // ---------- ZIKR SAVE ----------
   const saveToDb = (newData: any) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
@@ -125,10 +185,10 @@ function HistoryContent() {
   };
 
   const handleZikrClick = (key: string, target: number) => {
-    const currentVal = zikrData[key] || 0;
-    if (currentVal >= target) return;
+    const v = zikrData[key] || 0;
+    if (v >= target) return;
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
-    const newData = { ...zikrData, [key]: currentVal + 1 };
+    const newData = { ...zikrData, [key]: v + 1 };
     setZikrData(newData);
     saveToDb(newData);
   };
@@ -153,15 +213,15 @@ function HistoryContent() {
   const month = viewDate.getMonth();
   const monthName = viewDate.toLocaleString('de-DE', { month: 'long' });
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+
   let startDay = new Date(year, month, 1).getDay();
   startDay = startDay === 0 ? 6 : startDay - 1;
 
-  // Statistik helper
+  // Statistik
   const currentMonthRides = allRides.filter(r => {
     const [y, m] = r.date.split('-');
     return parseInt(y) === year && parseInt(m) === month + 1;
   });
-
   const totalCount = currentMonthRides.length;
   const driverCount = currentMonthRides.filter(r => r.role === 'driver').length;
   const passengerCount = currentMonthRides.filter(r => r.role === 'passenger').length;
@@ -182,31 +242,22 @@ function HistoryContent() {
     return { background: `conic-gradient(${c} ${p}%, #f1f5f9 0)` };
   };
 
-  // ✅ Events pro Tag + Overlap
-  const getEventsForDay = (day: number) => {
-    const dayStr = day.toString().padStart(2, '0');
-    const dateKey = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayStr}`;
+  // ✅ Events für einen Tag (inkl. mehrtägige)
+  const getEventsForDay = (dayNum: number) => {
+    const day = new Date(year, month, dayNum);
     return events
-      .filter(e => e.event_date.startsWith(dateKey))
+      .filter(e => eventCoversDay(e, day))
       .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
   };
 
-  const hasOverlap = (dayEvents: any[]) => {
-    if (dayEvents.length < 2) return false;
-    let prevEnd = new Date(dayEvents[0].event_end_date || dayEvents[0].event_date).getTime();
-    for (let i = 1; i < dayEvents.length; i++) {
-      const start = new Date(dayEvents[i].event_date).getTime();
-      const end = new Date(dayEvents[i].event_end_date || dayEvents[i].event_date).getTime();
-      if (start < prevEnd) return true;
-      prevEnd = Math.max(prevEnd, end);
-    }
-    return false;
-  };
-
-  const monthEvents = events.filter(e =>
-    new Date(e.event_date).getMonth() === month &&
-    new Date(e.event_date).getFullYear() === year
-  );
+  // Liste: Events, die in diesem Monat "irgendwie" vorkommen (start oder end im Monat oder spannt drüber)
+  const monthEvents = events.filter(e => {
+    const s = new Date(e.event_date);
+    const en = parseEventEnd(e);
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month, daysInMonth, 23, 59, 59, 999);
+    return en >= monthStart && s <= monthEnd;
+  });
 
   return (
     <div className="w-full max-w-md space-y-6">
@@ -221,7 +272,7 @@ function HistoryContent() {
         <div className="py-10"><Loader2 className="animate-spin text-slate-400 mx-auto" /></div>
       ) : (
         <>
-          {/* 1) ZIKR */}
+          {/* ZIKR */}
           {activeTab === 'zikr' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
               {ZIKR_LIST.map((item) => {
@@ -263,7 +314,7 @@ function HistoryContent() {
             </div>
           )}
 
-          {/* 2) TERMINE */}
+          {/* TERMINE */}
           {activeTab === 'events' && (
             <div className="space-y-4 animate-in fade-in duration-300">
               {/* Kalender Grid */}
@@ -281,9 +332,10 @@ function HistoryContent() {
                   {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`} />))}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const dayNum = i + 1;
+                    const day = new Date(year, month, dayNum);
                     const dayEvents = getEventsForDay(dayNum);
                     const hasEvent = dayEvents.length > 0;
-                    const overlap = hasOverlap(dayEvents);
+                    const overlap = hasOverlap(dayEvents, day);
 
                     return (
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
@@ -298,9 +350,7 @@ function HistoryContent() {
                         >
                           {dayNum}
                         </div>
-                        {hasEvent && (
-                          <div className={`w-1.5 h-1.5 rounded-full absolute -bottom-1 ${overlap ? 'bg-red-500' : 'bg-orange-500'}`} />
-                        )}
+                        {hasEvent && <div className={`w-1.5 h-1.5 rounded-full absolute -bottom-1 ${overlap ? 'bg-red-500' : 'bg-orange-500'}`} />}
                       </div>
                     );
                   })}
@@ -314,25 +364,32 @@ function HistoryContent() {
                 {monthEvents.length === 0 ? (
                   <p className="text-sm text-slate-400 italic">Keine Termine in diesem Monat.</p>
                 ) : (
-                  monthEvents.map(e => (
-                    <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4">
-                      <div className="bg-orange-50 p-3 rounded-xl text-center min-w-[4rem]">
-                        <span className="block text-xs font-bold text-orange-600 uppercase">{new Date(e.event_date).toLocaleDateString('de-DE', { month: 'short' })}</span>
-                        <span className="block text-2xl font-black text-slate-800">{new Date(e.event_date).getDate()}</span>
-                      </div>
-
-                      <div className="flex-1">
-                        <h3 className="font-bold text-slate-900">{e.title}</h3>
-                        <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">{formatTimeRange(e.event_date, e.event_end_date)}</p>
-
-                        <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                          <MapPin size={12} /> {e.location || "Moschee"}
+                  monthEvents.map(e => {
+                    const box = formatDayBox(e);
+                    return (
+                      <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4">
+                        <div className="bg-orange-50 p-3 rounded-xl text-center min-w-[4rem]">
+                          <span className="block text-xs font-bold text-orange-600 uppercase">{box.monthLabel}</span>
+                          <span className="block text-2xl font-black text-slate-800">{box.dayLabel}</span>
                         </div>
 
-                        {e.description && <p className="text-sm text-slate-600 mt-2 border-t pt-2">{e.description}</p>}
+                        <div className="flex-1">
+                          <h3 className="font-bold text-slate-900">{e.title}</h3>
+
+                          {/* ✅ Eintägig: Uhrzeit, Mehrtägig: Datumsspanne */}
+                          <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">
+                            {formatEventMeta(e)}
+                          </p>
+
+                          <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                            <MapPin size={12} /> {e.location || "Moschee"}
+                          </div>
+
+                          {e.description && <p className="text-sm text-slate-600 mt-2 border-t pt-2">{e.description}</p>}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
@@ -346,7 +403,7 @@ function HistoryContent() {
             </div>
           )}
 
-          {/* 3) STATISTIK */}
+          {/* STATISTIK (unverändert) */}
           {activeTab === 'calendar' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
@@ -395,6 +452,7 @@ function HistoryContent() {
   );
 }
 
+// --- HAUPT EXPORT ---
 export default function HistoryPage() {
   const router = useRouter();
   return (
