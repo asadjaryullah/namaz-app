@@ -164,7 +164,7 @@ export default function HomePage() {
     <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
       
       <div className="mt-4">
-        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋🏼</h1>
         <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
       </div>
 
@@ -199,7 +199,7 @@ export default function HomePage() {
 
       {/* EVENTS KARTE */}
       <div 
-        onClick={() => router.push('/history')}
+        onClick={() => router.push('/history?tab=events')}
         className="w-full bg-white rounded-2xl shadow-sm border border-slate-100 p-4 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all group"
       >
         <div className="flex items-center justify-between mb-3">
