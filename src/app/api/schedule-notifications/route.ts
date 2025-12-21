@@ -1,105 +1,91 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Supabase initialisieren
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// Konstanten
 const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
-
-// 👇 HIER DEINEN LANGEN SCHLÜSSEL (os_v2...) REINKOPIEREN:
+// 👇 Stelle sicher, dass hier dein langer Key steht (oder via process.env)
 const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY; 
 
 export async function GET() {
+  const logs: string[] = []; // Wir sammeln Logs für die Ausgabe
+  
   try {
-    console.log("🕒 Starte Tagesplanung...");
+    logs.push("🚀 Start: API aufgerufen.");
 
-    if (!ONESIGNAL_API_KEY || ONESIGNAL_API_KEY.includes("HIER_DEN_LANGEN")) {
-      return NextResponse.json({ error: 'API Key fehlt oder ist falsch' }, { status: 500 });
+    // 1. Key Check
+    if (!ONESIGNAL_API_KEY) {
+      throw new Error("API Key fehlt! Bitte in Vercel prüfen.");
     }
+    logs.push("✅ API Key gefunden.");
 
-    // 1. Zeit in Berlin ermitteln
-    const nowString = new Date().toLocaleString("en-US", {timeZone: "Europe/Berlin"});
-    const nowBerlin = new Date(nowString);
+    // 2. Zeit Check
+    const nowBerlin = new Date(new Date().toLocaleString("en-US", {timeZone: "Europe/Berlin"}));
+    logs.push(`🕒 Server Zeit (Berlin): ${nowBerlin.toLocaleString()}`);
 
-    // 2. Gebetszeiten holen
-    const { data: prayers } = await supabase.from('prayer_times').select('*');
-    if (!prayers) return NextResponse.json({ error: 'Keine Gebetszeiten gefunden' });
+    // 3. Gebete holen
+    const { data: prayers, error } = await supabase.from('prayer_times').select('*');
+    if (error) throw error;
+    if (!prayers || prayers.length === 0) throw new Error("Keine Gebetszeiten in DB.");
+    
+    logs.push(`✅ ${prayers.length} Gebete gefunden.`);
 
-    let count = 0;
+    let plannedCount = 0;
 
-    // --- FREITAGS-CHECK ---
-    if (nowBerlin.getDay() === 5) {
-      const jummahTime = new Date(nowBerlin);
-      jummahTime.setHours(12, 30, 0, 0); 
-
-      if (jummahTime > nowBerlin) {
-        await sendOneSignalPush("Jumu'ah Mubarak! 🕌", "Komm rechtzeitig zum Freitagsgebet.", jummahTime);
-        count++;
-      }
-    }
-
-    // --- TÄGLICHE GEBETE (25 Min vorher) ---
+    // 4. Test-Schleife
     for (const p of prayers) {
       if (!p.time) continue;
 
       const [h, m] = p.time.split(':').map(Number);
       
+      // Zielzeit erstellen
       const scheduleTime = new Date(nowBerlin);
       scheduleTime.setHours(h);
-      scheduleTime.setMinutes(m - 25); 
+      scheduleTime.setMinutes(m - 25);
       scheduleTime.setSeconds(0);
 
+      const timeDiff = (scheduleTime.getTime() - nowBerlin.getTime()) / 1000 / 60; // Differenz in Minuten
+
       if (scheduleTime > nowBerlin) {
+        logs.push(`📅 Plane ${p.name} für ${scheduleTime.toLocaleTimeString()} (in ${Math.round(timeDiff)} Min)`);
+        
         await sendOneSignalPush(
-          `Bald ist ${p.name} (${p.time}) 🕌`,
-          "Buche jetzt deine Fahrt zur Moschee!",
+          `Bald ist ${p.name} 🕌`,
+          `In 25 Minuten ist Gebet (${p.time}).`,
           scheduleTime
         );
-        count++;
+        plannedCount++;
+      } else {
+        logs.push(`⚠️ Überspringe ${p.name}: Zeit ${scheduleTime.toLocaleTimeString()} ist schon vorbei.`);
       }
     }
 
-    // --- ZIKR ERINNERUNG ---
-    const zikrHours = [12, 16, 20];
-    for (const h of zikrHours) {
-        const zikrTime = new Date(nowBerlin);
-        zikrTime.setHours(h, 0, 0, 0);
-
-        if (zikrTime > nowBerlin) {
-             await sendOneSignalPush(
-                "📿 Zikr Erinnerung", 
-                "Vergiss nicht, deine täglichen Gebete zu vervollständigen.",
-                zikrTime
-             );
-             count++;
-        }
-    }
-
-    // 👇 SOFORT-TEST (Damit du siehst, ob es klappt)
+    // 5. DIAGNOSE-NACHRICHT (SOFORT SENDEN)
+    // Damit du siehst, dass der Cronjob überhaupt läuft
     await sendOneSignalPush(
-      "Test vom Server 🚀",
-      "Wenn du das liest, steht die Verbindung!",
-      new Date() // "Jetzt" senden
+      "System-Check 🛠️",
+      `Der Wecker lief um ${nowBerlin.toLocaleTimeString()}. ${plannedCount} Gebete geplant.`,
+      new Date() // Sofort
     );
 
-    return NextResponse.json({ success: true, message: `${count} Nachrichten geplant + 1 Test gesendet.` });
+    return NextResponse.json({ 
+      success: true, 
+      planned: plannedCount,
+      logs: logs 
+    });
 
   } catch (error: any) {
-    console.error("Cronjob Fehler:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("CRASH:", error);
+    return NextResponse.json({ error: error.message, logs }, { status: 500 });
   }
 }
 
-// --- HILFSFUNKTION (Verbessert für Sofort-Versand) ---
 async function sendOneSignalPush(title: string, message: string, sendAt: Date) {
-  
   const now = new Date();
-  // Prüfen: Ist der Termin in der Zukunft (mehr als 1 Minute)?
-  // Wenn ja -> Planen. Wenn nein -> Sofort senden.
+  // Wenn Zeit > 1 Minute in Zukunft -> Planen, sonst Sofort
   const isFuture = sendAt.getTime() - now.getTime() > 60000;
 
   const body: any = {
@@ -110,15 +96,11 @@ async function sendOneSignalPush(title: string, message: string, sendAt: Date) {
     url: "https://ride2salah.vercel.app"
   };
 
-  // Nur wenn es Zukunft ist, fügen wir "send_after" hinzu
   if (isFuture) {
     body.send_after = sendAt.toISOString();
-    console.log(`Plane Nachricht für: ${sendAt.toISOString()}`);
-  } else {
-    console.log("Sende Nachricht SOFORT.");
   }
 
-  const response = await fetch('https://onesignal.com/api/v1/notifications', {
+  await fetch('https://onesignal.com/api/v1/notifications', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -126,9 +108,4 @@ async function sendOneSignalPush(title: string, message: string, sendAt: Date) {
     },
     body: JSON.stringify(body)
   });
-  
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error("OneSignal Error:", errorData);
-  }
 }
