@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/schedule-notifications",
-      "schedule": "5 0 * * *"
+      "path": "/api/schedule-notifications?secret=Asad0260!",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
