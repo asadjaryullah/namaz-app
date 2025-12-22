@@ -150,25 +150,34 @@ export default function AdminPage() {
   };
 
   // ✅ --- PUSH NACHRICHT (NEU) ---
-  const handleSendPush = async () => {
-    if (!pushTitle || !pushMessage) return alert("Bitte Titel und Text angeben.");
-    setSendingPush(true);
-    try {
-      const res = await fetch('/api/send-push', {
-        method: 'POST',
-        body: JSON.stringify({ title: pushTitle, message: pushMessage }),
-      });
-      if (!res.ok) throw new Error("Request failed");
-      alert("Gesendet!");
-      setPushTitle("");
-      setPushMessage("");
-    } catch (e) {
-      alert("Fehler beim Senden.");
-    } finally {
-      setSendingPush(false);
-    }
-  };
+const handleSendPush = async () => {
+  if (!pushTitle || !pushMessage) return alert("Bitte Titel und Text angeben.");
+  setSendingPush(true);
 
+  try {
+    const secret = process.env.NEXT_PUBLIC_ADMIN_PUSH_SECRET;
+if (!secret) throw new Error("NEXT_PUBLIC_ADMIN_PUSH_SECRET fehlt (env)");
+
+const res = await fetch(
+  `/api/send-push?secret=${encodeURIComponent(secret)}`,
+  {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: pushTitle, message: pushMessage }),
+    });
+
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json?.error || "Request failed");
+
+    alert("Gesendet!");
+    setPushTitle("");
+    setPushMessage("");
+  } catch (e: any) {
+    alert("Fehler beim Senden: " + (e?.message || "unbekannt"));
+  } finally {
+    setSendingPush(false);
+  }
+};
   // --- EXPORT (robuster wie im 2. Code) ---
   const downloadCsv = async (tableName: string) => {
     const { data } = await supabase.from(tableName).select('*');

@@ -1,38 +1,70 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-const ONESIGNAL_APP_ID = "595fdd83-68b2-498a-8ca6-66fd1ae7be8e"; // Deine ID
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+const ONESIGNAL_APP_ID =
+  process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
+
+const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+const ADMIN_PUSH_SECRET = process.env.ADMIN_PUSH_SECRET;
+
+export async function POST(req: Request) {
   try {
-    const { title, message } = await request.json();
+    // ✅ Auth per Secret (Query)
+    const url = new URL(req.url);
+    const secret = url.searchParams.get("secret");
 
-    if (!title || !message) {
-      return NextResponse.json({ error: 'Titel und Nachricht fehlen' }, { status: 400 });
+    if (!ADMIN_PUSH_SECRET || secret !== ADMIN_PUSH_SECRET) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    // Nachricht an OneSignal senden (SOFORT)
+    if (!ONESIGNAL_APP_ID) {
+      return NextResponse.json({ error: "ONESIGNAL_APP_ID fehlt" }, { status: 500 });
+    }
+    if (!ONESIGNAL_REST_API_KEY) {
+      return NextResponse.json(
+        { error: "ONESIGNAL_REST_API_KEY fehlt (Vercel/.env.local)" },
+        { status: 500 }
+      );
+    }
+
+    // ✅ Body aus Request lesen
+    const { title, message } = await req.json();
+    if (!title || !message) {
+      return NextResponse.json({ error: "Titel und Nachricht fehlen" }, { status: 400 });
+    }
+
+    // ✅ OneSignal Payload
     const body = {
       app_id: ONESIGNAL_APP_ID,
-      headings: { en: title },
-      contents: { en: message },
-      included_segments: ["All"], // An alle
-      url: "https://ride2salah.vercel.app" // Klick öffnet App
+      headings: { de: title, en: title },
+      contents: { de: message, en: message },
+      included_segments: ["Subscribed Users"],
+      url: "https://ride2salah.vercel.app",
     };
 
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
+    const resp = await fetch("https://onesignal.com/api/v1/notifications", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+        "Content-Type": "application/json; charset=utf-8",
+        Accept: "application/json",
+        Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
     });
 
-    const data = await response.json();
-    return NextResponse.json({ success: true, data });
+    const text = await resp.text();
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!resp.ok) {
+      return NextResponse.json(
+        { error: "onesignal_failed", status: resp.status, detail: text.slice(0, 800) },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ success: true, detail: text.slice(0, 300) });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "server_error" }, { status: 500 });
   }
 }

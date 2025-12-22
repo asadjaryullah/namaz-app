@@ -17,7 +17,7 @@ const ZIKR_LIST = [
     target: 200,
     theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', bar: 'bg-rose-500' },
     arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
-    translation: "Heilig ist Allah ...",
+    translation: "Heilig ist Allah und jeder Verehrung würdig. Erhaben ist Allah, der Größte. O Allah, schütte Deine Gnade aus über Muhammadsaw und seinen Anhängern.",
     title: "Tasbih & Salawat"
   },
   {
@@ -25,7 +25,7 @@ const ZIKR_LIST = [
     target: 100,
     theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', bar: 'bg-sky-500' },
     arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
-    translation: "Ich ersuche Vergebung ...",
+    translation: "Ich ersuche Vergebung bei Allah, meinem Herrn, für all meine Sünden und wende mich zu Ihm in Reue.",
     title: "Istighfar"
   },
   {
@@ -33,7 +33,7 @@ const ZIKR_LIST = [
     target: 100,
     theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', bar: 'bg-amber-500' },
     arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
-    translation: "O mein Herr ...",
+    translation: "O mein Herr, alles ist Dein Diener. O mein Herr, beschütze mich und hilf mir und sei mir gnädig.",
     title: "Dua"
   }
 ];

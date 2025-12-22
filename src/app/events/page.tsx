@@ -88,7 +88,7 @@ export default function EventsPage() {
                 <div className="p-4">
                    <p className="text-sm text-slate-600 mb-3">{e.description || "Gemeinschaftliche Veranstaltung."}</p>
                    <div className="flex items-center gap-1 text-xs text-slate-400">
-                     <MapPin size={12} /> Bashir Moschee Bensheim
+                     <MapPin size={12} /> Bashier Moschee Bensheim
                    </div>
                 </div>
               </Card>
