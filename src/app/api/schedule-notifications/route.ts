@@ -3,23 +3,18 @@ import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const APP_ID = process.env.ONESIGNAL_APP_ID!;
+const APP_ID = process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
 const OS_KEY = process.env.ONESIGNAL_REST_API_KEY!;
 const SECRET = process.env.CRON_SECRET!;
 
 const TZ = "Europe/Berlin";
-const PLAN_WINDOW_HOURS = 6;
-
-// Zikr fix (alle 4h 08–20)
-const ZIKR_TIMES = ["08:00", "12:00", "16:00", "20:00"];
-const KHUTBA_TIMES = ["12:30"];
+const LOOKAHEAD_MIN = 5; // Cron läuft alle 5 Minuten → prüfen wir die nächsten 5 Minuten
 
 export async function GET(req: Request) {
   const logs: string[] = [];
@@ -29,178 +24,114 @@ export async function GET(req: Request) {
       return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
-    if (!APP_ID || !OS_KEY) {
-      return NextResponse.json({ success: false, error: "missing env (ONESIGNAL_APP_ID/ONESIGNAL_REST_API_KEY)" }, { status: 500 });
-    }
+    // "Berlin now" als String-basiert fürs Vergleichen (HH:MM)
+    const now = new Date();
+    const nowBerlinStr = now.toLocaleString("sv-SE", { timeZone: TZ }); // "YYYY-MM-DD HH:mm:ss"
+    const today = nowBerlinStr.slice(0, 10); // YYYY-MM-DD
+    const nowHHMM = nowBerlinStr.slice(11, 16); // HH:MM
+    logs.push(`🕒 Berlin: ${nowBerlinStr}`);
 
-    const nowBerlin = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
-    const windowEnd = new Date(nowBerlin.getTime() + PLAN_WINDOW_HOURS * 60 * 60 * 1000);
+    let sent = 0;
 
-    logs.push(`🕒 now: ${nowBerlin.toLocaleString("de-DE")}`);
-    logs.push(`🪟 windowEnd: ${windowEnd.toLocaleString("de-DE")}`);
+    // 1) NAMAZ: 25 min vor Gebetszeit
+    sent += await handlePrayerPushes(today, nowHHMM, logs);
 
-    let planned = 0;
+    // 2) ZIKR: alle 4 Stunden 08,12,16,20 (nur tagsüber)
+    sent += await handleFixed(today, nowHHMM, ["08:00", "12:00", "16:00", "20:00"], "zikr", logs);
 
-    planned += await planPrayerPushes(nowBerlin, windowEnd, logs);
-    planned += await planFixedTimes("zikr", ZIKR_TIMES, nowBerlin, windowEnd, logs);
-    planned += await planFixedTimes("khutba", KHUTBA_TIMES, nowBerlin, windowEnd, logs);
+    // 3) KHUTBA: 12:30
+    sent += await handleFixed(today, nowHHMM, ["12:30"], "khutba", logs);
 
-    return NextResponse.json({ success: true, planned, logs });
+    return NextResponse.json({ success: true, sent, logs });
   } catch (e: any) {
     logs.push("💥 " + (e?.message || String(e)));
     return NextResponse.json({ success: false, logs }, { status: 500 });
   }
 }
 
-async function planPrayerPushes(nowBerlin: Date, windowEnd: Date, logs: string[]) {
-  logs.push("🔎 check prayer: 25 min before");
-
+async function handlePrayerPushes(today: string, nowHHMM: string, logs: string[]) {
   const { data: prayers, error } = await supabase
     .from("prayer_times")
-    .select("name,time,sort_order")
+    .select("name,time")
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  if (!prayers?.length) {
-    logs.push("⚠️ no prayer_times found");
-    return 0;
-  }
+  if (!prayers?.length) return 0;
 
-  let planned = 0;
+  let sent = 0;
 
   for (const p of prayers) {
     if (!p.time) continue;
 
-    const sendAt = berlinTodayAt(p.time, nowBerlin);
-    sendAt.setMinutes(sendAt.getMinutes() - 25);
-    sendAt.setSeconds(0); sendAt.setMilliseconds(0);
+    const trigger = minusMinutesHHMM(p.time, 25); // HH:MM
+    if (!isWithinNextMinutes(nowHHMM, trigger, LOOKAHEAD_MIN)) continue;
 
-    // wenn heute vorbei -> nicht planen (Cron läuft eh regelmäßig)
-    if (sendAt <= nowBerlin || sendAt > windowEnd) continue;
+    const key = `prayer:${today}:${p.name}:${trigger}`;
+    const ok = await sendOnce(key, async () => {
+      return sendOneSignal(
+        `Bald ist ${p.name} 🕌`,
+        `In 25 Minuten ist Gebet (${p.time}).`,
+        logs
+      );
+    }, logs);
 
-    const key = `prayer_${p.name}_${sendAt.toISOString().slice(0, 16)}`;
-
-    const ok = await scheduleOnce(
-      key,
-      sendAt,
-      "prayer",
-      () => sendOneSignal(`Bald ist ${p.name} 🕌`, `In 25 Minuten ist Gebet (${p.time}).`, sendAt, logs),
-      logs
-    );
-
-    if (ok) planned++;
+    if (ok) sent++;
   }
 
-  logs.push(`✅ prayer planned: ${planned}`);
-  return planned;
+  return sent;
 }
 
-async function planFixedTimes(
-  type: "zikr" | "khutba",
+async function handleFixed(
+  today: string,
+  nowHHMM: string,
   times: string[],
-  nowBerlin: Date,
-  windowEnd: Date,
+  type: "zikr" | "khutba",
   logs: string[]
 ) {
-  logs.push(`🔎 check ${type}: ${times.join(", ")} | window ${nowBerlin.toLocaleTimeString("de-DE")} - ${windowEnd.toLocaleTimeString("de-DE")}`);
-
-  let planned = 0;
+  let sent = 0;
 
   for (const t of times) {
-    const sendAt = berlinTodayAt(t, nowBerlin);
-    sendAt.setSeconds(0); sendAt.setMilliseconds(0);
+    if (!isWithinNextMinutes(nowHHMM, t, LOOKAHEAD_MIN)) continue;
 
-    // wenn heute vorbei -> morgen
-    if (sendAt <= nowBerlin) sendAt.setDate(sendAt.getDate() + 1);
+    const key = `${type}:${today}:${t}`;
+    const ok = await sendOnce(key, async () => {
+      if (type === "zikr") {
+        return sendOneSignal("Zikr Erinnerung 📿", "Denke an Allah – nimm dir 2 Minuten für Zikr.", logs);
+      }
+      return sendOneSignal("Khutba Erinnerung 🕌", "Heute 12:30 Khutba – bitte rechtzeitig vorbereiten.", logs);
+    }, logs);
 
-    if (sendAt > windowEnd) {
-      logs.push(`⏭️ ${type} ${t} -> ${sendAt.toLocaleString("de-DE")} (out of window)`);
-      continue;
-    }
-
-    const key = `${type}_${sendAt.toISOString().slice(0, 16)}`;
-
-    const ok = await scheduleOnce(
-      key,
-      sendAt,
-      type,
-      () => {
-        if (type === "zikr") {
-          return sendOneSignal("Zikr Erinnerung 📿", "Denke an Allah – nimm dir 2 Minuten für Zikr.", sendAt, logs);
-        }
-        return sendOneSignal("Khutba Erinnerung 🕌", "Heute 12:30 Khutba – bitte rechtzeitig vorbereiten.", sendAt, logs);
-      },
-      logs
-    );
-
-    if (ok) planned++;
+    if (ok) sent++;
   }
 
-  logs.push(`✅ ${type} planned: ${planned}`);
-  return planned;
+  return sent;
 }
 
-function berlinTodayAt(hhmm: string, baseBerlin: Date) {
-  const [h, m] = hhmm.split(":").map(Number);
-  const d = new Date(baseBerlin);
-  d.setHours(h); d.setMinutes(m);
-  d.setSeconds(0); d.setMilliseconds(0);
-  return d;
-}
-
-async function scheduleOnce(
-  job_key: string,
-  send_at: Date,
-  type: string,
-  work: () => Promise<boolean>,
-  logs: string[]
-) {
-  const { data: existing } = await supabase
-    .from("scheduled_pushes")
-    .select("job_key")
-    .eq("job_key", job_key)
-    .maybeSingle();
-
+async function sendOnce(key: string, work: () => Promise<boolean>, logs: string[]) {
+  const { data: existing } = await supabase.from("push_sent").select("key").eq("key", key).maybeSingle();
   if (existing) {
-    logs.push(`↩️ skip (exists): ${job_key}`);
-    return false;
-  }
-
-  const { error: insErr } = await supabase
-    .from("scheduled_pushes")
-    .insert({ job_key, send_at: send_at.toISOString(), type });
-
-  if (insErr) {
-    logs.push(`⚠️ insert failed: ${job_key} | ${insErr.message}`);
+    logs.push(`↩️ skip already sent: ${key}`);
     return false;
   }
 
   const ok = await work();
+  if (!ok) return false;
 
-  // ✅ rollback, wenn OneSignal nicht klappt
-  if (!ok) {
-    await supabase.from("scheduled_pushes").delete().eq("job_key", job_key);
-    logs.push(`🧹 rollback: ${job_key}`);
-    return false;
-  }
+  const { error } = await supabase.from("push_sent").insert({ key });
+  if (error) logs.push(`⚠️ push_sent insert failed: ${error.message}`);
 
-  logs.push(`✅ scheduled: ${job_key}`);
+  logs.push(`✅ sent: ${key}`);
   return true;
 }
 
-async function sendOneSignal(title: string, message: string, sendAt: Date, logs: string[]) {
+async function sendOneSignal(title: string, message: string, logs: string[]) {
   const body: any = {
     app_id: APP_ID,
-    headings: { en: title },
-    contents: { en: message },
+    headings: { de: title, en: title },
+    contents: { de: message, en: message },
     included_segments: ["Subscribed Users"],
-    url: "https://ride2salah.vercel.app"
+    url: "https://ride2salah.vercel.app",
   };
-
-  // OneSignal scheduling
-  if (sendAt.getTime() - Date.now() > 60_000) {
-    body.send_after = sendAt.toUTCString();
-  }
 
   const resp = await fetch("https://onesignal.com/api/v1/notifications", {
     method: "POST",
@@ -213,6 +144,29 @@ async function sendOneSignal(title: string, message: string, sendAt: Date, logs:
   });
 
   const txt = await resp.text();
-  logs.push(`📨 OneSignal ${resp.status} ${resp.ok ? "OK" : "FAIL"} | ${txt.slice(0, 180)}`);
+  logs.push(`📨 OneSignal ${resp.status} ${resp.ok ? "OK" : "FAIL"} | ${txt.slice(0, 200)}`);
   return resp.ok;
+}
+
+// -------- helpers --------
+function minusMinutesHHMM(hhmm: string, minutes: number) {
+  const [h, m] = hhmm.split(":").map(Number);
+  let total = h * 60 + m - minutes;
+  while (total < 0) total += 24 * 60;
+  const hh = String(Math.floor(total / 60) % 24).padStart(2, "0");
+  const mm = String(total % 60).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function isWithinNextMinutes(nowHHMM: string, targetHHMM: string, windowMin: number) {
+  const toMin = (s: string) => {
+    const [h, m] = s.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const now = toMin(nowHHMM);
+  const target = toMin(targetHHMM);
+
+  // gleiche Tageslogik + Mitternacht wrap
+  const diff = (target - now + 24 * 60) % (24 * 60);
+  return diff >= 0 && diff < windowMin;
 }

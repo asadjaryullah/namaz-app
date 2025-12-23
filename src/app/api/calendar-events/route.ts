@@ -19,7 +19,7 @@ export async function GET() {
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//Ride2Salah//DE',
-      'NAME:Bashir Moschee Events',
+      'NAME:Bashier Moschee Events',
       'X-WR-CALNAME:Moschee Veranstaltungen',
       'REFRESH-INTERVAL;VALUE=DURATION:PT4H',
       'CALSCALE:GREGORIAN',
