@@ -10,8 +10,9 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const ADMIN_PUSH_SECRET = process.env.ADMIN_PUSH_SECRET;
 
 export async function POST(req: Request) {
+  const logs: string[] = [];
+
   try {
-    // ✅ Auth per Secret (Query)
     const url = new URL(req.url);
     const secret = url.searchParams.get("secret");
 
@@ -19,9 +20,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    if (!ONESIGNAL_APP_ID) {
-      return NextResponse.json({ error: "ONESIGNAL_APP_ID fehlt" }, { status: 500 });
-    }
     if (!ONESIGNAL_REST_API_KEY) {
       return NextResponse.json(
         { error: "ONESIGNAL_REST_API_KEY fehlt (Vercel/.env.local)" },
@@ -29,20 +27,21 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Body aus Request lesen
     const { title, message } = await req.json();
     if (!title || !message) {
       return NextResponse.json({ error: "Titel und Nachricht fehlen" }, { status: 400 });
     }
 
-    // ✅ OneSignal Payload
-    const body = {
+    // ✅ Segment, das bei dir nachweislich funktioniert
+    const payload = {
       app_id: ONESIGNAL_APP_ID,
       headings: { de: title, en: title },
       contents: { de: message, en: message },
-      included_segments: ["Subscribed Users"],
+      included_segments: ["Total Subscriptions"],
       url: "https://ride2salah.vercel.app",
     };
+
+    logs.push("sending to OneSignal…");
 
     const resp = await fetch("https://onesignal.com/api/v1/notifications", {
       method: "POST",
@@ -51,20 +50,40 @@ export async function POST(req: Request) {
         Accept: "application/json",
         Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
-    const text = await resp.text();
+    const raw = await resp.text();
+    logs.push(`OneSignal status=${resp.status}`);
+
+    // ✅ JSON versuchen zu parsen (OneSignal liefert oft JSON)
+    let parsed: any = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      // ignore
+    }
 
     if (!resp.ok) {
       return NextResponse.json(
-        { error: "onesignal_failed", status: resp.status, detail: text.slice(0, 800) },
+        { error: "onesignal_failed", status: resp.status, detail: raw.slice(0, 800), logs },
         { status: 502 }
       );
     }
 
-    return NextResponse.json({ success: true, detail: text.slice(0, 300) });
+    // ✅ Auch wenn 200: prüfen, ob OneSignal errors meldet (z.B. keine Subscriber)
+    if (parsed?.errors?.length) {
+      return NextResponse.json(
+        { success: false, warning: "onesignal_returned_errors", errors: parsed.errors, logs },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, id: parsed?.id ?? null, detail: raw.slice(0, 500), logs },
+      { status: 200 }
+    );
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "server_error" }, { status: 500 });
+    return NextResponse.json({ error: e?.message || "server_error", logs }, { status: 500 });
   }
 }
