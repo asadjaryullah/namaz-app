@@ -131,7 +131,7 @@ function PassengerDashboardContent() {
         </div>
         <h1 className="text-2xl font-bold text-green-900">Alhamdulillah!</h1>
         <p className="text-green-800 mt-2 mb-8">
-          Ihr seid an der Bashir Moschee angekommen.
+          Ihr seid an der Bashier Moschee angekommen.
         </p>
         <Button 
           className="w-full max-w-xs bg-green-600 hover:bg-green-700 text-white h-14 text-lg shadow-lg rounded-xl"

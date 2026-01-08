@@ -38,6 +38,117 @@ const ZIKR_LIST = [
   }
 ];
 
+// ---------------- ORG / COLOR SYSTEM ----------------
+type OrgKey = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
+
+const ORG_META: Record<OrgKey, {
+  label: string;
+
+  // kalender tag (bubble)
+  dayBg: string;
+  dayText: string;
+  dayBorder: string;
+
+  // punkt unter tag
+  dot: string;
+
+  // liste box links (monat/tag)
+  boxBg: string;
+  boxMonthText: string;
+
+  // badge rechts
+  badgeBg: string;
+  badgeText: string;
+}> = {
+  ansar: {
+    label: 'Ansar',
+    dayBg: 'bg-amber-100',
+    dayText: 'text-amber-800',
+    dayBorder: 'border-amber-200',
+    dot: 'bg-amber-700',
+    boxBg: 'bg-amber-50',
+    boxMonthText: 'text-amber-700',
+    badgeBg: 'bg-amber-100',
+    badgeText: 'text-amber-900',
+  },
+  khuddam: {
+    label: 'Khuddam',
+    dayBg: 'bg-blue-100',
+    dayText: 'text-blue-800',
+    dayBorder: 'border-blue-200',
+    dot: 'bg-blue-600',
+    boxBg: 'bg-blue-50',
+    boxMonthText: 'text-blue-700',
+    badgeBg: 'bg-blue-100',
+    badgeText: 'text-blue-900',
+  },
+  atfal: {
+    label: 'Atfal',
+    dayBg: 'bg-green-100',
+    dayText: 'text-green-800',
+    dayBorder: 'border-green-200',
+    dot: 'bg-green-600',
+    boxBg: 'bg-green-50',
+    boxMonthText: 'text-green-700',
+    badgeBg: 'bg-green-100',
+    badgeText: 'text-green-900',
+  },
+  lajna: {
+    label: 'Lajna',
+    dayBg: 'bg-red-100',
+    dayText: 'text-red-800',
+    dayBorder: 'border-red-200',
+    dot: 'bg-red-600',
+    boxBg: 'bg-red-50',
+    boxMonthText: 'text-red-700',
+    badgeBg: 'bg-red-100',
+    badgeText: 'text-red-900',
+  },
+  nasirat: {
+    label: 'Nasirat',
+    dayBg: 'bg-pink-100',
+    dayText: 'text-pink-800',
+    dayBorder: 'border-pink-200',
+    dot: 'bg-pink-600',
+    boxBg: 'bg-pink-50',
+    boxMonthText: 'text-pink-700',
+    badgeBg: 'bg-pink-100',
+    badgeText: 'text-pink-900',
+  },
+  jamaat: {
+    label: 'Jamaat',
+    dayBg: 'bg-orange-100',
+    dayText: 'text-orange-800',
+    dayBorder: 'border-orange-200',
+    dot: 'bg-orange-600',
+    boxBg: 'bg-orange-50',
+    boxMonthText: 'text-orange-700',
+    badgeBg: 'bg-orange-100',
+    badgeText: 'text-orange-900',
+  },
+};
+
+function normalizeOrg(v: any): OrgKey {
+  const s = String(v ?? 'jamaat').toLowerCase().trim();
+  if (s === 'ansar') return 'ansar';
+  if (s === 'khuddam') return 'khuddam';
+  if (s === 'atfal') return 'atfal';
+  if (s === 'lajna') return 'lajna';
+  if (s === 'nasirat') return 'nasirat';
+  return 'jamaat';
+}
+
+// Wenn mehrere Events am Tag → wir zeigen mehrere dots (bis 3)
+function getTopOrgDots(dayEvents: any[]) {
+  const uniqueOrgs: OrgKey[] = [];
+  for (const e of dayEvents) {
+    const o = normalizeOrg(e.org);
+    if (!uniqueOrgs.includes(o)) uniqueOrgs.push(o);
+    if (uniqueOrgs.length >= 3) break;
+  }
+  return uniqueOrgs;
+}
+
 function HistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -62,7 +173,6 @@ function HistoryContent() {
 
   const parseEventEnd = (e: any) => new Date(e.event_end_date || e.event_date);
 
-  // Event gilt für Tag, wenn Tag zwischen Start und Ende liegt (date-only)
   const eventCoversDay = (e: any, day: Date) => {
     const s = startOfDay(new Date(e.event_date)).getTime();
     const en = startOfDay(parseEventEnd(e)).getTime();
@@ -70,7 +180,6 @@ function HistoryContent() {
     return d >= s && d <= en;
   };
 
-  // Für Overlap am Tag: reale Zeit-Intervalle am Tag schneiden
   const getDayInterval = (e: any, day: Date) => {
     const s = new Date(e.event_date).getTime();
     const en = parseEventEnd(e).getTime();
@@ -106,23 +215,20 @@ function HistoryContent() {
     return `${startFmt} - ${endFmt} Uhr`;
   };
 
-  // ✅ wichtig: Uhrzeit nur bei eintägig, sonst Datumsspanne
   const formatEventMeta = (e: any) => {
     const s = new Date(e.event_date);
     const en = parseEventEnd(e);
     if (isSameDay(s, en)) return formatTimeRange(e.event_date, e.event_end_date);
 
-    // mehrtägig: Datumsspanne
     const sFmt = s.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
     const eFmt = en.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
     return `${sFmt} - ${eFmt}`;
   };
 
-  // Für die linke "DEZ 22" Box: bei mehrtägig "22–23"
   const formatDayBox = (e: any) => {
     const s = new Date(e.event_date);
     const en = parseEventEnd(e);
-    const monthLabel = s.toLocaleDateString('de-DE', { month: 'short' }).toUpperCase(); // DEZ
+    const monthLabel = s.toLocaleDateString('de-DE', { month: 'short' }).toUpperCase();
     if (isSameDay(s, en)) return { monthLabel, dayLabel: String(s.getDate()) };
     return { monthLabel, dayLabel: `${s.getDate()}–${en.getDate()}` };
   };
@@ -135,7 +241,7 @@ function HistoryContent() {
 
       const today = new Date().toLocaleDateString('en-CA');
 
-      // Fahrten (wie gehabt)
+      // Fahrten
       const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
 
@@ -161,10 +267,10 @@ function HistoryContent() {
         if (newLog) { setTodayLogId(newLog.id); setZikrData(newLog); }
       }
 
-      // Events (Future) – wichtig: end_date + location etc. explizit
+      // ✅ Events (Future) – org mitziehen!
       const { data: eventsData } = await supabase
         .from('mosque_events')
-        .select('id,title,event_date,event_end_date,location,description')
+        .select('id,title,event_date,event_end_date,location,description,org')
         .gte('event_date', new Date().toISOString())
         .order('event_date', { ascending: true });
 
@@ -242,7 +348,6 @@ function HistoryContent() {
     return { background: `conic-gradient(${c} ${p}%, #f1f5f9 0)` };
   };
 
-  // ✅ Events für einen Tag (inkl. mehrtägige)
   const getEventsForDay = (dayNum: number) => {
     const day = new Date(year, month, dayNum);
     return events
@@ -250,7 +355,6 @@ function HistoryContent() {
       .sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime());
   };
 
-  // Liste: Events, die in diesem Monat "irgendwie" vorkommen (start oder end im Monat oder spannt drüber)
   const monthEvents = events.filter(e => {
     const s = new Date(e.event_date);
     const en = parseEventEnd(e);
@@ -337,23 +441,50 @@ function HistoryContent() {
                     const hasEvent = dayEvents.length > 0;
                     const overlap = hasOverlap(dayEvents, day);
 
+                    // ✅ wenn es events gibt: nimm org des ersten events als "main" farbe
+                    const mainOrg: OrgKey = hasEvent ? normalizeOrg(dayEvents[0].org) : 'jamaat';
+                    const meta = ORG_META[mainOrg];
+
+                    // ✅ mehrere orgs -> mehrere dots
+                    const dots = getTopOrgDots(dayEvents);
+
                     return (
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border
                             ${!hasEvent
-                              ? 'bg-slate-50 text-slate-400'
+                              ? 'bg-slate-50 text-slate-400 border-slate-100'
                               : overlap
-                                ? 'bg-red-100 text-red-700 font-bold border-2 border-red-200'
-                                : 'bg-orange-100 text-orange-700 font-bold border-2 border-orange-200'
+                                ? 'bg-slate-900 text-white border-slate-800 font-bold'
+                                : `${meta.dayBg} ${meta.dayText} ${meta.dayBorder} font-bold`
                             }`}
                         >
                           {dayNum}
                         </div>
-                        {hasEvent && <div className={`w-1.5 h-1.5 rounded-full absolute -bottom-1 ${overlap ? 'bg-red-500' : 'bg-orange-500'}`} />}
+
+                        {hasEvent && (
+                          <div className="absolute -bottom-1 flex items-center gap-1">
+                            {dots.map((o) => (
+                              <div key={o} className={`w-1.5 h-1.5 rounded-full ${ORG_META[o].dot}`} />
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-2 text-[11px]">
+                  {(['ansar','khuddam','atfal','lajna','nasirat','jamaat'] as OrgKey[]).map((k) => (
+                    <div key={k} className="flex items-center gap-2 px-2 py-1 rounded-full bg-slate-50 border border-slate-200">
+                      <span className={`w-2 h-2 rounded-full ${ORG_META[k].dot}`} />
+                      <span className="text-slate-600 font-bold">{ORG_META[k].label}</span>
+                    </div>
+                  ))}
+                  <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-slate-50 border border-slate-200">
+                    <span className="w-2 h-2 rounded-full bg-slate-900" />
+                    <span className="text-slate-600 font-bold">Overlap</span>
+                  </div>
                 </div>
               </Card>
 
@@ -365,18 +496,25 @@ function HistoryContent() {
                   <p className="text-sm text-slate-400 italic">Keine Termine in diesem Monat.</p>
                 ) : (
                   monthEvents.map(e => {
+                    const org = normalizeOrg(e.org);
+                    const meta = ORG_META[org];
                     const box = formatDayBox(e);
+
                     return (
                       <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4">
-                        <div className="bg-orange-50 p-3 rounded-xl text-center min-w-[4rem]">
-                          <span className="block text-xs font-bold text-orange-600 uppercase">{box.monthLabel}</span>
+                        <div className={`${meta.boxBg} p-3 rounded-xl text-center min-w-[4rem]`}>
+                          <span className={`block text-xs font-bold uppercase ${meta.boxMonthText}`}>{box.monthLabel}</span>
                           <span className="block text-2xl font-black text-slate-800">{box.dayLabel}</span>
                         </div>
 
                         <div className="flex-1">
-                          <h3 className="font-bold text-slate-900">{e.title}</h3>
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-bold text-slate-900">{e.title}</h3>
+                            <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-black uppercase ${meta.badgeBg} ${meta.badgeText}`}>
+                              {meta.label}
+                            </span>
+                          </div>
 
-                          {/* ✅ Eintägig: Uhrzeit, Mehrtägig: Datumsspanne */}
                           <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">
                             {formatEventMeta(e)}
                           </p>

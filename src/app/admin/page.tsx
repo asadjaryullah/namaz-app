@@ -23,6 +23,17 @@ import {
 // 👇 Nur wer mit DIESER Email eingeloggt ist, darf die Seite sehen.
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
 
+type Org = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
+
+const ORG_LABEL: Record<Org, string> = {
+  jamaat: 'Jamaat',
+  ansar: 'Ansar',
+  khuddam: 'Khuddam',
+  atfal: 'Atfal',
+  lajna: 'Lajna',
+  nasirat: 'Nasirat',
+};
+
 export default function AdminPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -34,23 +45,23 @@ export default function AdminPage() {
 
   // Inputs für neue Events
   const [newEventTitle, setNewEventTitle] = useState("");
-  const [newEventLocation, setNewEventLocation] = useState(""); // ✅ NEU
+  const [newEventLocation, setNewEventLocation] = useState("");
   const [newEventStart, setNewEventStart] = useState("");
   const [newEventEnd, setNewEventEnd] = useState("");
+  const [newEventOrg, setNewEventOrg] = useState<Org>('jamaat');
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // ✅ Push states (NEU)
+  // Push states
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
 
   useEffect(() => {
-    const checkAdminAndLoadData = async () => {
+    const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Sicherheits-Check
       if (!user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
         alert("Zugriff verweigert! Du bist nicht als Admin erkannt.");
         router.push('/');
@@ -59,28 +70,33 @@ export default function AdminPage() {
 
       setIsAuthorized(true);
 
-      // 1. Gebetszeiten laden
+      // Gebetszeiten
       const { data: prayersData } = await supabase
         .from('prayer_times')
         .select('*')
         .order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
-      // 2. Nicht freigegebene User laden
+      // Pending Users
       await fetchPendingUsers();
 
-      // 3. Events laden
-      const { data: eventsData } = await supabase
-        .from('mosque_events')
-        .select('*')
-        .order('event_date', { ascending: true });
-      if (eventsData) setEvents(eventsData);
+      // Events
+      await fetchEvents();
 
       setLoading(false);
     };
 
-    checkAdminAndLoadData();
-  }, [router]);
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchEvents = async () => {
+    const { data } = await supabase
+      .from('mosque_events')
+      .select('*')
+      .order('event_date', { ascending: true });
+    if (data) setEvents(data);
+  };
 
   // --- USER FREIGABE ---
   const fetchPendingUsers = async () => {
@@ -105,29 +121,52 @@ export default function AdminPage() {
     fetchPendingUsers();
   };
 
-  // --- EVENTS (MIT END-DATUM LOGIK) ---
+  // --- EVENTS ---
   const handleAddEvent = async () => {
-    if (!newEventTitle || !newEventStart) return alert("Bitte Titel und Startdatum angeben");
-
-    // Wenn kein Ende angegeben, nehmen wir Start + 2 Stunden
-    let end = newEventEnd;
-    if (!end) {
-      const d = new Date(newEventStart);
-      d.setHours(d.getHours() + 2);
-      end = d.toISOString();
-    } else {
-      end = new Date(newEventEnd).toISOString();
+    if (!newEventTitle || !newEventStart) {
+      alert("Bitte Titel und Startdatum angeben");
+      return;
     }
 
-    const { error } = await supabase.from('mosque_events').insert({
-      title: newEventTitle,
-      location: newEventLocation || "Bashir Moschee", // ✅ NEU (Default)
-      event_date: new Date(newEventStart).toISOString(),
-      event_end_date: end
-    });
+    setSaving(true);
+    try {
+      // Wenn kein Ende angegeben, nehmen wir Start + 2 Stunden
+      let endIso: string;
+      if (!newEventEnd) {
+        const d = new Date(newEventStart);
+        d.setHours(d.getHours() + 2);
+        endIso = d.toISOString();
+      } else {
+        endIso = new Date(newEventEnd).toISOString();
+      }
 
-    if (error) alert("Fehler: " + error.message);
-    else window.location.reload();
+      const startIso = new Date(newEventStart).toISOString();
+
+      const { error } = await supabase.from('mosque_events').insert({
+        title: newEventTitle.trim(),
+        location: (newEventLocation || "Bashir Moschee").trim(),
+        org: newEventOrg,
+        event_date: startIso,
+        event_end_date: endIso,
+      });
+
+      if (error) {
+        alert("Fehler: " + error.message);
+        return;
+      }
+
+      // reset
+      setNewEventTitle("");
+      setNewEventLocation("");
+      setNewEventStart("");
+      setNewEventEnd("");
+      setNewEventOrg("jamaat");
+
+      await fetchEvents();
+      alert("Termin hinzugefügt ✅");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -146,39 +185,38 @@ export default function AdminPage() {
     const { error } = await supabase.from('prayer_times').upsert(prayers);
     setSaving(false);
     if (error) alert("Fehler: " + error.message);
-    else alert("Zeiten gespeichert!");
+    else alert("Zeiten gespeichert ✅");
   };
 
-  // ✅ --- PUSH NACHRICHT (NEU) ---
-const handleSendPush = async () => {
-  if (!pushTitle || !pushMessage) return alert("Bitte Titel und Text angeben.");
-  setSendingPush(true);
+  // --- PUSH ---
+  const handleSendPush = async () => {
+    if (!pushTitle || !pushMessage) return alert("Bitte Titel und Text angeben.");
 
-  try {
-    const secret = process.env.NEXT_PUBLIC_ADMIN_PUSH_SECRET;
-if (!secret) throw new Error("NEXT_PUBLIC_ADMIN_PUSH_SECRET fehlt (env)");
+    setSendingPush(true);
+    try {
+      const secret = process.env.NEXT_PUBLIC_ADMIN_PUSH_SECRET;
+      if (!secret) throw new Error("NEXT_PUBLIC_ADMIN_PUSH_SECRET fehlt (env)");
 
-const res = await fetch(
-  `/api/send-push?secret=${encodeURIComponent(secret)}`,
-  {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: pushTitle, message: pushMessage }),
-    });
+      const res = await fetch(`/api/send-push?secret=${encodeURIComponent(secret)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: pushTitle, message: pushMessage }),
+      });
 
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json?.error || "Request failed");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Request failed");
 
-    alert("Gesendet!");
-    setPushTitle("");
-    setPushMessage("");
-  } catch (e: any) {
-    alert("Fehler beim Senden: " + (e?.message || "unbekannt"));
-  } finally {
-    setSendingPush(false);
-  }
-};
-  // --- EXPORT (robuster wie im 2. Code) ---
+      alert("Gesendet ✅");
+      setPushTitle("");
+      setPushMessage("");
+    } catch (e: any) {
+      alert("Fehler beim Senden: " + (e?.message || "unbekannt"));
+    } finally {
+      setSendingPush(false);
+    }
+  };
+
+  // --- EXPORT CSV ---
   const downloadCsv = async (tableName: string) => {
     const { data } = await supabase.from(tableName).select('*');
     if (!data || data.length === 0) { alert("Keine Daten."); return; }
@@ -188,7 +226,7 @@ const res = await fetch(
 
     for (const row of data) {
       const values = headers.map(header =>
-        `"${('' + (row[header] || '')).replace(/"/g, '\\"')}"`
+        `"${('' + (row as any)[header] || '').replace(/"/g, '\\"')}"`
       );
       csvRows.push(values.join(','));
     }
@@ -259,7 +297,7 @@ const res = await fetch(
         </CardContent>
       </Card>
 
-      {/* 2. VERANSTALTUNGEN (MIT START & ENDE) */}
+      {/* 2. VERANSTALTUNGEN */}
       <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-orange-500">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -267,17 +305,19 @@ const res = await fetch(
             <CardTitle>Veranstaltungen</CardTitle>
           </div>
         </CardHeader>
+
         <CardContent className="space-y-4">
+          {/* NEW EVENT FORM */}
           <div className="flex flex-col gap-2">
             <label className="text-xs font-bold text-slate-500">Neuer Termin:</label>
 
             <Input
-              placeholder="Titel (z.B. Jalsa Salana)"
+              placeholder="Titel (z.B. Ijtema / Jalsa / Tarbiyyat)"
               value={newEventTitle}
               onChange={e => setNewEventTitle(e.target.value)}
             />
 
-            {/* ✅ NEU: Location */}
+            {/* Location */}
             <div className="relative">
               <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
@@ -288,43 +328,82 @@ const res = await fetch(
               />
             </div>
 
+            {/* Org Dropdown */}
+            <label className="text-[10px] text-slate-500 uppercase font-bold">Unterorganisation</label>
+            <select
+              value={newEventOrg}
+              onChange={(e) => setNewEventOrg(e.target.value as Org)}
+              className="w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            >
+              <option value="jamaat">Jamaat</option>
+              <option value="ansar">Ansar</option>
+              <option value="khuddam">Khuddam</option>
+              <option value="atfal">Atfal</option>
+              <option value="lajna">Lajna</option>
+              <option value="nasirat">Nasirat</option>
+            </select>
+
+            {/* Start / End */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[10px] text-slate-500 uppercase font-bold">Start</label>
-                <Input type="datetime-local" value={newEventStart} onChange={e => setNewEventStart(e.target.value)} />
+                <Input
+                  type="datetime-local"
+                  value={newEventStart}
+                  onChange={e => setNewEventStart(e.target.value)}
+                />
               </div>
               <div>
                 <label className="text-[10px] text-slate-500 uppercase font-bold">Ende (Optional)</label>
-                <Input type="datetime-local" value={newEventEnd} onChange={e => setNewEventEnd(e.target.value)} />
+                <Input
+                  type="datetime-local"
+                  value={newEventEnd}
+                  onChange={e => setNewEventEnd(e.target.value)}
+                />
               </div>
             </div>
 
-            <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddEvent}>
+            <Button
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={handleAddEvent}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
               Hinzufügen
             </Button>
           </div>
 
+          {/* LIST */}
           <div className="pt-4 border-t space-y-2">
             <label className="text-xs font-bold text-slate-500 mb-2 block">Geplante Termine:</label>
+
             {events.length === 0 ? (
               <p className="text-sm text-slate-400">Keine Termine.</p>
             ) : events.map(e => (
-              <div key={e.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm">
+              <div key={e.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm border">
                 <div>
                   <p className="font-bold">{e.title}</p>
 
-                  {/* ✅ Location anzeigen (falls vorhanden) */}
+                  {/* Org */}
+                  {e.org && (
+                    <p className="text-[10px] font-bold uppercase text-slate-500 mt-0.5">
+                      {ORG_LABEL[(e.org as Org) ?? 'jamaat']}
+                    </p>
+                  )}
+
+                  {/* Location */}
                   {e.location && (
-                    <p className="text-xs text-slate-500 flex items-center gap-1">
+                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
                       <MapPin className="h-3 w-3" /> {e.location}
                     </p>
                   )}
 
-                  <p className="text-xs text-slate-500">
-                    {new Date(e.event_date).toLocaleDateString('de-DE')}
-                    {e.event_end_date && ` - ${new Date(e.event_end_date).toLocaleDateString('de-DE')}`}
+                  <p className="text-xs text-slate-500 mt-1">
+                    {new Date(e.event_date).toLocaleString('de-DE')}
+                    {e.event_end_date ? ` – ${new Date(e.event_end_date).toLocaleString('de-DE')}` : ''}
                   </p>
                 </div>
+
                 <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600">
                   <Trash2 size={16} />
                 </button>
@@ -334,7 +413,7 @@ const res = await fetch(
         </CardContent>
       </Card>
 
-      {/* ✅ 2b. PUSH NACHRICHT (NEU) */}
+      {/* 2b. PUSH */}
       <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white">
         <CardHeader>
           <div className="flex items-center gap-2 text-slate-900">
@@ -345,6 +424,7 @@ const res = await fetch(
         <CardContent className="space-y-3">
           <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)} />
           <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)} />
+
           <Button
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             onClick={handleSendPush}
@@ -382,7 +462,7 @@ const res = await fetch(
         </CardContent>
       </Card>
 
-      {/* 4. DATEN EXPORT */}
+      {/* 4. EXPORT */}
       <Card className="w-full max-w-md shadow-sm border-0 bg-slate-50">
         <CardHeader><CardTitle className="text-base text-slate-500">Daten Export (CSV)</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3">

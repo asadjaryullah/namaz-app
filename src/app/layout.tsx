@@ -7,7 +7,6 @@ import { Toaster } from "sonner";
 
 // Components
 import ProfileBar from "@/components/ProfileBar";
-import NotificationManager from "@/components/NotificationManager";
 import MosqueDetector from "@/components/MosqueDetector";
 import InstallPrompt from "@/components/InstallPrompt";
 import OneSignalInit from "@/components/OneSignalInit";
@@ -53,7 +52,6 @@ export default function RootLayout({
           {/* Background services */}
           <OneSignalInit />
           <InstallPrompt />
-          <NotificationManager />
           <MosqueDetector />
 
           {/* Navigation */}

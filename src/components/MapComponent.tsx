@@ -8,7 +8,7 @@ const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 // Wenn du keine hast, versuche "DEMO_MAP_ID", aber besser ist eine eigene (Vektor-Karte).
 const MAP_ID = "DEMO_MAP_ID"; 
 
-// Die exakten Koordinaten der Bashir Moschee, Bensheim
+// Die exakten Koordinaten der Bashier Moschee, Bensheim
 const MOSQUE_LOCATION = { 
   lat: 49.685590, 
   lng: 8.593480,
@@ -26,7 +26,7 @@ export default function MapComponent() {
           gestureHandling={'cooperative'} // Damit man beim Scrollen nicht stecken bleibt
         >
           {/* Das Moschee Icon */}
-          <AdvancedMarker position={MOSQUE_LOCATION} title="Bashir Moschee">
+          <AdvancedMarker position={MOSQUE_LOCATION} title="Bashier Moschee">
             
             {/* Unser selbstgebautes Icon-Design */}
             <div className="relative flex items-center justify-center">

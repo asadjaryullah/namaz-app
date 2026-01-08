@@ -24,7 +24,7 @@ export default function MapComponent() {
           gestureHandling={'cooperative'}
         >
           {/* Moschee Marker - Jetzt groß und auffällig */}
-          <AdvancedMarker position={MOSQUE_LOCATION} title="Bashir Moschee">
+          <AdvancedMarker position={MOSQUE_LOCATION} title="Bashier Moschee">
             <div className="relative flex flex-col items-center justify-center transform -translate-y-1/2">
                {/* Grüner Kreis */}
                <div className="bg-green-700 w-12 h-12 rounded-full border-2 border-white shadow-xl flex items-center justify-center text-2xl">

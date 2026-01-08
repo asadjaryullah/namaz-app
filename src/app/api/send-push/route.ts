@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       app_id: ONESIGNAL_APP_ID,
       headings: { de: title, en: title },
       contents: { de: message, en: message },
-      included_segments: ["Total Subscriptions"],
+      included_segments: ["All"],
       url: "https://ride2salah.vercel.app",
     };
 
