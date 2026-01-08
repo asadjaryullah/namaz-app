@@ -21,22 +21,22 @@ export default function ImpressumPage() {
           <h2 className="text-lg font-semibold mt-4">Angaben gemäß § 5 TMG</h2>
           <p className="text-slate-600 mb-4">
             <strong>Ride 2 Salah</strong><br />
-            Ein Projekt der Bashir Moschee Community<br />
-            [Dein Name oder Verantwortlicher]<br />
-            [Straße Hausnummer]<br />
-            [PLZ Ort]
+            Ein Projekt der Bashier Moschee Community<br />
+            [Ahmadiyya Muslim Gemeinde Bensheim]<br />
+            [Zeppelinstraße 33]<br />
+            [64625 Bensheim]
           </p>
 
           <h2 className="text-lg font-semibold mt-4">Kontakt</h2>
           <p className="text-slate-600 mb-4">
-            E-Mail: [Deine E-Mail Adresse]<br />
-            Telefon: [Deine Telefonnummer (optional)]
+            E-Mail: [asad.jaryullah@ahmadiyya.de]<br />
+            Telefon: [015904273761]
           </p>
 
           <h2 className="text-lg font-semibold mt-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
           <p className="text-slate-600 mb-4">
-            [Dein Name]<br />
-            [Deine Adresse]
+            [Asad Jaryullaj]<br />
+            [Zeppelinstraße 33, 64625 Bensheim]
           </p>
 
           <h2 className="text-lg font-semibold mt-4">Haftungsausschluss</h2>

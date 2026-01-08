@@ -48,7 +48,7 @@ export async function GET() {
         `DTSTART:${startStr}`, 
         `DTEND:${endStr}`,
         `SUMMARY:📅 ${e.title}`,
-        'LOCATION:Bashir Moschee Bensheim',
+        'LOCATION:Bashier Moschee Bensheim',
         `DESCRIPTION:Veranstaltung der Gemeinde.`,
         'BEGIN:VALARM',
         'TRIGGER;RELATED=START:-P1D',

@@ -51,7 +51,7 @@ export async function GET() {
           `DTSTART:${startStr}`, 
           `DTEND:${endStr}`,
           `SUMMARY:${p.name} Namaz 🕌`,
-          'LOCATION:Bashir Moschee Bensheim',
+          'LOCATION:Bashier Moschee Bensheim',
           `URL:${APP_URL}`,
           `DESCRIPTION:Fahrt buchen: ${APP_URL}`,
           'BEGIN:VALARM',

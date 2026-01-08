@@ -22,7 +22,7 @@ export default function DatenschutzPage() {
 
           <h3 className="text-lg font-bold mt-6">1. Worum geht es?</h3>
           <p className="text-slate-600 text-sm">
-            Diese App ("Ride 2 Salah") dient dazu, Fahrgemeinschaften zur Bashir Moschee zu organisieren. 
+            Diese App ("Ride 2 Salah") dient dazu, Fahrgemeinschaften zur Bashier Moschee zu organisieren. 
             Wir nehmen den Schutz deiner persönlichen Daten sehr ernst und halten uns an die Regeln der Datenschutzgesetze.
           </p>
 
@@ -65,8 +65,8 @@ export default function DatenschutzPage() {
           <h3 className="text-lg font-bold mt-6">6. Kontakt</h3>
           <p className="text-slate-600 text-sm">
             Bei Fragen zum Datenschutz wende dich bitte an:<br/>
-            [Dein Name / Vorstand der Moschee]<br/>
-            [Email Adresse für Support]
+            [Asad Jaryullah/ Imam der Gemeinde]<br/>
+            [asad.jaryullah@ahmadiyya.de]
           </p>
 
         </div>
