@@ -158,7 +158,7 @@ async function sendOneSignal(title: string, message: string, logs: string[]) {
     app_id: APP_ID,
     headings: { de: title, en: title },
     contents: { de: message, en: message },
-    included_segments: ["Subscribed Users"],
+    included_segments: ["Total Subscriptions"],
     url: "https://ride2salah.vercel.app",
   };
 
