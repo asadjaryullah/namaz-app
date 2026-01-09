@@ -4,18 +4,33 @@ import { createClient } from "@supabase/supabase-js";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// --- Supabase (Service Role nötig, weil Cron/Server) ---
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const APP_ID = process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
+// --- OneSignal + Cron Secret ---
+const APP_ID =
+  process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
 const OS_KEY = process.env.ONESIGNAL_REST_API_KEY!;
 const SECRET = process.env.CRON_SECRET!;
 
+// --- Zeit / Fenster ---
 const TZ = "Europe/Berlin";
-const LOOKAHEAD_MIN = 6; // etwas größer, damit Cron-Jitter nicht alles verpasst
-const LOOKBACK_MIN = 6;
+
+// Cron läuft alle 5 Minuten → wir erlauben etwas Jitter
+const LOOKAHEAD_MIN = 8;
+const LOOKBACK_MIN = 8;
+
+// Gebets-Reminder: 25 Minuten vorher
+const PRAYER_OFFSET_MIN = 25;
+
+// Zikr: 08 / 12 / 16 / 20
+const ZIKR_TIMES = ["08:00", "12:00", "16:00", "20:00"];
+
+// Jummah/Khutba: Freitag 12:30
+const KHUTBA_TIME = "12:30";
 
 export async function GET(req: Request) {
   const logs: string[] = [];
@@ -25,35 +40,71 @@ export async function GET(req: Request) {
 
     // 0) Secret-Check
     if (!SECRET || url.searchParams.get("secret") !== SECRET) {
-      return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "unauthorized" },
+        { status: 401 }
+      );
     }
 
-    // ✅ 0b) FORCE TEST (immer sofort senden)
+    const debug = url.searchParams.get("debug") === "1";
     const force = url.searchParams.get("force") === "1";
+    const simulateAt = url.searchParams.get("at"); // "HH:MM" optional
+
+    // 1) Berlin Zeit "YYYY-MM-DD HH:mm:ss"
+    const now = new Date();
+    const nowBerlinStr = now.toLocaleString("sv-SE", { timeZone: TZ });
+    const today = nowBerlinStr.slice(0, 10);
+    let nowHHMM = nowBerlinStr.slice(11, 16);
+
+    if (simulateAt && /^\d{2}:\d{2}$/.test(simulateAt)) {
+      nowHHMM = simulateAt;
+      logs.push(`🧪 simulate at=${simulateAt} (Berlin Datum bleibt: ${today})`);
+    }
+
+    logs.push(`🕒 Berlin: ${today} ${nowHHMM}`);
+    logs.push(`🪟 Window: -${LOOKBACK_MIN}min .. +${LOOKAHEAD_MIN}min`);
+    logs.push(`⏱️ Prayer offset: ${PRAYER_OFFSET_MIN}min`);
+
+    // 2) Force Test: sofort pushen (ohne push_sent)
     if (force) {
       logs.push("🧪 force=1 → sende Test Push sofort");
-      const ok = await sendOneSignal("Test Push ✅", "Force=1 hat ausgelöst.", logs);
+      const ok = await sendOneSignal(
+        "Test Push ✅",
+        `Force=1 hat ausgelöst (${today} ${nowHHMM}).`,
+        logs
+      );
       return NextResponse.json({ success: ok, sent: ok ? 1 : 0, logs });
     }
 
-    // 1) Zeit in Berlin (stabil als String)
-    const now = new Date();
-    const nowBerlinStr = now.toLocaleString("sv-SE", { timeZone: TZ }); // "YYYY-MM-DD HH:mm:ss"
-    const today = nowBerlinStr.slice(0, 10); // YYYY-MM-DD
-    const nowHHMM = nowBerlinStr.slice(11, 16); // HH:MM
-    logs.push(`🕒 Berlin: ${nowBerlinStr}`);
-    logs.push(`🪟 Window: -${LOOKBACK_MIN}min .. +${LOOKAHEAD_MIN}min`);
-
     let sent = 0;
 
-    // 2) NAMAZ: 25 min vor Gebetszeit
-    sent += await handlePrayerPushes(today, nowHHMM, logs);
+    // 3) Prayer pushes
+    sent += await handlePrayerPushes(today, nowHHMM, logs, debug);
 
-    // 3) ZIKR: 08,12,16,20
-    sent += await handleFixed(today, nowHHMM, ["08:00", "12:00", "16:00", "20:00"], "zikr", logs);
+    // 4) Zikr pushes
+    sent += await handleFixed(
+      today,
+      nowHHMM,
+      ZIKR_TIMES,
+      "zikr",
+      logs,
+      debug
+    );
 
-    // 4) KHUTBA: 12:30
-    sent += await handleFixed(today, nowHHMM, ["12:30"], "khutba", logs);
+    // 5) Khutba nur Freitag
+    const weekday = getBerlinWeekday(now, TZ); // 0=So, 5=Fr
+    if (weekday === 5) {
+      sent += await handleFixed(
+        today,
+        nowHHMM,
+        [KHUTBA_TIME],
+        "khutba",
+        logs,
+        debug
+      );
+    } else if (debug) {
+      logs.push(`ℹ️ Kein Freitag (weekday=${weekday}) → Khutba wird übersprungen`);
+    }
 
     return NextResponse.json({ success: true, sent, logs });
   } catch (e: any) {
@@ -62,13 +113,19 @@ export async function GET(req: Request) {
   }
 }
 
-async function handlePrayerPushes(today: string, nowHHMM: string, logs: string[]) {
+async function handlePrayerPushes(
+  today: string,
+  nowHHMM: string,
+  logs: string[],
+  debug: boolean
+) {
   const { data: prayers, error } = await supabase
     .from("prayer_times")
-    .select("name,time")
+    .select("name,time,sort_order")
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
+
   if (!prayers?.length) {
     logs.push("⚠️ keine prayer_times gefunden");
     return 0;
@@ -77,19 +134,35 @@ async function handlePrayerPushes(today: string, nowHHMM: string, logs: string[]
   let sent = 0;
 
   for (const p of prayers) {
-    if (!p.time) continue;
+    if (!p.time) {
+      if (debug) logs.push(`⏭️ ${p.name}: keine time`);
+      continue;
+    }
 
-    const trigger = minusMinutesHHMM(p.time, 25); // HH:MM
-    if (!isWithinWindow(nowHHMM, trigger, LOOKBACK_MIN, LOOKAHEAD_MIN)) continue;
+    const trigger = minusMinutesHHMM(p.time, PRAYER_OFFSET_MIN); // HH:MM
+    const inWindow = isWithinWindow(nowHHMM, trigger, LOOKBACK_MIN, LOOKAHEAD_MIN);
+
+    if (debug) {
+      logs.push(
+        `🕌 ${p.name}: time=${p.time} trigger=${trigger} | now=${nowHHMM} | inWindow=${inWindow}`
+      );
+    }
+
+    if (!inWindow) continue;
 
     const key = `prayer:${today}:${p.name}:${trigger}`;
-    const ok = await sendOnce(key, async () => {
-      return sendOneSignal(
-        `Bald ist ${p.name} 🕌`,
-        `In 25 Minuten ist Gebet (${p.time}).`,
-        logs
-      );
-    }, logs);
+
+    const ok = await sendOnce(
+      key,
+      async () =>
+        sendOneSignal(
+          `Bald ist ${p.name} 🕌`,
+          `In ${PRAYER_OFFSET_MIN} Minuten ist Gebet (${p.time}).`,
+          logs
+        ),
+      logs,
+      debug
+    );
 
     if (ok) sent++;
   }
@@ -102,20 +175,41 @@ async function handleFixed(
   nowHHMM: string,
   times: string[],
   type: "zikr" | "khutba",
-  logs: string[]
+  logs: string[],
+  debug: boolean
 ) {
   let sent = 0;
 
   for (const t of times) {
-    if (!isWithinWindow(nowHHMM, t, LOOKBACK_MIN, LOOKAHEAD_MIN)) continue;
+    const inWindow = isWithinWindow(nowHHMM, t, LOOKBACK_MIN, LOOKAHEAD_MIN);
+
+    if (debug) {
+      logs.push(`⏰ ${type}: target=${t} now=${nowHHMM} | inWindow=${inWindow}`);
+    }
+
+    if (!inWindow) continue;
 
     const key = `${type}:${today}:${t}`;
-    const ok = await sendOnce(key, async () => {
-      if (type === "zikr") {
-        return sendOneSignal("Zikr Erinnerung 📿", "Denke an Allah – nimm dir 2 Minuten für Zikr.", logs);
-      }
-      return sendOneSignal("Khutba Erinnerung 🕌", "Heute 12:30 Khutba – bitte rechtzeitig vorbereiten.", logs);
-    }, logs);
+
+    const ok = await sendOnce(
+      key,
+      async () => {
+        if (type === "zikr") {
+          return sendOneSignal(
+            "Zikr Erinnerung 📿",
+            "Denke an Allah – nimm dir 2 Minuten für Zikr.",
+            logs
+          );
+        }
+        return sendOneSignal(
+          "Jummah Erinnerung 🕌",
+          "Heute 12:30 Jummah – bitte rechtzeitig vorbereiten.",
+          logs
+        );
+      },
+      logs,
+      debug
+    );
 
     if (ok) sent++;
   }
@@ -123,7 +217,12 @@ async function handleFixed(
   return sent;
 }
 
-async function sendOnce(key: string, work: () => Promise<boolean>, logs: string[]) {
+async function sendOnce(
+  key: string,
+  work: () => Promise<boolean>,
+  logs: string[],
+  debug: boolean
+) {
   // schon gesendet?
   const { data: existing, error: selErr } = await supabase
     .from("push_sent")
@@ -134,12 +233,15 @@ async function sendOnce(key: string, work: () => Promise<boolean>, logs: string[
   if (selErr) logs.push(`⚠️ push_sent select error: ${selErr.message}`);
 
   if (existing) {
-    logs.push(`↩️ skip already sent: ${key}`);
+    if (debug) logs.push(`↩️ skip already sent: ${key}`);
     return false;
   }
 
   const ok = await work();
-  if (!ok) return false;
+  if (!ok) {
+    logs.push(`❌ send failed: ${key}`);
+    return false;
+  }
 
   const { error: insErr } = await supabase.from("push_sent").insert({ key });
   if (insErr) logs.push(`⚠️ push_sent insert failed: ${insErr.message}`);
@@ -158,7 +260,7 @@ async function sendOneSignal(title: string, message: string, logs: string[]) {
     app_id: APP_ID,
     headings: { de: title, en: title },
     contents: { de: message, en: message },
-    included_segments: ["All"],
+    included_segments: ["Subscribed Users"], // ✅ korrekt
     url: "https://ride2salah.vercel.app",
   };
 
@@ -172,12 +274,30 @@ async function sendOneSignal(title: string, message: string, logs: string[]) {
     body: JSON.stringify(body),
   });
 
-  const txt = await resp.text();
-  logs.push(`📨 OneSignal ${resp.status} ${resp.ok ? "OK" : "FAIL"} | ${txt.slice(0, 200)}`);
-  return resp.ok;
+  const text = await resp.text();
+
+  // OneSignal liefert manchmal 200, aber mit errors[] → das ist KEIN Erfolg
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // ignore
+  }
+
+  const hasErrors =
+    parsed && (Array.isArray(parsed.errors) && parsed.errors.length > 0);
+
+  const ok = resp.ok && !hasErrors;
+
+  logs.push(
+    `📨 OneSignal ${resp.status} ${ok ? "OK" : "FAIL"} | ${text.slice(0, 220)}`
+  );
+
+  return ok;
 }
 
 // -------- helpers --------
+
 function minusMinutesHHMM(hhmm: string, minutes: number) {
   const [h, m] = hhmm.split(":").map(Number);
   let total = h * 60 + m - minutes;
@@ -187,8 +307,13 @@ function minusMinutesHHMM(hhmm: string, minutes: number) {
   return `${hh}:${mm}`;
 }
 
-// Fensterprüfung: erlaubt Lookback + Lookahead (robust gegen Cron-Jitter)
-function isWithinWindow(nowHHMM: string, targetHHMM: string, backMin: number, aheadMin: number) {
+// Fensterprüfung: Lookback + Lookahead (robust gegen Cron-Jitter, inkl. Mitternacht)
+function isWithinWindow(
+  nowHHMM: string,
+  targetHHMM: string,
+  backMin: number,
+  aheadMin: number
+) {
   const toMin = (s: string) => {
     const [h, m] = s.split(":").map(Number);
     return h * 60 + m;
@@ -203,4 +328,24 @@ function isWithinWindow(nowHHMM: string, targetHHMM: string, backMin: number, ah
   if (diff < -12 * 60) diff += 24 * 60;
 
   return diff >= -backMin && diff <= aheadMin;
+}
+
+// 0=Sonntag .. 6=Samstag (Berlin)
+function getBerlinWeekday(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    weekday: "short",
+  }).formatToParts(date);
+
+  const wd = parts.find((p) => p.type === "weekday")?.value || "Sun";
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return map[wd] ?? 0;
 }

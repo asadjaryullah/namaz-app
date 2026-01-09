@@ -22,9 +22,9 @@ export default function ImpressumPage() {
           <p className="text-slate-600 mb-4">
             <strong>Ride 2 Salah</strong><br />
             Ein Projekt der Bashier Moschee Community<br />
-            [Ahmadiyya Muslim Gemeinde Bensheim]<br />
-            [Zeppelinstraße 33]<br />
-            [64625 Bensheim]
+            Ahmadiyya Muslim Gemeinde Bensheim<br />
+            Zeppelinstraße 33<br />
+            64625 Bensheim
           </p>
 
           <h2 className="text-lg font-semibold mt-4">Kontakt</h2>
@@ -35,8 +35,8 @@ export default function ImpressumPage() {
 
           <h2 className="text-lg font-semibold mt-4">Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
           <p className="text-slate-600 mb-4">
-            [Asad Jaryullaj]<br />
-            [Zeppelinstraße 33, 64625 Bensheim]
+            Asad Jaryullah<br />
+            Zeppelinstraße 33, 64625 Bensheim
           </p>
 
           <h2 className="text-lg font-semibold mt-4">Haftungsausschluss</h2>
