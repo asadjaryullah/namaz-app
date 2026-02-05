@@ -144,7 +144,7 @@ export default function AdminPage() {
 
       const { error } = await supabase.from('mosque_events').insert({
         title: newEventTitle.trim(),
-        location: (newEventLocation || "Bashir Moschee").trim(),
+        location: (newEventLocation || "Bashier Moschee").trim(),
         org: newEventOrg,
         event_date: startIso,
         event_end_date: endIso,
@@ -194,12 +194,16 @@ export default function AdminPage() {
 
     setSendingPush(true);
     try {
-      const secret = process.env.NEXT_PUBLIC_ADMIN_PUSH_SECRET;
-      if (!secret) throw new Error("NEXT_PUBLIC_ADMIN_PUSH_SECRET fehlt (env)");
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Nicht eingeloggt.");
 
-      const res = await fetch(`/api/send-push?secret=${encodeURIComponent(secret)}`, {
+      const res = await fetch(`/api/send-push`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ title: pushTitle, message: pushMessage }),
       });
 
@@ -322,7 +326,7 @@ export default function AdminPage() {
               <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <Input
                 className="pl-9"
-                placeholder="Ort (z.B. Bashir Moschee)"
+                placeholder="Ort (z.B. Bashier Moschee)"
                 value={newEventLocation}
                 onChange={e => setNewEventLocation(e.target.value)}
               />

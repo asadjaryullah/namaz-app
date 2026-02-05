@@ -260,7 +260,7 @@ async function sendOneSignal(title: string, message: string, logs: string[]) {
     app_id: APP_ID,
     headings: { de: title, en: title },
     contents: { de: message, en: message },
-    included_segments: ["All"], // ✅ korrekt
+    included_segments: ["Subscribed Users"], // ✅ nur aktive Abonnenten
     url: "https://ride2salah.vercel.app",
   };
 

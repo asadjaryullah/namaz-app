@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { ChevronLeft, Loader2, Mail, User, Phone, KeyRound, CheckCircle2, BadgeInfo } from "lucide-react";
 import OneSignal from 'react-onesignal'; 
+import { waitForOneSignalReady } from '@/lib/onesignal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -89,6 +90,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       if (data.user && typeof window !== 'undefined') {
+        await waitForOneSignalReady(4000);
         try { OneSignal.login(data.user.id); } catch(e) {}
       }
 

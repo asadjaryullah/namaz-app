@@ -10,6 +10,7 @@ import { Car, User, Settings, Loader2, AlertTriangle, MapPin, Calendar, ArrowRig
 import MapComponent from '@/components/MapComponent'; 
 import OneSignal from 'react-onesignal'; 
 import ZikrWidget from '@/components/ZikrWidget'; 
+import { waitForOneSignalReady } from '@/lib/onesignal';
 
 const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
 
@@ -45,6 +46,7 @@ export default function HomePage() {
         }
 
         if (typeof window !== 'undefined') {
+            await waitForOneSignalReady(4000);
             try { OneSignal.login(session.user.id); } catch(e) {}
         }
 

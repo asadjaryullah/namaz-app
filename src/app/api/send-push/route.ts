@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -7,17 +8,34 @@ const ONESIGNAL_APP_ID =
   process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
 
 const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
-const ADMIN_PUSH_SECRET = process.env.ADMIN_PUSH_SECRET;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
 
 export async function POST(req: Request) {
   const logs: string[] = [];
 
   try {
-    const url = new URL(req.url);
-    const secret = url.searchParams.get("secret");
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
-    if (!ADMIN_PUSH_SECRET || secret !== ADMIN_PUSH_SECRET) {
+    if (!token) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(
+      token
+    );
+
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
+    const email = (userData.user.email || "").toLowerCase().trim();
+    if (email !== ADMIN_EMAIL.toLowerCase().trim()) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     if (!ONESIGNAL_REST_API_KEY) {
@@ -32,12 +50,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Titel und Nachricht fehlen" }, { status: 400 });
     }
 
-    // ✅ Segment, das bei dir nachweislich funktioniert
+    // ✅ Nur aktive Push-Abonnenten
     const payload = {
       app_id: ONESIGNAL_APP_ID,
       headings: { de: title, en: title },
       contents: { de: message, en: message },
-      included_segments: ["All"],
+      included_segments: ["Subscribed Users"],
       url: "https://ride2salah.vercel.app",
     };
 
