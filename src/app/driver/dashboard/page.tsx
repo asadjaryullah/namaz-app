@@ -102,7 +102,8 @@ export default function DriverDashboard() {
       }
     };
     fetchRide();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   // 2. Passagiere laden & Benachrichtigen
   useEffect(() => {

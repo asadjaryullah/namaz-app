@@ -126,9 +126,13 @@ function PassengerListContent() {
         const lon = position.coords.longitude;
 
         try {
+          const { data: { session } } = await supabase.auth.getSession();
           const response = await fetch('/api/book-ride', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token ?? ''}`,
+            },
             body: JSON.stringify({
               ride_id: rideId,
               passenger_id: user.id,

@@ -74,18 +74,18 @@ function PassengerDashboardContent() {
   useEffect(() => {
     if (!rideId) return;
 
-    const trackLocation = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    let watcherId: number | null = null;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
 
-      const watcher = navigator.geolocation.watchPosition(
+      watcherId = navigator.geolocation.watchPosition(
         async (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-          
+
           setMyPos({ lat, lng: lon });
 
-          // Update in der Datenbank
           await supabase
             .from('bookings')
             .update({ pickup_lat: lat, pickup_lon: lon })
@@ -93,13 +93,13 @@ function PassengerDashboardContent() {
             .eq('passenger_id', user.id);
         },
         (err) => console.error("GPS Fehler:", err),
-        { enableHighAccuracy: true } // <--- HIER KORRIGIERT (distanceFilter entfernt)
+        { enableHighAccuracy: true }
       );
+    });
 
-      return () => navigator.geolocation.clearWatch(watcher);
+    return () => {
+      if (watcherId !== null) navigator.geolocation.clearWatch(watcherId);
     };
-
-    trackLocation();
   }, [rideId]);
   // ----------------------------------------
 

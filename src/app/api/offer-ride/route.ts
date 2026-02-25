@@ -49,16 +49,26 @@ export async function POST(req: Request) {
   const logs: string[] = [];
 
   try {
+    // Auth: Token prüfen
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const { data: userData, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const callerUserId = userData.user.id;
+
     const body = (await req.json().catch(() => ({}))) as OfferRideBody;
 
-    // Optionaler Secret Check (nur wenn OFFER_RIDE_SECRET gesetzt ist)
-    if (OFFER_RIDE_SECRET) {
-      if (!body.secret || body.secret !== OFFER_RIDE_SECRET) {
-        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-      }
-    }
-
     const { driver_id, prayer_id, ride_date } = body;
+
+    // Sicherheitscheck: driver_id muss mit eingeloggtem User übereinstimmen
+    if (driver_id !== callerUserId) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     if (!driver_id || !prayer_id || !ride_date) {
       return NextResponse.json(
@@ -161,7 +171,7 @@ async function sendOneSignal(
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       Accept: "application/json",
-      Authorization: `Basic ${OS_KEY}`,
+      Authorization: `Key ${OS_KEY}`,
     },
     body: JSON.stringify(payload),
   });

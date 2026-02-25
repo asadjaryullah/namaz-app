@@ -17,6 +17,18 @@ const ONESIGNAL_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 export async function POST(request: Request) {
   try {
+    // 0. Auth: Token prüfen
+    const authHeader = request.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    if (!token) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+    if (userErr || !userData?.user) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+    const callerUserId = userData.user.id;
+
     // 1. CHECK: Ist der Key überhaupt da?
     if (!ONESIGNAL_API_KEY) {
       console.error("❌ CRITICAL: ONESIGNAL_REST_API_KEY fehlt in Vercel!");
@@ -25,6 +37,11 @@ export async function POST(request: Request) {
 
     const bodyData = await request.json();
     const { ride_id, passenger_id, passenger_name, passenger_phone, pickup_lat, pickup_lon } = bodyData;
+
+    // Sicherheitscheck: passenger_id muss mit eingeloggtem User übereinstimmen
+    if (passenger_id !== callerUserId) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
 
     console.log(`🚀 Start Buchung: ${passenger_name} bucht bei Fahrt ${ride_id}`);
 
@@ -60,7 +77,7 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Basic ${ONESIGNAL_API_KEY}`
+          'Authorization': `Key ${ONESIGNAL_API_KEY}`
         },
         body: JSON.stringify(pushBody)
       });
