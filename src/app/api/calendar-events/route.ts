@@ -66,7 +66,7 @@ export async function GET() {
     return new NextResponse(icsContent, {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="events.ics"',
+        'Cache-Control': 'public, max-age=3600',
       },
     });
 

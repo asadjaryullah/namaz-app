@@ -12,7 +12,7 @@ import OneSignal from 'react-onesignal';
 import ZikrWidget from '@/components/ZikrWidget'; 
 import { waitForOneSignalReady } from '@/lib/onesignal';
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 export default function HomePage() {
   const router = useRouter();
@@ -45,9 +45,11 @@ export default function HomePage() {
           return;
         }
 
+        // OneSignal im Hintergrund – blockiert Ladescreen nicht mehr
         if (typeof window !== 'undefined') {
-            await waitForOneSignalReady(4000);
-            try { OneSignal.login(session.user.id); } catch(e) {}
+            waitForOneSignalReady(4000).then(() => {
+              try { OneSignal.login(session.user.id); } catch(e) {}
+            }).catch(() => {});
         }
 
         if(mounted) setUser(session.user);
@@ -79,6 +81,7 @@ export default function HomePage() {
       } catch (error) {
         console.error("Start Fehler:", error);
       } finally {
+        clearTimeout(safetyTimer);
         if(mounted) setLoading(false);
       }
     };

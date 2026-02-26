@@ -11,7 +11,7 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 export async function POST(req: Request) {
   const logs: string[] = [];

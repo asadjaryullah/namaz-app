@@ -48,8 +48,12 @@ export default function EventsPage() {
 
   const openCalendar = () => {
     const host = window.location.host;
-    const url = `webcal://${host}/api/calendar-events`;
-    window.location.href = url;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const httpsUrl = `https://${host}/api/calendar-events`;
+    const url = isAndroid
+      ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(httpsUrl)}`
+      : `webcal://${host}/api/calendar-events`;
+    window.open(url, '_blank');
   };
 
   return (

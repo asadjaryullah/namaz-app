@@ -100,12 +100,15 @@ export default function ProfilePage() {
     }
   };
 
-  // Hilfsfunktion für Kalender-URLs (iPhone Fix)
+  // Hilfsfunktion für Kalender-URLs (iOS: webcal://, Android: Google Calendar)
   const openCalendar = (apiUrl: string) => {
     const host = window.location.host;
-    // Wir erzwingen 'webcal://' (funktioniert am besten auf allen Geräten)
-    const url = `webcal://${host}${apiUrl}`;
-    window.location.href = url;
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const httpsUrl = `https://${host}${apiUrl}`;
+    const url = isAndroid
+      ? `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(httpsUrl)}`
+      : `webcal://${host}${apiUrl}`;
+    window.open(url, '_blank');
   };
 
   if (loading) {

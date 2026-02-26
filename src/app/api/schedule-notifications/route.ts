@@ -269,7 +269,7 @@ async function sendOneSignal(title: string, message: string, logs: string[]) {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       Accept: "application/json",
-      Authorization: `Basic ${OS_KEY}`,
+      Authorization: `Key ${OS_KEY}`,
     },
     body: JSON.stringify(body),
   });

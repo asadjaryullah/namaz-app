@@ -66,7 +66,7 @@ function PassengerDashboardContent() {
     };
 
     fetchRide();
-    const interval = setInterval(fetchRide, 5000);
+    const interval = setInterval(fetchRide, 10000);
     return () => clearInterval(interval);
   }, [rideId]);
 
@@ -92,8 +92,10 @@ function PassengerDashboardContent() {
             .eq('ride_id', rideId)
             .eq('passenger_id', user.id);
         },
-        (err) => console.error("GPS Fehler:", err),
-        { enableHighAccuracy: true }
+        (err) => {
+          if (err.code !== err.TIMEOUT) console.error('GPS Fehler:', err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
     });
 
@@ -103,12 +105,13 @@ function PassengerDashboardContent() {
   }, [rideId]);
   // ----------------------------------------
 
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
   const handleCancel = async () => {
-    if(!confirm("Möchtest du die Buchung wirklich stornieren?")) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    setShowCancelDialog(false);
     await supabase.from('bookings').delete().eq('ride_id', rideId).eq('passenger_id', user.id);
-    alert("Buchung storniert.");
     router.push('/');
   };
 
@@ -244,11 +247,30 @@ function PassengerDashboardContent() {
             </div>
           </div>
 
-          <Button variant="destructive" className="w-full mt-4" onClick={handleCancel}>
+          <Button variant="destructive" className="w-full mt-4" onClick={() => setShowCancelDialog(true)}>
             <XCircle className="mr-2 h-4 w-4" /> Fahrt stornieren
           </Button>
         </div>
       </div>
+
+      {/* CONFIRM DIALOG (Bottom Sheet) */}
+      {showCancelDialog && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowCancelDialog(false)}>
+          <div className="w-full bg-white rounded-t-3xl p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
+            <h3 className="text-lg font-bold text-center">Buchung stornieren?</h3>
+            <p className="text-sm text-slate-500 text-center pb-2">
+              Du wirst aus der Fahrt entfernt und der Fahrer wird informiert.
+            </p>
+            <Button className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-700" onClick={handleCancel}>
+              Ja, stornieren
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setShowCancelDialog(false)}>
+              Abbrechen
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

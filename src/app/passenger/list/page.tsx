@@ -83,7 +83,7 @@ function PassengerListContent() {
 
     fetchRidesAndBookings();
     
-    const interval = setInterval(fetchRidesAndBookings, 5000);
+    const interval = setInterval(fetchRidesAndBookings, 10000);
     return () => clearInterval(interval);
 
   }, [prayerId, router]); 

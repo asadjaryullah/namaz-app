@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp,
-  Car, User, Footprints, Check, RotateCcw, Calendar, MapPin
+  Car, User, Footprints, Check, RotateCcw, MapPin
 } from "lucide-react";
 
 // --- KONFIGURATION ZIKR ---
@@ -150,7 +150,6 @@ function getTopOrgDots(dayEvents: any[]) {
 }
 
 function HistoryContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = (searchParams.get('tab') as 'zikr' | 'events' | 'calendar') || 'zikr';
 
@@ -307,9 +306,17 @@ function HistoryContent() {
     saveToDb(newData);
   };
 
-  const openCalendar = (apiUrl: string) => {
+  const openCalendarApple = (apiUrl: string) => {
     const host = window.location.host;
     window.location.href = `webcal://${host}${apiUrl}`;
+  };
+
+  const openCalendarGoogle = (apiUrl: string) => {
+    const fullUrl = `https://ride2salah.vercel.app${apiUrl}`;
+    window.open(
+      `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(fullUrl)}`,
+      '_blank'
+    );
   };
 
   const nextMonth = () => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
@@ -366,10 +373,20 @@ function HistoryContent() {
   return (
     <div className="w-full max-w-md space-y-6">
       {/* TABS */}
-      <div className="flex p-1 bg-slate-200 rounded-xl mb-4 overflow-x-auto">
-        <button onClick={() => setActiveTab('zikr')} className={`flex-1 py-2 px-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'zikr' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>📿 Zikr</button>
-        <button onClick={() => setActiveTab('events')} className={`flex-1 py-2 px-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'events' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>📅 Termine</button>
-        <button onClick={() => setActiveTab('calendar')} className={`flex-1 py-2 px-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'calendar' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>📊 Statistik</button>
+      <div className="flex gap-1 mb-4">
+        {([['zikr','📿','Zikr'], ['events','📅','Termine'], ['calendar','📊','Statistik']] as const).map(([tab, icon, label]) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-0.5
+              ${activeTab === tab
+                ? 'bg-slate-900 text-white shadow-lg'
+                : 'bg-white text-slate-500 hover:text-slate-800 border border-slate-200'}`}
+          >
+            <span className="text-base">{icon}</span>
+            <span className="text-[10px] uppercase tracking-wide">{label}</span>
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -448,10 +465,14 @@ function HistoryContent() {
                     // ✅ mehrere orgs -> mehrere dots
                     const dots = getTopOrgDots(dayEvents);
 
+                    const todayD = new Date();
+                    const isToday = year === todayD.getFullYear() && month === todayD.getMonth() && dayNum === todayD.getDate();
+
                     return (
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border
+                            ${isToday ? 'ring-2 ring-slate-900 ring-offset-1' : ''}
                             ${!hasEvent
                               ? 'bg-slate-50 text-slate-400 border-slate-100'
                               : overlap
@@ -501,29 +522,33 @@ function HistoryContent() {
                     const box = formatDayBox(e);
 
                     return (
-                      <div key={e.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex gap-4">
-                        <div className={`${meta.boxBg} p-3 rounded-xl text-center min-w-[4rem]`}>
-                          <span className={`block text-xs font-bold uppercase ${meta.boxMonthText}`}>{box.monthLabel}</span>
-                          <span className="block text-2xl font-black text-slate-800">{box.dayLabel}</span>
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-bold text-slate-900">{e.title}</h3>
-                            <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-black uppercase ${meta.badgeBg} ${meta.badgeText}`}>
-                              {meta.label}
-                            </span>
+                      <div key={e.id} className="bg-white rounded-2xl shadow-sm overflow-hidden flex border border-slate-100">
+                        <div className={`w-1.5 shrink-0 ${meta.dot}`} />
+                        <div className="p-4 flex gap-3 flex-1">
+                          <div className={`${meta.boxBg} px-3 py-2 rounded-xl text-center min-w-[3.5rem] flex flex-col items-center justify-center`}>
+                            <span className={`text-[10px] font-bold uppercase ${meta.boxMonthText}`}>{box.monthLabel}</span>
+                            <span className="text-xl font-black text-slate-800 leading-tight">{box.dayLabel}</span>
                           </div>
 
-                          <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-wider">
-                            {formatEventMeta(e)}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <h3 className="font-bold text-slate-900 leading-snug">{e.title}</h3>
+                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${meta.badgeBg} ${meta.badgeText}`}>
+                                {meta.label}
+                              </span>
+                            </div>
 
-                          <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
-                            <MapPin size={12} /> {e.location || "Moschee"}
+                            <p className="text-xs text-slate-500 mt-1 font-semibold">
+                              {formatEventMeta(e)}
+                            </p>
+
+                            <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400">
+                              <MapPin size={11} className="shrink-0" />
+                              <span className="truncate">{e.location || "Moschee"}</span>
+                            </div>
+
+                            {e.description && <p className="text-sm text-slate-600 mt-2 leading-relaxed">{e.description}</p>}
                           </div>
-
-                          {e.description && <p className="text-sm text-slate-600 mt-2 border-t pt-2">{e.description}</p>}
                         </div>
                       </div>
                     );
@@ -531,13 +556,25 @@ function HistoryContent() {
                 )}
               </div>
 
-              <Button
-                variant="outline"
-                className="w-full text-orange-600 border-orange-200 bg-orange-50 hover:bg-orange-100 mt-4"
-                onClick={() => openCalendar('/api/calendar-events')}
-              >
-                <Calendar className="mr-2 h-4 w-4" /> Kalender abonnieren
-              </Button>
+              <div className="mt-4 space-y-2">
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kalender abonnieren</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="text-slate-700 border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 text-xs"
+                    onClick={() => openCalendarApple('/api/calendar-events')}
+                  >
+                    <span className="text-base">🍎</span> Apple
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="text-slate-700 border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 text-xs"
+                    onClick={() => openCalendarGoogle('/api/calendar-events')}
+                  >
+                    <span className="text-base">📅</span> Google
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -552,10 +589,22 @@ function HistoryContent() {
                 <div className="bg-white/10 p-3 rounded-full relative z-10"><TrendingUp size={32} /></div>
               </Card>
 
-              <div className="grid grid-cols-3 gap-2">
-                <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white"><div className="bg-slate-100 p-1.5 rounded-full text-slate-700"><Car size={16} /></div><span className="block text-lg font-bold text-slate-900">{driverCount}</span><span className="text-[9px] text-slate-400 uppercase font-bold">Fahrer</span></Card>
-                <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white"><div className="bg-blue-50 p-1.5 rounded-full text-blue-600"><User size={16} /></div><span className="block text-lg font-bold text-slate-900">{passengerCount}</span><span className="text-[9px] text-slate-400 uppercase font-bold">Mitfahrer</span></Card>
-                <Card className="p-2 flex flex-col items-center justify-center gap-1 rounded-2xl border-0 shadow-sm bg-white"><div className="bg-green-50 p-1.5 rounded-full text-green-600"><Footprints size={16} /></div><span className="block text-lg font-bold text-slate-900">{walkInCount}</span><span className="text-[9px] text-slate-400 uppercase font-bold">Besucher</span></Card>
+              <div className="grid grid-cols-3 gap-3">
+                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                  <div className="bg-slate-100 p-2 rounded-full text-slate-700"><Car size={18} /></div>
+                  <span className="text-2xl font-black text-slate-900">{driverCount}</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Fahrer</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                  <div className="bg-blue-50 p-2 rounded-full text-blue-600"><User size={18} /></div>
+                  <span className="text-2xl font-black text-slate-900">{passengerCount}</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Mitfahrer</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                  <div className="bg-green-50 p-2 rounded-full text-green-600"><Footprints size={18} /></div>
+                  <span className="text-2xl font-black text-slate-900">{walkInCount}</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Besucher</span>
+                </Card>
               </div>
 
               <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
@@ -565,18 +614,20 @@ function HistoryContent() {
                   <Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button>
                 </div>
 
-                <div className="grid grid-cols-7 gap-y-4 gap-x-2">
+                <div className="grid grid-cols-7 gap-y-5 gap-x-1">
                   {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}
                   {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`} />))}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const dayNum = i + 1;
                     const count = getDailyCount(dayNum);
+                    const todayD = new Date();
+                    const isToday = year === todayD.getFullYear() && month === todayD.getMonth() && dayNum === todayD.getDate();
                     return (
-                      <div key={dayNum} className="flex flex-col items-center justify-center relative">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center transition-all" style={getRingStyle(count)}>
-                          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">{dayNum}</div>
+                      <div key={dayNum} className="flex flex-col items-center gap-0.5">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isToday ? 'ring-2 ring-slate-900 ring-offset-1' : ''}`} style={getRingStyle(count)}>
+                          <div className={`w-7 h-7 bg-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${isToday ? 'text-slate-900' : 'text-slate-700'}`}>{dayNum}</div>
                         </div>
-                        {count > 0 && <span className="text-[9px] text-slate-400 font-medium absolute -bottom-4">{count}/5</span>}
+                        <span className="text-[8px] text-slate-400 font-medium h-2.5 leading-none">{count > 0 ? `${count}×` : ''}</span>
                       </div>
                     );
                   })}

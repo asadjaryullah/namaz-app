@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   const resp = await fetch("https://onesignal.com/api/v1/notifications", {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Basic ${OS_KEY}` },
+    headers: { "Content-Type": "application/json", Authorization: `Key ${OS_KEY}` },
     body: JSON.stringify({
       app_id: APP_ID,
       headings: { en: "Test ✅" },

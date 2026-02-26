@@ -5,15 +5,15 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { Card } from "@/components/ui/card";
-import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft } from "lucide-react";
+import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 }; 
+const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
 // Hilfsfunktion: Abstand berechnen
 function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371e3; 
+  const R = 6371e3;
   const φ1 = lat1 * Math.PI/180;
   const φ2 = lat2 * Math.PI/180;
   const Δφ = (lat2-lat1) * Math.PI/180;
@@ -43,10 +43,10 @@ function Directions({ userLocation }: { userLocation: {lat: number, lng: number}
   useEffect(() => {
     if (!routesLibrary || !map) return;
     setDs(new routesLibrary.DirectionsService());
-    setDr(new routesLibrary.DirectionsRenderer({ 
+    setDr(new routesLibrary.DirectionsRenderer({
       map,
-      suppressMarkers: true, 
-      polylineOptions: { strokeColor: '#2563eb', strokeWeight: 5 } 
+      suppressMarkers: true,
+      polylineOptions: { strokeColor: '#2563eb', strokeWeight: 5 }
     }));
   }, [routesLibrary, map]);
 
@@ -66,15 +66,29 @@ export default function DriverDashboard() {
   const router = useRouter();
   const [startPoint, setStartPoint] = useState<{lat: number, lng: number} | null>(null);
   const [currentPos, setCurrentPos] = useState<{lat: number, lng: number} | null>(null);
-  const [passengers, setPassengers] = useState<any[]>([]); 
+  const [passengers, setPassengers] = useState<any[]>([]);
   const [rideId, setRideId] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
-  
+
+  // Dialog & Undo
+  const [confirmType, setConfirmType] = useState<'end' | 'cancel' | null>(null);
+  const [undoVisible, setUndoVisible] = useState(false);
+  const [undoCountdown, setUndoCountdown] = useState(5);
+  const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const undoCancelledRef = useRef(false);
+
   const rideEndedRef = useRef(false);
-  
+
   // Refs für Notification-Logik
   const previousCountRef = useRef(0);
   const isFirstLoadRef = useRef(true);
+
+  // Cleanup undo interval on unmount
+  useEffect(() => {
+    return () => {
+      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+    };
+  }, []);
 
   // 1. Eigene Fahrt laden
   useEffect(() => {
@@ -108,27 +122,35 @@ export default function DriverDashboard() {
   // 2. Passagiere laden & Benachrichtigen
   useEffect(() => {
     if (!rideId) return;
-    
+
     const fetchPassengers = async () => {
       const { data } = await supabase
         .from('bookings')
         .select('*')
         .eq('ride_id', rideId)
         .eq('status', 'accepted');
-      
+
       if (data) {
         setPassengers(data);
 
-        // Check: Neue Buchung?
+        // Check: Neue Buchung oder Stornierung?
         const currentCount = data.length;
         const prevCount = previousCountRef.current;
-        if (!isFirstLoadRef.current && currentCount > prevCount) {
-          const newPassenger = data[data.length - 1]; 
-          const name = newPassenger?.passenger_name || "Jemand";
-          if (Notification.permission === "granted") {
-            new Notification("Neuer Mitfahrer! 🙋‍♂️", { body: `${name} hat gerade deine Fahrt gebucht.`, icon: "/icon.png" });
-          } else {
-            // alert(`Neuer Mitfahrer: ${name} ist dabei!`); 
+        if (!isFirstLoadRef.current) {
+          if (currentCount > prevCount) {
+            const newPassenger = data[data.length - 1];
+            const name = newPassenger?.passenger_name || "Jemand";
+            if (Notification.permission === "granted") {
+              new Notification("Neuer Mitfahrer! 🙋‍♂️", { body: `${name} hat gerade deine Fahrt gebucht.`, icon: "/icon.png" });
+            } else {
+              alert(`Neuer Mitfahrer: ${name} ist dabei!`);
+            }
+          } else if (currentCount < prevCount) {
+            if (Notification.permission === "granted") {
+              new Notification("Mitfahrer abgesprungen ⚠️", { body: "Ein Mitfahrer hat seine Buchung storniert.", icon: "/icon.png" });
+            } else {
+              alert("Ein Mitfahrer hat seine Buchung storniert.");
+            }
           }
         }
         previousCountRef.current = currentCount;
@@ -137,21 +159,15 @@ export default function DriverDashboard() {
     };
 
     fetchPassengers();
-    const interval = setInterval(fetchPassengers, 5000); 
+    const interval = setInterval(fetchPassengers, 10000);
     return () => clearInterval(interval);
   }, [rideId]);
 
-  // 3. Fahrt erfolgreich beenden (Ankunft)
-  const handleEndRide = async (auto = false) => {
-    if (!rideId) return;
-    if (rideEndedRef.current) return;
-
-    if (!auto && !confirm("Fahrt wirklich beenden?")) return;
-    
-    rideEndedRef.current = true; 
+  // 3. Fahrt tatsächlich beenden (nach Bestätigung + Undo-Zeit)
+  const executeEndRide = async () => {
+    if (!rideId || rideEndedRef.current) return;
+    rideEndedRef.current = true;
     setLoadingEnd(true);
-
-    if (auto) alert("Du hast die Moschee erreicht. Die Fahrt wird automatisch beendet.");
 
     const { error } = await supabase
       .from('rides')
@@ -159,7 +175,7 @@ export default function DriverDashboard() {
       .eq('id', rideId);
 
     if (!error) {
-      router.push('/arrival'); 
+      router.push('/arrival');
     } else {
       alert("Fehler: " + error.message);
       setLoadingEnd(false);
@@ -167,20 +183,47 @@ export default function DriverDashboard() {
     }
   };
 
+  // Undo-Countdown starten (5s bis executeEndRide)
+  const startUndoCountdown = () => {
+    setUndoVisible(true);
+    setUndoCountdown(5);
+    undoCancelledRef.current = false;
+    let count = 5;
+    undoIntervalRef.current = setInterval(() => {
+      count--;
+      setUndoCountdown(count);
+      if (count <= 0) {
+        if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+        setUndoVisible(false);
+        if (!undoCancelledRef.current) executeEndRide();
+      }
+    }, 1000);
+  };
+
+  const handleUndo = () => {
+    undoCancelledRef.current = true;
+    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+    setUndoVisible(false);
+  };
+
+  // Fahrt beenden: manuell → Confirm Dialog, auto (Geofencing) → direkt Undo-Toast
+  const handleEndRide = (auto = false) => {
+    if (rideEndedRef.current) return;
+    if (auto) {
+      startUndoCountdown();
+    } else {
+      setConfirmType('end');
+    }
+  };
+
   // 4. Fahrt ABSAGEN (Stornieren)
-  const handleCancelRide = async () => {
-    if (!confirm("Möchtest du die Fahrt wirklich ABSAGEN? Alle Mitfahrer werden entfernt.")) return;
-    
+  const executeCancelRide = async () => {
+    setConfirmType(null);
     setLoadingEnd(true);
-
-    // Erst Buchungen löschen
     await supabase.from('bookings').delete().eq('ride_id', rideId);
-    // Dann Fahrt löschen
     const { error } = await supabase.from('rides').delete().eq('id', rideId);
-
     if (!error) {
-      alert("Fahrt wurde storniert.");
-      router.push('/'); 
+      router.push('/');
     } else {
       alert("Fehler beim Stornieren: " + error.message);
       setLoadingEnd(false);
@@ -209,8 +252,11 @@ export default function DriverDashboard() {
            handleEndRide(true);
         }
       },
-      (err) => console.error(err),
-      { enableHighAccuracy: true }
+      (err) => {
+        // Timeout ist normal bei kurzem GPS-Verlust – kein Fehler loggen
+        if (err.code !== err.TIMEOUT) console.error('GPS Fehler:', err);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     );
 
     return () => navigator.geolocation.clearWatch(watcher);
@@ -218,11 +264,11 @@ export default function DriverDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col relative">
-      
+
       {/* Zurück-Button */}
       <div className="absolute top-4 left-4 z-50">
-        <Button 
-          size="icon" 
+        <Button
+          size="icon"
           className="rounded-full bg-white text-slate-900 shadow-md hover:bg-slate-100 h-10 w-10"
           onClick={() => router.push('/')}
         >
@@ -236,7 +282,7 @@ export default function DriverDashboard() {
           <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={14} disableDefaultUI={true} mapId="DEMO_MAP_ID">
             <Directions userLocation={startPoint} />
             <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
-            
+
             {startPoint && (
               <AdvancedMarker position={startPoint} title="Start">
                  <Pin background={'#94a3b8'} glyphColor={'#fff'} borderColor={'#fff'} scale={0.8} />
@@ -251,8 +297,8 @@ export default function DriverDashboard() {
 
             {passengers.map((p) => (
               p.pickup_lat && p.pickup_lon && (
-                <AdvancedMarker 
-                  key={p.id} 
+                <AdvancedMarker
+                  key={p.id}
                   position={{ lat: p.pickup_lat, lng: p.pickup_lon }}
                   title={p.passenger_name}
                 >
@@ -269,16 +315,16 @@ export default function DriverDashboard() {
       {/* INFO UNTEN */}
       <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10">
         <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
-        
+
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Aktive Fahrt</h1>
           <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
             GPS AKTIV
           </span>
         </div>
-        
+
         <h3 className="text-sm font-bold text-slate-500 uppercase mb-3">Abholungen ({passengers.length})</h3>
-        
+
         {passengers.length === 0 ? (
           <p className="text-slate-400 text-sm mb-6 bg-slate-50 p-4 rounded-xl text-center border border-dashed">
             Noch keine Mitfahrer gebucht.
@@ -294,12 +340,11 @@ export default function DriverDashboard() {
                   <div>
                     <p className="font-bold text-slate-900">{p.passenger_name}</p>
                     <p className="text-xs text-slate-500">
-                       {/* Hier wird auf "seats_booked" zugegriffen - das muss in der DB existieren! */}
                        {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'} warten
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-2">
                   <a href={getWhatsAppLink(p.passenger_phone, p.passenger_name)} target="_blank" rel="noopener noreferrer">
                     <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-sm text-white">
@@ -318,7 +363,7 @@ export default function DriverDashboard() {
         )}
 
         <div className="grid grid-cols-1 gap-3">
-          <Button 
+          <Button
             variant="outline"
             className="w-full h-12 text-lg rounded-xl border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
             onClick={() => {
@@ -331,26 +376,77 @@ export default function DriverDashboard() {
             <Navigation className="mr-2" size={20} /> Navigation starten
           </Button>
 
-          <Button 
+          <Button
             className="w-full h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800"
             onClick={() => handleEndRide(false)}
-            disabled={loadingEnd}
+            disabled={loadingEnd || undoVisible}
           >
             {loadingEnd ? <Loader2 className="animate-spin mr-2"/> : <CheckSquare className="mr-2" size={20} />}
             Fahrt beenden
           </Button>
 
-          <Button 
+          <Button
             variant="ghost"
             className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
-            onClick={handleCancelRide}
-            disabled={loadingEnd}
+            onClick={() => setConfirmType('cancel')}
+            disabled={loadingEnd || undoVisible}
           >
             <XCircle className="mr-2" size={18} /> Fahrt absagen
           </Button>
         </div>
 
       </div>
+
+      {/* CONFIRM DIALOG (Bottom Sheet) */}
+      {confirmType && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setConfirmType(null)}>
+          <div className="w-full bg-white rounded-t-3xl p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
+            <h3 className="text-lg font-bold text-center">
+              {confirmType === 'end' ? 'Fahrt beenden?' : 'Fahrt absagen?'}
+            </h3>
+            <p className="text-sm text-slate-500 text-center pb-2">
+              {confirmType === 'end'
+                ? 'Die Fahrt wird als abgeschlossen markiert.'
+                : 'Die Fahrt und alle Buchungen werden gelöscht.'}
+            </p>
+            <Button
+              className={`w-full h-12 rounded-xl ${confirmType === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+              onClick={() => {
+                if (confirmType === 'end') {
+                  setConfirmType(null);
+                  startUndoCountdown();
+                } else {
+                  executeCancelRide();
+                }
+              }}
+            >
+              {confirmType === 'end' ? 'Ja, beenden' : 'Ja, absagen'}
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setConfirmType(null)}>
+              Abbrechen
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* UNDO TOAST */}
+      {undoVisible && (
+        <div className="fixed bottom-8 left-4 right-4 bg-slate-900 text-white rounded-2xl p-4 z-50 flex items-center justify-between shadow-2xl">
+          <div>
+            <p className="text-sm font-bold">Fahrt wird beendet...</p>
+            <p className="text-xs text-slate-400">Rückgängig möglich ({undoCountdown}s)</p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/30 text-white hover:bg-white/10 hover:text-white shrink-0 gap-1"
+            onClick={handleUndo}
+          >
+            <RotateCcw size={14} /> Rückgängig
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

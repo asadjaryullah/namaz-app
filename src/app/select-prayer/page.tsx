@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ChevronLeft, Loader2, Settings, CheckCircle2 } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com"; 
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 const getIcon = (id: string) => {
   switch(id) {

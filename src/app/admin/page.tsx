@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+
 import {
   Loader2,
   Save,
@@ -18,10 +18,11 @@ import {
   X,
   MapPin,
   BellRing,
+  ChevronDown,
 } from "lucide-react";
 
 // 👇 Nur wer mit DIESER Email eingeloggt ist, darf die Seite sehen.
-const ADMIN_EMAIL = "asad.jaryullah@gmail.com";
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 type Org = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
 
@@ -52,11 +53,17 @@ export default function AdminPage() {
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showPastEvents, setShowPastEvents] = useState(false);
+  const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'events' | 'system'>('users');
 
   // Push states
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
+
+  // Cron-Test states
+  const [cronLogs, setCronLogs] = useState<string[]>([]);
+  const [cronTesting, setCronTesting] = useState(false);
 
   useEffect(() => {
     const run = async () => {
@@ -220,6 +227,25 @@ export default function AdminPage() {
     }
   };
 
+  // --- CRON TEST ---
+  const handleCronTest = async (mode: 'debug' | 'force') => {
+    setCronTesting(true);
+    setCronLogs([]);
+    try {
+      const secret = "asad0260_2026";
+      const params = mode === 'force'
+        ? `secret=${secret}&force=1`
+        : `secret=${secret}&debug=1`;
+      const res = await fetch(`/api/schedule-notifications?${params}`);
+      const json = await res.json().catch(() => ({}));
+      setCronLogs(json.logs || [`Status ${res.status}: Keine Logs`]);
+    } catch (e: any) {
+      setCronLogs([`Fehler: ${e?.message || 'unbekannt'}`]);
+    } finally {
+      setCronTesting(false);
+    }
+  };
+
   // --- EXPORT CSV ---
   const downloadCsv = async (tableName: string) => {
     const { data } = await supabase.from(tableName).select('*');
@@ -257,226 +283,308 @@ export default function AdminPage() {
   if (!isAuthorized) return null;
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 flex flex-col items-center pb-20">
+    <main className="min-h-screen bg-slate-100 flex flex-col items-center pb-20">
 
-      {/* HEADER */}
-      <div className="w-full max-w-md flex items-center justify-between mb-8">
-        <Button variant="ghost" onClick={() => router.push('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Zum Dashboard
+      {/* HEADER — sticky, kompakt */}
+      <div className="w-full bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-10 shadow-sm">
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => router.push('/')}>
+          <ArrowLeft className="h-5 w-5" />
         </Button>
-        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded border border-red-200 flex items-center gap-1">
-          <ShieldAlert size={12} /> ADMIN AREA
+        <h1 className="text-base font-bold text-slate-800">Admin-Bereich</h1>
+        <span className="bg-red-100 text-red-700 text-[10px] font-black px-2 py-0.5 rounded border border-red-200 flex items-center gap-1">
+          <ShieldAlert size={10} /> ADMIN
         </span>
       </div>
 
-      {/* 1. NUTZER FREIGABE */}
-      <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-blue-600">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="text-lg">Neue Anmeldungen</CardTitle>
-            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{pendingUsers.length}</span>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {pendingUsers.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">Keine offenen Anfragen.</p>
-          ) : (
-            pendingUsers.map((u) => (
-              <div key={u.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-lg border">
-                <div>
-                  <p className="font-bold text-sm">{u.full_name}</p>
-                  <p className="text-xs text-slate-500">{u.gender === 'male' ? 'Bruder' : 'Schwester'} • {u.member_id || 'Keine ID'}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="icon" variant="ghost" className="text-red-500 hover:bg-red-50 h-8 w-8" onClick={() => deleteUser(u.id)}>
-                    <X size={16} />
-                  </Button>
-                  <Button size="icon" className="bg-green-600 hover:bg-green-700 h-8 w-8" onClick={() => approveUser(u.id, u.full_name)}>
-                    <Check size={16} />
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md p-4 space-y-4">
 
-      {/* 2. VERANSTALTUNGEN */}
-      <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white border-l-4 border-l-orange-500">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CalendarPlus className="text-orange-500" />
-            <CardTitle>Veranstaltungen</CardTitle>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {/* NEW EVENT FORM */}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-slate-500">Neuer Termin:</label>
-
-            <Input
-              placeholder="Titel (z.B. Ijtema / Jalsa / Tarbiyyat)"
-              value={newEventTitle}
-              onChange={e => setNewEventTitle(e.target.value)}
-            />
-
-            {/* Location */}
-            <div className="relative">
-              <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <Input
-                className="pl-9"
-                placeholder="Ort (z.B. Bashier Moschee)"
-                value={newEventLocation}
-                onChange={e => setNewEventLocation(e.target.value)}
-              />
-            </div>
-
-            {/* Org Dropdown */}
-            <label className="text-[10px] text-slate-500 uppercase font-bold">Unterorganisation</label>
-            <select
-              value={newEventOrg}
-              onChange={(e) => setNewEventOrg(e.target.value as Org)}
-              className="w-full h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+        {/* TABS */}
+        <div className="flex gap-1.5">
+          {([
+            ['users',  '👥', 'Anmeldungen'],
+            ['events', '📅', 'Termine'],
+            ['system', '⚙️', 'System'],
+          ] as const).map(([tab, icon, label]) => (
+            <button
+              key={tab}
+              onClick={() => setActiveAdminTab(tab)}
+              className={`flex-1 py-2.5 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-0.5
+                ${activeAdminTab === tab
+                  ? 'bg-slate-900 text-white shadow-lg'
+                  : 'bg-white text-slate-500 hover:text-slate-800 border border-slate-200'}`}
             >
-              <option value="jamaat">Jamaat</option>
-              <option value="ansar">Ansar</option>
-              <option value="khuddam">Khuddam</option>
-              <option value="atfal">Atfal</option>
-              <option value="lajna">Lajna</option>
-              <option value="nasirat">Nasirat</option>
-            </select>
-
-            {/* Start / End */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-bold">Start</label>
-                <Input
-                  type="datetime-local"
-                  value={newEventStart}
-                  onChange={e => setNewEventStart(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-500 uppercase font-bold">Ende (Optional)</label>
-                <Input
-                  type="datetime-local"
-                  value={newEventEnd}
-                  onChange={e => setNewEventEnd(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Button
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={handleAddEvent}
-              disabled={saving}
-            >
-              {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-              Hinzufügen
-            </Button>
-          </div>
-
-          {/* LIST */}
-          <div className="pt-4 border-t space-y-2">
-            <label className="text-xs font-bold text-slate-500 mb-2 block">Geplante Termine:</label>
-
-            {events.length === 0 ? (
-              <p className="text-sm text-slate-400">Keine Termine.</p>
-            ) : events.map(e => (
-              <div key={e.id} className="flex justify-between items-center bg-slate-50 p-2 rounded text-sm border">
-                <div>
-                  <p className="font-bold">{e.title}</p>
-
-                  {/* Org */}
-                  {e.org && (
-                    <p className="text-[10px] font-bold uppercase text-slate-500 mt-0.5">
-                      {ORG_LABEL[(e.org as Org) ?? 'jamaat']}
-                    </p>
-                  )}
-
-                  {/* Location */}
-                  {e.location && (
-                    <p className="text-xs text-slate-500 flex items-center gap-1 mt-1">
-                      <MapPin className="h-3 w-3" /> {e.location}
-                    </p>
-                  )}
-
-                  <p className="text-xs text-slate-500 mt-1">
-                    {new Date(e.event_date).toLocaleString('de-DE')}
-                    {e.event_end_date ? ` – ${new Date(e.event_end_date).toLocaleString('de-DE')}` : ''}
-                  </p>
-                </div>
-
-                <button onClick={() => handleDeleteEvent(e.id)} className="text-red-400 hover:text-red-600">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 2b. PUSH */}
-      <Card className="w-full max-w-md shadow-md border-0 mb-6 bg-white">
-        <CardHeader>
-          <div className="flex items-center gap-2 text-slate-900">
-            <BellRing className="text-blue-600" />
-            <CardTitle>Push Nachricht</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)} />
-          <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)} />
-
-          <Button
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={handleSendPush}
-            disabled={sendingPush}
-          >
-            {sendingPush ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-            Senden
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* 3. GEBETSZEITEN */}
-      <Card className="w-full max-w-md shadow-xl border-t-4 border-t-red-600 mb-6">
-        <CardHeader><CardTitle>Gebetszeiten</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {prayers.map((prayer) => (
-            <div key={prayer.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-              <span className="font-bold text-slate-700 w-24 capitalize">{prayer.name}</span>
-              <Input
-                type="time"
-                value={prayer.time}
-                onChange={(e) => handleTimeChange(prayer.id, e.target.value)}
-                className="w-32 font-mono text-center text-lg border-slate-300 focus:ring-red-500"
-              />
-            </div>
+              <span className="text-base">{icon}</span>
+              <span className="text-[10px] uppercase tracking-wide">{label}</span>
+              {tab === 'users' && pendingUsers.length > 0 && (
+                <span className={`text-[9px] font-black px-1.5 rounded-full ${activeAdminTab === 'users' ? 'bg-white text-slate-900' : 'bg-red-500 text-white'}`}>
+                  {pendingUsers.length}
+                </span>
+              )}
+            </button>
           ))}
-          <Button
-            className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white h-12 text-lg"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            {saving ? <Loader2 className="animate-spin mr-2" /> : <Save className="mr-2 h-5 w-5" />}
-            Speichern
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* 4. EXPORT */}
-      <Card className="w-full max-w-md shadow-sm border-0 bg-slate-50">
-        <CardHeader><CardTitle className="text-base text-slate-500">Daten Export (CSV)</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3">
-          <Button variant="outline" onClick={() => downloadCsv('rides')}><Download className="mr-2 h-4 w-4" /> Fahrten</Button>
-          <Button variant="outline" onClick={() => downloadCsv('bookings')}><Download className="mr-2 h-4 w-4" /> Buchungen</Button>
-          <Button variant="outline" onClick={() => downloadCsv('profiles')}><Download className="mr-2 h-4 w-4" /> Profile</Button>
-          <Button variant="outline" onClick={() => downloadCsv('mosque_visits')}><Download className="mr-2 h-4 w-4" /> Besuche</Button>
-        </CardContent>
-      </Card>
+        {/* ── TAB: ANMELDUNGEN ── */}
+        {activeAdminTab === 'users' && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            {pendingUsers.length === 0 ? (
+              <div className="text-center py-12 bg-white rounded-2xl border border-slate-200">
+                <p className="text-3xl mb-2">✅</p>
+                <p className="text-sm font-bold text-slate-700">Alles erledigt</p>
+                <p className="text-xs text-slate-400 mt-1">Keine offenen Anfragen.</p>
+              </div>
+            ) : (
+              pendingUsers.map((u) => (
+                <div key={u.id} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-600 shrink-0">
+                    {u.full_name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-slate-900 truncate">{u.full_name}</p>
+                    <p className="text-xs text-slate-400">{u.gender === 'male' ? 'Bruder' : 'Schwester'} · {u.member_id || 'Keine ID'}</p>
+                  </div>
+                  <div className="flex gap-1.5 shrink-0">
+                    <button
+                      onClick={() => deleteUser(u.id)}
+                      className="w-9 h-9 rounded-full bg-red-50 text-red-500 hover:bg-red-100 flex items-center justify-center transition-colors"
+                    >
+                      <X size={15} />
+                    </button>
+                    <button
+                      onClick={() => approveUser(u.id, u.full_name)}
+                      className="w-9 h-9 rounded-full bg-green-500 text-white hover:bg-green-600 flex items-center justify-center transition-colors"
+                    >
+                      <Check size={15} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
+        {/* ── TAB: TERMINE ── */}
+        {activeAdminTab === 'events' && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+
+            {/* Formular */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Neuer Termin</p>
+
+              <Input
+                placeholder="Titel (z.B. Ijtema / Jalsa)"
+                value={newEventTitle}
+                onChange={e => setNewEventTitle(e.target.value)}
+                className="bg-slate-50 border-slate-200"
+              />
+
+              <div className="relative">
+                <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  className="pl-9 bg-slate-50 border-slate-200"
+                  placeholder="Ort (optional)"
+                  value={newEventLocation}
+                  onChange={e => setNewEventLocation(e.target.value)}
+                />
+              </div>
+
+              <select
+                value={newEventOrg}
+                onChange={(e) => setNewEventOrg(e.target.value as Org)}
+                className="w-full h-10 rounded-md border border-slate-200 bg-slate-50 px-3 text-sm"
+              >
+                <option value="jamaat">Jamaat</option>
+                <option value="ansar">Ansar</option>
+                <option value="khuddam">Khuddam</option>
+                <option value="atfal">Atfal</option>
+                <option value="lajna">Lajna</option>
+                <option value="nasirat">Nasirat</option>
+              </select>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-bold">Start</label>
+                  <Input type="datetime-local" value={newEventStart} onChange={e => setNewEventStart(e.target.value)} className="bg-slate-50 border-slate-200" />
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase font-bold">Ende</label>
+                  <Input type="datetime-local" value={newEventEnd} onChange={e => setNewEventEnd(e.target.value)} className="bg-slate-50 border-slate-200" />
+                </div>
+              </div>
+
+              <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddEvent} disabled={saving}>
+                {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CalendarPlus size={15} className="mr-2" />}
+                Hinzufügen
+              </Button>
+            </div>
+
+            {/* Eventliste */}
+            {(() => {
+              const now = new Date();
+              const upcomingEvents = events.filter(e => new Date(e.event_end_date || e.event_date) >= now);
+              const pastEvents = events.filter(e => new Date(e.event_end_date || e.event_date) < now).reverse();
+
+              const EventRow = ({ e }: { e: any }) => (
+                <div className="flex items-start gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-bold text-sm text-slate-900">{e.title}</p>
+                      {e.org && (
+                        <span className="text-[9px] font-black uppercase bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded-full">
+                          {ORG_LABEL[(e.org as Org) ?? 'jamaat']}
+                        </span>
+                      )}
+                    </div>
+                    {e.location && (
+                      <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                        <MapPin size={10} /> {e.location}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {new Date(e.event_date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <button onClick={() => handleDeleteEvent(e.id)} className="text-slate-300 hover:text-red-500 transition-colors shrink-0 mt-0.5">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              );
+
+              return (
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Kommend ({upcomingEvents.length})</p>
+                  {upcomingEvents.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic text-center bg-white rounded-xl p-4 border border-slate-200">Keine kommenden Termine.</p>
+                  ) : (
+                    upcomingEvents.map(e => <EventRow key={e.id} e={e} />)
+                  )}
+
+                  {pastEvents.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setShowPastEvents(v => !v)}
+                        className="flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 mt-1 transition-colors"
+                      >
+                        <ChevronDown size={13} className={`transition-transform duration-200 ${showPastEvents ? 'rotate-180' : ''}`} />
+                        {showPastEvents ? 'Ausblenden' : `${pastEvents.length} vergangene anzeigen`}
+                      </button>
+                      {showPastEvents && (
+                        <div className="mt-2 space-y-2 opacity-50">
+                          {pastEvents.map(e => <EventRow key={e.id} e={e} />)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── TAB: SYSTEM ── */}
+        {activeAdminTab === 'system' && (
+          <div className="space-y-4 animate-in fade-in duration-200">
+
+            {/* Gebetszeiten */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Gebetszeiten</p>
+              <div className="space-y-2">
+                {prayers.map((prayer) => (
+                  <div key={prayer.id} className="flex items-center justify-between gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="font-bold text-slate-700 text-sm capitalize w-20">{prayer.name}</span>
+                    <Input
+                      type="time"
+                      value={prayer.time}
+                      onChange={(e) => handleTimeChange(prayer.id, e.target.value)}
+                      className="w-28 font-mono text-center border-slate-200 bg-white h-9"
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white" onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save size={15} className="mr-2" />}
+                Speichern
+              </Button>
+            </div>
+
+            {/* Push */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <BellRing size={12} /> Push Nachricht
+              </p>
+              <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)} className="bg-slate-50 border-slate-200" />
+              <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)} className="bg-slate-50 border-slate-200" />
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white" onClick={handleSendPush} disabled={sendingPush}>
+                {sendingPush ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                Senden
+              </Button>
+            </div>
+
+            {/* Cron / Push Diagnose */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <BellRing size={12} /> Cron / Push Diagnose
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => handleCronTest('debug')}
+                  disabled={cronTesting}
+                  className="text-xs"
+                >
+                  {cronTesting ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : null}
+                  Debug (trocken)
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleCronTest('force')}
+                  disabled={cronTesting}
+                  className="text-xs bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {cronTesting ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : null}
+                  Push sofort senden
+                </Button>
+              </div>
+              {cronLogs.length > 0 && (
+                <div className="bg-slate-950 rounded-xl p-3 space-y-0.5 max-h-48 overflow-y-auto">
+                  {cronLogs.map((log, i) => (
+                    <p key={i} className={`text-[11px] font-mono leading-relaxed
+                      ${log.startsWith('✅') ? 'text-green-400' :
+                        log.startsWith('❌') ? 'text-red-400' :
+                        log.startsWith('⚠️') ? 'text-yellow-400' :
+                        'text-slate-400'}`}>
+                      {log}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Export */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <Download size={12} /> Export (CSV)
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={() => downloadCsv('rides')} className="text-xs justify-start">
+                  <Download size={12} className="mr-1.5" /> Fahrten
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadCsv('bookings')} className="text-xs justify-start">
+                  <Download size={12} className="mr-1.5" /> Buchungen
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadCsv('profiles')} className="text-xs justify-start">
+                  <Download size={12} className="mr-1.5" /> Profile
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => downloadCsv('mosque_visits')} className="text-xs justify-start">
+                  <Download size={12} className="mr-1.5" /> Besuche
+                </Button>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </div>
     </main>
   );
 }
