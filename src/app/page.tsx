@@ -53,30 +53,30 @@ export default function HomePage() {
         }
 
         if(mounted) setUser(session.user);
-        
-        // Profil laden
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
 
-        if (mounted && profileData) {
-           setProfile(profileData);
-        }
+        // Berlin-Datum konsistent mit dem Backend
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
 
-        const today = new Date().toLocaleDateString('en-CA');
-        
-        // Fahrten laden
-        const { data: driverRide } = await supabase.from('rides').select('*').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle();
-        if(mounted && driverRide) setActiveDriverRide(driverRide);
+        // Alle Queries parallel
+        const [
+          { data: profileData, error: profileErr },
+          { data: driverRide },
+          { data: myBooking },
+          { data: events, error: eventsErr },
+        ] = await Promise.all([
+          supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
+          supabase.from('rides').select('id').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
+          supabase.from('bookings').select('ride_id, rides!inner(status, ride_date)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
+          supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
+        ]);
 
-        const { data: myBooking } = await supabase.from('bookings').select('ride_id, rides!inner(status, ride_date)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle();
+        if (profileErr) console.error("Profil Fehler:", profileErr.message);
+        if (eventsErr) console.error("Events Fehler:", eventsErr.message);
+
+        if (mounted && profileData) setProfile(profileData);
+        if (mounted && driverRide) setActiveDriverRide(driverRide);
         if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
-
-        // Events laden
-        const { data: events } = await supabase.from('mosque_events').select('*').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3);
-        if(mounted && events) setUpcomingEvents(events);
+        if (mounted && events) setUpcomingEvents(events);
 
       } catch (error) {
         console.error("Start Fehler:", error);

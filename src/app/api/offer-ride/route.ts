@@ -10,8 +10,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-const APP_ID =
-  process.env.ONESIGNAL_APP_ID || "595fdd83-68b2-498a-8ca6-66fd1ae7be8e";
+const APP_ID = process.env.ONESIGNAL_APP_ID!;
 const OS_KEY = process.env.ONESIGNAL_REST_API_KEY!;
 
 // Optionaler Schutz (kannst du setzen, musst du nicht)

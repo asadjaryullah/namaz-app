@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     const email = (userData.user.email || "").toLowerCase().trim();
-    if (email !== ADMIN_EMAIL.toLowerCase().trim()) {
+    if (!ADMIN_EMAIL || email !== ADMIN_EMAIL.toLowerCase().trim()) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 

@@ -18,7 +18,7 @@ export default function ProfileBar() {
   const fetchProfile = async (uid: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("full_name")
       .eq("id", uid)
       .maybeSingle();
 

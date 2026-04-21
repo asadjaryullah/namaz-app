@@ -78,23 +78,24 @@ export default function MosqueDetector() {
         .maybeSingle();
 
       // Check Fahrten (Falls er Fahrer war)
+      // rides.prayer_id speichert lowercase Namen wie "fajr", nicht UUIDs
       const { data: existingRide } = await supabase
         .from('rides')
-        .select('*')
+        .select('id')
         .eq('driver_id', user.id)
         .eq('ride_date', today)
-        .eq('prayer_id', activePrayer.id)
+        .eq('prayer_id', activePrayer.name.toLowerCase())
         .maybeSingle();
 
       // Wenn noch NICHTS da ist -> Eintragen!
       if (!existingVisit && !existingRide) {
-        
-        // Eintragen
-        await supabase.from('mosque_visits').insert({
+
+        // upsert verhindert Race-Condition bei Doppelklick
+        await supabase.from('mosque_visits').upsert({
           user_id: user.id,
           prayer_name: activePrayer.name,
           visit_date: today
-        });
+        }, { onConflict: 'user_id,prayer_name,visit_date', ignoreDuplicates: true });
 
         // Benachrichtigen & Weiterleiten
         if (Notification.permission === 'granted') {

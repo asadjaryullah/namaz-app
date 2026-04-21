@@ -69,7 +69,7 @@ export default function AdminPage() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
+      if (!ADMIN_EMAIL || !user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
         alert("Zugriff verweigert! Du bist nicht als Admin erkannt.");
         router.push('/');
         return;
@@ -80,7 +80,7 @@ export default function AdminPage() {
       // Gebetszeiten
       const { data: prayersData } = await supabase
         .from('prayer_times')
-        .select('*')
+        .select('id,name,time,sort_order')
         .order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
@@ -100,7 +100,7 @@ export default function AdminPage() {
   const fetchEvents = async () => {
     const { data } = await supabase
       .from('mosque_events')
-      .select('*')
+      .select('id,title,location,org,event_date,event_end_date')
       .order('event_date', { ascending: true });
     if (data) setEvents(data);
   };
@@ -109,7 +109,7 @@ export default function AdminPage() {
   const fetchPendingUsers = async () => {
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id,full_name,gender,member_id,is_approved')
       .eq('is_approved', false)
       .order('full_name', { ascending: true });
     if (data) setPendingUsers(data);
@@ -232,11 +232,18 @@ export default function AdminPage() {
     setCronTesting(true);
     setCronLogs([]);
     try {
-      const secret = "asad0260_2026";
-      const params = mode === 'force'
-        ? `secret=${secret}&force=1`
-        : `secret=${secret}&debug=1`;
-      const res = await fetch(`/api/schedule-notifications?${params}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Nicht eingeloggt.");
+
+      const res = await fetch('/api/admin/cron-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mode }),
+      });
       const json = await res.json().catch(() => ({}));
       setCronLogs(json.logs || [`Status ${res.status}: Keine Logs`]);
     } catch (e: any) {
