@@ -10,6 +10,7 @@ import ProfileBar from "@/components/ProfileBar";
 import MosqueDetector from "@/components/MosqueDetector";
 import InstallPrompt from "@/components/InstallPrompt";
 import OneSignalInit from "@/components/OneSignalInit";
+import NotificationManager from "@/components/NotificationManager";
 
 // Provider
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -51,6 +52,7 @@ export default function RootLayout({
         <AuthProvider>
           {/* Background services */}
           <OneSignalInit />
+          <NotificationManager />
           <InstallPrompt />
           <MosqueDetector />
 
