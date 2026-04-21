@@ -7,9 +7,10 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Car, User, Settings, Loader2, AlertTriangle, MapPin, Calendar, ArrowRight } from "lucide-react";
-import MapComponent from '@/components/MapComponent'; 
-import OneSignal from 'react-onesignal'; 
-import ZikrWidget from '@/components/ZikrWidget'; 
+import MapComponent from '@/components/MapComponent';
+import OneSignal from 'react-onesignal';
+import ZikrWidget from '@/components/ZikrWidget';
+import NextPrayerBanner from '@/components/NextPrayerBanner';
 import { waitForOneSignalReady } from '@/lib/onesignal';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
@@ -118,41 +119,51 @@ export default function HomePage() {
     );
   }
 
-  // --- ANSICHT: NICHT EINGELOGGT (Startseite mit Arabisch) ---
+  // --- ANSICHT: NICHT EINGELOGGT ---
   if (!user) {
     return (
-      <main className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 gap-8 animate-in fade-in duration-500">
-        <div className="flex flex-col items-center text-center">
-          
+      <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 animate-in fade-in duration-700 relative overflow-hidden">
+        {/* Atmosphärischer Hintergrund-Glow */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-950/60 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-64 h-64 bg-slate-900/80 rounded-full blur-3xl" />
+        </div>
+
+        <div className="flex flex-col items-center text-center relative z-10 w-full max-w-xs">
           {/* Logo */}
-          <div className="relative w-[450px] max-w-[90vw] h-[350px] mb-4">
+          <div className="relative w-[260px] h-[200px] mb-2 opacity-95">
             <Image src="/icon.png" alt="Logo" fill className="object-contain" priority />
           </div>
-          
-          <h1 className="text-3xl font-extrabold text-slate-900 mb-6">Ride 2 Salah</h1>
-          
-          {/* 👇 HIER IST DER ARABISCHE TEXT WIEDER DRIN 👇 */}
-          <div className="space-y-6 mt-2">
+
+          <h1 className="text-2xl font-extrabold text-white tracking-tight">Ride 2 Salah</h1>
+          <p className="text-slate-600 text-[10px] uppercase tracking-[0.2em] mt-1 mb-10">Bashier Moschee · Bensheim</p>
+
+          {/* Arabischer Text */}
+          <div className="space-y-7 mb-12 w-full">
             <div className="flex flex-col items-center gap-2">
-              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
+              <p className="text-5xl text-amber-200/80 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
                 حَيَّ عَلَىٰ ٱلصَّلَاةِ
               </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Gebet"</p>
+              <p className="text-[9px] text-slate-600 uppercase tracking-[0.25em]">"Kommt zum Gebet"</p>
             </div>
+            <div className="h-px w-16 bg-slate-800 mx-auto" />
             <div className="flex flex-col items-center gap-2">
-              <p className="text-4xl text-slate-800 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
+              <p className="text-5xl text-amber-200/80 leading-relaxed" style={{ fontFamily: 'var(--font-amiri)' }}>
                 حَيَّ عَلَىٰ ٱلْفَلَاحِ
               </p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-medium">"Kommt zum Erfolg"</p>
+              <p className="text-[9px] text-slate-600 uppercase tracking-[0.25em]">"Kommt zum Erfolg"</p>
             </div>
           </div>
-          {/* 👆 ------------------------------------------ 👆 */}
 
-          <div className="w-full max-w-xs space-y-4 mt-8">
-            <Button size="lg" className="w-full h-14 text-lg bg-slate-900 hover:bg-slate-800 text-white rounded-2xl shadow-xl transition-transform active:scale-95" onClick={() => router.push('/login')}>
+          <div className="w-full space-y-3">
+            <Button
+              size="lg"
+              className="w-full h-14 text-base font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl shadow-2xl shadow-emerald-950 transition-all active:scale-95"
+              onClick={() => router.push('/login')}
+            >
               Anmelden
             </Button>
-            <p className="text-xs text-center text-slate-400">Einloggen via Code (Sicher)</p>
+            <p className="text-xs text-center text-slate-700">Einloggen via Code — kein Passwort nötig</p>
           </div>
         </div>
       </main>
@@ -166,16 +177,19 @@ export default function HomePage() {
   const missingData = !profile?.phone || !profile?.gender || !profile?.member_id;
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-6 pb-20">
-      
-      <div className="mt-4">
-        <h1 className="text-3xl font-bold text-slate-900">Salam, {firstName}! 👋🏼</h1>
-        <p className="text-slate-500">Wie möchtest du heute zur Moschee?</p>
+    <main className="min-h-screen bg-slate-50 flex flex-col p-6 gap-5 pb-20">
+
+      {/* Nächstes Gebet Banner */}
+      <NextPrayerBanner />
+
+      <div className="mt-1">
+        <h1 className="text-2xl font-bold text-slate-900">Salam, {firstName}! 👋🏼</h1>
+        <p className="text-slate-400 text-sm">Wie möchtest du heute zur Moschee?</p>
       </div>
 
-      <div className="flex justify-center my-6"> 
-        <div className="relative w-24 h-24 drop-shadow-sm hover:scale-105 transition-transform duration-300">
-          <Image src="/jubilaeum.png" alt="20 Jahre Jubiläum" fill className="object-contain" />
+      <div className="flex justify-center">
+        <div className="relative w-16 h-16 drop-shadow-sm hover:scale-105 transition-transform duration-300 opacity-70">
+          <Image src="/jubilaeum.png" alt="Jubiläum" fill className="object-contain" />
         </div>
       </div>
 
@@ -251,16 +265,25 @@ export default function HomePage() {
       )}
 
       {(isApproved || isAdmin) && (
-        <div className="grid grid-cols-1 gap-4 mt-4">
-          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=driver')}>
-            <div className="bg-slate-100 p-4 rounded-full h-16 w-16 flex items-center justify-center"><Car size={32} className="text-slate-900" /></div>
-            <div><h2 className="text-xl font-bold text-slate-900">Fahrer</h2><p className="text-sm text-slate-500">Ich biete Plätze an</p></div>
-          </Card>
-
-          <Card className="p-6 flex items-center gap-5 cursor-pointer bg-white rounded-2xl shadow-sm hover:shadow-md" onClick={() => router.push('/select-prayer?role=passenger')}>
-            <div className="bg-blue-50 p-4 rounded-full h-16 w-16 flex items-center justify-center"><User size={32} className="text-blue-600" /></div>
-            <div><h2 className="text-xl font-bold text-slate-900">Mitfahrer</h2><p className="text-sm text-slate-500">Ich suche eine Fahrt</p></div>
-          </Card>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push('/select-prayer?role=driver')}
+            className="bg-slate-900 rounded-2xl p-5 text-white text-left hover:bg-slate-800 transition-all active:scale-95 shadow-lg group relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/5 rounded-full -translate-y-8 translate-x-8" />
+            <Car size={26} className="mb-4 text-slate-400 group-hover:text-slate-200 transition-colors" />
+            <p className="font-black text-lg leading-none">Fahrer</p>
+            <p className="text-slate-500 text-xs mt-1.5">Plätze anbieten</p>
+          </button>
+          <button
+            onClick={() => router.push('/select-prayer?role=passenger')}
+            className="bg-emerald-700 rounded-2xl p-5 text-white text-left hover:bg-emerald-600 transition-all active:scale-95 shadow-lg shadow-emerald-900/30 group relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-8 translate-x-8" />
+            <User size={26} className="mb-4 text-emerald-300 group-hover:text-white transition-colors" />
+            <p className="font-black text-lg leading-none">Mitfahrer</p>
+            <p className="text-emerald-300/80 text-xs mt-1.5">Fahrt suchen</p>
+          </button>
         </div>
       )}
 
