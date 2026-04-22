@@ -62,24 +62,30 @@ export default function NextPrayerBanner() {
   const isClose = next.minsLeft <= 30;
 
   return (
-    <div className={`w-full rounded-2xl p-4 text-white relative overflow-hidden ${isClose ? 'bg-gradient-to-r from-emerald-800 to-emerald-700' : 'bg-gradient-to-r from-slate-900 to-slate-800'}`}>
-      {/* Subtiles Muster */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-12 translate-x-12" />
-        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white rounded-full translate-y-8 -translate-x-8" />
-      </div>
+    <div className={`w-full rounded-2xl p-4 relative overflow-hidden transition-all duration-500 ${
+      isClose
+        ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200'
+        : 'bg-white border border-slate-100 shadow-sm'
+    }`}>
+      {/* Dekoratives Element */}
+      <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full opacity-10 ${isClose ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+      {isClose && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-2 border-emerald-400 animate-pulse-ring" />
+      )}
 
       <div className="relative z-10">
-        <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ${isClose ? 'text-emerald-300' : 'text-slate-400'}`}>
+        <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ${isClose ? 'text-emerald-600' : 'text-slate-400'}`}>
           {isClose ? '🕌 Gleich ist Gebet' : 'Nächstes Gebet'}
         </p>
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-3xl font-black leading-none">{next.name}</p>
-            <p className={`text-sm mt-1 ${isClose ? 'text-emerald-300' : 'text-slate-400'}`}>{next.time} Uhr</p>
+            <p className={`text-3xl font-black leading-none ${isClose ? 'text-emerald-800' : 'text-slate-900'}`}>
+              {next.name}
+            </p>
+            <p className={`text-sm mt-1 ${isClose ? 'text-emerald-500' : 'text-slate-400'}`}>{next.time} Uhr</p>
           </div>
           <div className="text-right">
-            <p className={`text-4xl font-black leading-none tabular-nums ${isClose ? 'text-emerald-200' : 'text-white'}`}>
+            <p className={`text-4xl font-black leading-none tabular-nums ${isClose ? 'text-emerald-700' : 'text-slate-700'}`}>
               {countdown}
             </p>
           </div>

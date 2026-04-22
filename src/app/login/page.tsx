@@ -104,20 +104,24 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-blue-100/50 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-emerald-100/40 rounded-full blur-3xl" />
+      </div>
 
       <div className="absolute top-6 left-6">
-        <Button variant="ghost" className="text-slate-400 hover:text-white hover:bg-slate-800" onClick={() => router.push('/')}>
+        <Button variant="ghost" className="text-slate-500 hover:text-slate-900 hover:bg-slate-100" onClick={() => router.push('/')}>
           <ChevronLeft className="mr-2 h-4 w-4" /> Zurück
         </Button>
       </div>
 
-      <Card className="w-full max-w-sm shadow-2xl border-slate-800 bg-slate-900">
+      <Card className="w-full max-w-sm shadow-xl border-slate-100 bg-white animate-in fade-in slide-in-from-bottom-4 duration-500">
         <CardHeader className="text-center pb-2">
-          <CardTitle className="text-2xl font-bold text-white">
+          <CardTitle className="text-2xl font-bold text-slate-900">
             {step === 'input' ? 'Anmelden' : 'Code eingeben'}
           </CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription className="text-slate-400">
             {step === 'input'
               ? 'Gib deine Daten ein, um den Zugangscode zu erhalten.'
               : `Code wurde an ${email} gesendet.`}
@@ -132,7 +136,7 @@ export default function LoginPage() {
               {/* Google Button */}
               <Button
                 variant="outline"
-                className="w-full h-12 text-md font-medium border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 flex items-center gap-2 mb-4"
+                className="w-full h-12 text-md font-medium border-slate-200 hover:bg-slate-50 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-2 mb-4"
                 onClick={handleGoogleLogin}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -144,10 +148,10 @@ export default function LoginPage() {
                 Weiter mit Google
               </Button>
 
-              <div className="flex items-center gap-2 text-xs text-slate-600 uppercase my-2">
-                <div className="h-px bg-slate-800 flex-1"></div>
+              <div className="flex items-center gap-2 text-xs text-slate-400 uppercase my-2">
+                <div className="h-px bg-slate-200 flex-1"></div>
                 <span>oder manuell</span>
-                <div className="h-px bg-slate-800 flex-1"></div>
+                <div className="h-px bg-slate-200 flex-1"></div>
               </div>
 
               <form onSubmit={handleSendCode} className="space-y-4">
@@ -156,8 +160,8 @@ export default function LoginPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold uppercase text-slate-400 ml-1">Geschlecht *</label>
                   <div className="grid grid-cols-2 gap-2">
-                    <div onClick={() => setGender('male')} className={`cursor-pointer rounded-lg border p-2 text-center text-sm font-bold flex flex-col items-center transition-all ${gender === 'male' ? 'bg-slate-700 text-white border-slate-600' : 'bg-slate-800 text-slate-400 border-slate-700'}`}><span>🧔🏻‍♂️ Bruder</span></div>
-                    <div onClick={() => setGender('female')} className={`cursor-pointer rounded-lg border p-2 text-center text-sm font-bold flex flex-col items-center transition-all ${gender === 'female' ? 'bg-pink-900/80 text-pink-100 border-pink-800' : 'bg-slate-800 text-slate-400 border-slate-700'}`}><span>🧕🏻 Schwester</span></div>
+                    <div onClick={() => setGender('male')} className={`cursor-pointer rounded-xl border p-3 text-center text-sm font-bold flex flex-col items-center transition-all duration-200 hover:shadow-sm ${gender === 'male' ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}><span>🧔🏻‍♂️ Bruder</span></div>
+                    <div onClick={() => setGender('female')} className={`cursor-pointer rounded-xl border p-3 text-center text-sm font-bold flex flex-col items-center transition-all duration-200 hover:shadow-sm ${gender === 'female' ? 'bg-pink-600 text-white border-pink-600 shadow-md shadow-pink-100' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}><span>🧕🏻 Schwester</span></div>
                   </div>
                 </div>
 
@@ -187,9 +191,9 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {error && <div className="p-3 text-sm text-red-400 bg-red-950/50 rounded-md border border-red-900">{error}</div>}
+                {error && <div className="p-3 text-sm text-red-600 bg-red-50 rounded-xl border border-red-100 animate-in fade-in duration-300">{error}</div>}
 
-                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white mt-2 h-12 text-base font-bold rounded-xl" disabled={loading}>
+                <Button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white mt-2 h-12 text-base font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                   {loading ? <Loader2 className="animate-spin mr-2"/> : "Code anfordern ✨"}
                 </Button>
               </form>
@@ -208,9 +212,9 @@ export default function LoginPage() {
                 <p className="text-[10px] text-slate-400 ml-1">Schau in dein Email-Postfach.</p>
               </div>
 
-              {error && <div className="p-3 text-sm text-red-400 bg-red-950/50 rounded-md border border-red-900">{error}</div>}
+              {error && <div className="p-3 text-sm text-red-600 bg-red-50 rounded-xl border border-red-100 animate-in fade-in duration-300">{error}</div>}
 
-              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-500 text-white h-12 text-base font-bold rounded-xl" disabled={loading}>
+              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white h-12 text-base font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin mr-2"/> : "Bestätigen & Einloggen"}
               </Button>
               <div className="text-center">

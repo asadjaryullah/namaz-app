@@ -83,10 +83,10 @@ export default function ProfileBar() {
   const firstName = fullName.split(" ")[0] || "Nutzer";
 
   return (
-    <div className="w-full bg-slate-950 border-b border-slate-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+    <div className="w-full bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
       <button
         onClick={() => router.push("/")}
-        className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all duration-200 hover:scale-110"
         type="button"
       >
         <Home className="h-5 w-5" />
@@ -96,21 +96,21 @@ export default function ProfileBar() {
         <button
           type="button"
           onClick={() => router.push("/history")}
-          className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 cursor-pointer hover:bg-slate-800 hover:border-slate-700 transition-all active:scale-95 group mr-1"
+          className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 hover:shadow-sm transition-all duration-200 active:scale-95 group mr-1"
           title="Zum Logbuch"
         >
-          <span className="font-semibold text-sm text-slate-300 leading-none group-hover:text-emerald-400 transition-colors">
+          <span className="font-bold text-sm text-slate-900 leading-none group-hover:text-blue-600 transition-colors duration-200">
             Salam, {firstName} 👋🏼
           </span>
-          <div className="bg-slate-800 p-1 rounded-full border border-slate-700 group-hover:border-emerald-700">
-            <UserCircle className="h-4 w-4 text-slate-400 group-hover:text-emerald-400" />
+          <div className="bg-white p-1 rounded-full border border-slate-200 group-hover:border-blue-300 transition-colors duration-200">
+            <UserCircle className="h-4 w-4 text-slate-600 group-hover:text-blue-600 transition-colors duration-200" />
           </div>
         </button>
 
         <button
           type="button"
           onClick={() => router.push("/profile")}
-          className="p-2 text-slate-600 hover:text-slate-300 hover:bg-slate-800 rounded-full transition-colors"
+          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all duration-200 hover:scale-110"
         >
           <Settings className="h-5 w-5" />
         </button>
@@ -118,7 +118,7 @@ export default function ProfileBar() {
         <button
           type="button"
           onClick={handleLogout}
-          className="p-2 text-slate-600 hover:text-red-400 hover:bg-slate-800 rounded-full transition-colors"
+          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 hover:scale-110"
         >
           <LogOut className="h-5 w-5" />
         </button>
