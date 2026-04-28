@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings } from "lucide-react";
+import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell } from "lucide-react";
 import MapComponent from '@/components/MapComponent';
 import OneSignal from 'react-onesignal';
 import ZikrWidget from '@/components/ZikrWidget';
@@ -18,6 +18,7 @@ export default function HomePage() {
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [notifPerm, setNotifPerm] = useState<string>('granted'); // default: nicht anzeigen
   const [profile, setProfile] = useState<any>(null);
 
   const [activeDriverRide, setActiveDriverRide] = useState<any>(null);
@@ -66,6 +67,11 @@ export default function HomePage() {
         if (mounted && driverRide) setActiveDriverRide(driverRide);
         if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
         if (mounted && events) setUpcomingEvents(events);
+
+        // Notification permission check
+        if (mounted && typeof window !== 'undefined' && 'Notification' in window) {
+          setNotifPerm(Notification.permission);
+        }
 
       } catch (error) {
         console.error("Start Fehler:", error);
@@ -234,6 +240,37 @@ export default function HomePage() {
 
       {/* ── Nächstes Gebet ── */}
       <div className="stagger-2"><NextPrayerBanner /></div>
+
+      {/* ── Benachrichtigungen aktivieren ── */}
+      {notifPerm !== 'granted' && (
+        <div className="stagger-2 rounded-xl p-4 flex items-center justify-between gap-3 cursor-pointer"
+          style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}
+          onClick={async () => {
+            if (!('Notification' in window)) return;
+            if (notifPerm === 'denied') { router.push('/profile'); return; }
+            const result = await Notification.requestPermission();
+            setNotifPerm(result);
+            if (result === 'granted') {
+              try {
+                const anyOS = OneSignal as any;
+                if (anyOS?.User?.PushSubscription?.optIn) await anyOS.User.PushSubscription.optIn();
+              } catch (_) {}
+            }
+          }}>
+          <div className="flex items-center gap-3">
+            <Bell size={18} style={{ color: 'var(--app-gold)' }} />
+            <div>
+              <p className="text-sm font-bold" style={{ color: 'var(--app-gold)' }}>
+                {notifPerm === 'denied' ? 'Benachrichtigungen blockiert' : 'Gebets-Erinnerungen aktivieren'}
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>
+                {notifPerm === 'denied' ? 'Tippe um es in den Einstellungen zu entsperren' : '25 Min. vor jedem Gebet erinnert werden'}
+              </p>
+            </div>
+          </div>
+          <ArrowRight size={16} style={{ color: 'var(--app-gold)', flexShrink: 0 }} />
+        </div>
+      )}
 
       {/* ── Warnungen ── */}
       {missingData && (

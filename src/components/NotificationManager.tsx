@@ -1,76 +1,92 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { BellRing, X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import OneSignal from 'react-onesignal';
 
 export default function NotificationManager() {
   const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
-    // Prüfen, ob wir im Browser sind und ob der Nutzer schon gefragt wurde
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      // Nur anzeigen, wenn die Entscheidung noch "default" (offen) ist
-      if (Notification.permission === 'default') {
-        // Warte 5 Sekunden, bevor du fragst (nicht sofort nerven)
-        const timer = setTimeout(() => setShowPopup(true), 5000);
-        return () => clearTimeout(timer);
-      }
-    }
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    // Nur zeigen wenn noch nicht entschieden
+    if (Notification.permission !== 'default') return;
+
+    // Bereits dauerhaft weggeklickt?
+    if (sessionStorage.getItem('notif-dismissed') === '1') return;
+
+    // Nach 3s anzeigen
+    const t = setTimeout(() => setShowPopup(true), 3000);
+    return () => clearTimeout(t);
   }, []);
 
-  const enableNotifications = async () => {
-    // Wir nutzen jetzt die OneSignal-Funktion zum Fragen
+  const enable = async () => {
+    setShowPopup(false);
     try {
-      await OneSignal.Slidedown.promptPush();
+      // Direkt nativer Browser-Prompt — zuverlässigste Methode
+      const result = await Notification.requestPermission();
+      if (result === 'granted') {
+        // OneSignal nach Erlaubnis registrieren
+        try {
+          const anyOS = OneSignal as any;
+          if (anyOS?.User?.PushSubscription?.optIn) {
+            await anyOS.User.PushSubscription.optIn();
+          }
+        } catch (_) {}
+      }
     } catch (e) {
-      console.error("OneSignal Prompt Fehler:", e);
-      // Fallback: Native Browser Anfrage
-      Notification.requestPermission();
+      console.error('Notification request failed:', e);
     }
+  };
+
+  const dismiss = () => {
+    sessionStorage.setItem('notif-dismissed', '1');
     setShowPopup(false);
   };
 
   if (!showPopup) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[100] animate-in slide-in-from-bottom-5 fade-in duration-500">
-      <div className="bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 flex flex-col gap-3">
-        
-        <div className="flex justify-between items-start">
-          <div className="flex gap-3">
-            <div className="bg-blue-600 p-2 rounded-full h-10 w-10 flex items-center justify-center">
-              <BellRing size={20} className="text-white" />
+    <div className="fixed bottom-4 left-4 right-4 z-[100]"
+      style={{ animation: 'slide-up 0.4s ease' }}>
+      <div className="rounded-2xl p-4 flex flex-col gap-3"
+        style={{
+          background: 'var(--app-surface2)',
+          border: '1px solid var(--app-gold)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px var(--app-gold-dim)',
+        }}>
+
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex gap-3 items-start">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
+              <Bell size={18} style={{ color: 'var(--app-gold)' }} />
             </div>
             <div>
-              <h3 className="font-bold text-lg">Kein Gebet verpassen</h3>
-              <p className="text-slate-300 text-sm leading-tight mt-1">
-                Aktiviere Benachrichtigungen, damit Ride 2 Salah dich rechtzeitig erinnern kann.
+              <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>
+                Kein Gebet verpassen 🕌
+              </p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>
+                Erhalte Erinnerungen 25 Min. vor jedem Gebet.
               </p>
             </div>
           </div>
-          <button onClick={() => setShowPopup(false)} className="text-slate-400 hover:text-white">
-            <X size={20} />
+          <button onClick={dismiss} style={{ color: 'var(--app-text3)' }}>
+            <X size={18} />
           </button>
         </div>
 
-        <div className="flex gap-2 mt-1">
-          <Button 
-            className="flex-1 bg-white text-slate-900 hover:bg-slate-200"
-            onClick={enableNotifications}
-          >
-            Aktivieren
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="flex-1 text-slate-400 hover:text-white hover:bg-slate-800"
-            onClick={() => setShowPopup(false)}
-          >
+        <div className="flex gap-2">
+          <button onClick={enable} className="btn-gold flex-1 text-sm py-2.5">
+            Aktivieren ✨
+          </button>
+          <button onClick={dismiss}
+            className="flex-1 text-sm py-2.5 rounded-xl font-semibold"
+            style={{ background: 'var(--app-surface1)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}>
             Später
-          </Button>
+          </button>
         </div>
-
       </div>
     </div>
   );
