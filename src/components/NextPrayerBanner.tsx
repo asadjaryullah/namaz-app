@@ -15,6 +15,10 @@ function getBerlinMinutes() {
   return toMinutes(hhmm);
 }
 
+const PRAYER_ICONS: Record<string, string> = {
+  Fajr: '🌅', Dhuhr: '☀️', Asr: '🌤️', Maghrib: '🌇', Isha: '🌙',
+};
+
 export default function NextPrayerBanner() {
   const [next, setNext] = useState<{ name: string; time: string; minsLeft: number } | null>(null);
   const [prayers, setPrayers] = useState<Prayer[]>([]);
@@ -24,68 +28,72 @@ export default function NextPrayerBanner() {
       .from('prayer_times')
       .select('name,time')
       .order('sort_order')
-      .then(({ data }) => {
-        if (data) setPrayers(data);
-      });
+      .then(({ data }) => { if (data) setPrayers(data); });
   }, []);
 
   useEffect(() => {
     if (!prayers.length) return;
-
     const compute = () => {
       const nowMin = getBerlinMinutes();
       const upcoming = prayers
         .map(p => ({ ...p, minsLeft: toMinutes(p.time) - nowMin }))
         .filter(p => p.minsLeft > 0)
         .sort((a, b) => a.minsLeft - b.minsLeft);
-
       if (upcoming.length > 0) {
         setNext(upcoming[0]);
       } else {
-        // Letztes Gebet vorbei → nächstes ist Fajr morgen
         const first = prayers[0];
-        const minsLeft = 24 * 60 - nowMin + toMinutes(first.time);
-        setNext({ ...first, minsLeft });
+        setNext({ ...first, minsLeft: 24 * 60 - nowMin + toMinutes(first.time) });
       }
     };
-
     compute();
     const interval = setInterval(compute, 60_000);
     return () => clearInterval(interval);
   }, [prayers]);
 
-  if (!next) return <div className="h-24 w-full bg-slate-800/50 rounded-2xl animate-pulse" />;
+  if (!next) {
+    return (
+      <div className="h-24 w-full rounded-2xl animate-pulse"
+        style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }} />
+    );
+  }
 
   const hours = Math.floor(next.minsLeft / 60);
   const mins = next.minsLeft % 60;
   const countdown = hours > 0 ? `${hours}h ${mins}m` : `${mins} Min`;
   const isClose = next.minsLeft <= 30;
+  const icon = PRAYER_ICONS[next.name] || '🕌';
 
   return (
-    <div className={`w-full rounded-2xl p-4 relative overflow-hidden transition-all duration-500 ${
-      isClose
-        ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200'
-        : 'bg-white border border-slate-100 shadow-sm'
-    }`}>
-      {/* Dekoratives Element */}
-      <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full opacity-10 ${isClose ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+    <div className="w-full rounded-2xl p-4 relative overflow-hidden transition-all duration-500"
+      style={{
+        background: isClose ? 'var(--app-emerald-dim)' : 'var(--app-surface2)',
+        border: `1px solid ${isClose ? 'var(--app-emerald)' : 'var(--app-border)'}`,
+        boxShadow: isClose ? '0 4px 24px rgba(34,211,138,0.15)' : 'none',
+      }}>
       {isClose && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 rounded-full border-2 border-emerald-400 animate-pulse-ring" />
+        <div className="animate-pulse-ring absolute pointer-events-none"
+          style={{ top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(34,211,138,0.12)' }} />
       )}
-
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[68px] opacity-[0.07] select-none pointer-events-none leading-none">
+        {icon}
+      </div>
       <div className="relative z-10">
-        <p className={`text-[10px] uppercase tracking-widest font-bold mb-2 ${isClose ? 'text-emerald-600' : 'text-slate-400'}`}>
+        <p className="text-[10px] uppercase tracking-widest font-bold mb-2"
+          style={{ color: isClose ? 'var(--app-emerald)' : 'var(--app-text2)' }}>
           {isClose ? '🕌 Gleich ist Gebet' : 'Nächstes Gebet'}
         </p>
         <div className="flex items-end justify-between">
           <div>
-            <p className={`text-3xl font-black leading-none ${isClose ? 'text-emerald-800' : 'text-slate-900'}`}>
+            <p className="text-3xl font-extrabold leading-none"
+              style={{ color: 'var(--app-text)', letterSpacing: '-0.03em' }}>
               {next.name}
             </p>
-            <p className={`text-sm mt-1 ${isClose ? 'text-emerald-500' : 'text-slate-400'}`}>{next.time} Uhr</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--app-text2)' }}>{next.time} Uhr</p>
           </div>
           <div className="text-right">
-            <p className={`text-4xl font-black leading-none tabular-nums ${isClose ? 'text-emerald-700' : 'text-slate-700'}`}>
+            <p className="font-mono-app text-4xl font-bold leading-none tabular-nums"
+              style={{ color: isClose ? 'var(--app-emerald)' : 'var(--app-gold)', letterSpacing: '-0.02em' }}>
               {countdown}
             </p>
           </div>

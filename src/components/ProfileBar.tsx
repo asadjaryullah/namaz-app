@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { UserCircle, LogOut, Settings, Home } from "lucide-react";
+import { LogOut, Settings, Home } from "lucide-react";
 
 export default function ProfileBar() {
   const router = useRouter();
-
   const mounted = useRef(false);
   const lastUserId = useRef<string | null>(null);
 
@@ -18,10 +17,9 @@ export default function ProfileBar() {
   const fetchProfile = async (uid: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name,gender")
       .eq("id", uid)
       .maybeSingle();
-
     if (!mounted.current) return;
     if (!error) setProfile(data ?? null);
   };
@@ -30,15 +28,12 @@ export default function ProfileBar() {
     mounted.current = true;
 
     const init = async () => {
-      // lokal, stabil
       const { data: { session } } = await supabase.auth.getSession();
       if (!mounted.current) return;
-
       const u = session?.user ?? null;
       setUser(u);
       lastUserId.current = u?.id ?? null;
-
-      if (u) fetchProfile(u.id); // nicht await -> UI blockt nicht
+      if (u) fetchProfile(u.id);
       setLoading(false);
     };
 
@@ -46,30 +41,17 @@ export default function ProfileBar() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted.current) return;
-
       const u = session?.user ?? null;
-
-      // Nur reagieren, wenn sich user wirklich geändert hat
       const newId = u?.id ?? null;
       if (newId === lastUserId.current) return;
-
       lastUserId.current = newId;
       setUser(u);
-
-      if (!u) {
-        setProfile(null);
-        setLoading(false);
-        return;
-      }
-
-      fetchProfile(u.id); // nicht await
+      if (!u) { setProfile(null); setLoading(false); return; }
+      fetchProfile(u.id);
       setLoading(false);
     });
 
-    return () => {
-      mounted.current = false;
-      subscription.unsubscribe();
-    };
+    return () => { mounted.current = false; subscription.unsubscribe(); };
   }, []);
 
   const handleLogout = async () => {
@@ -81,46 +63,46 @@ export default function ProfileBar() {
 
   const fullName = profile?.full_name || user.user_metadata?.full_name || "";
   const firstName = fullName.split(" ")[0] || "Nutzer";
+  const emoji = profile?.gender === 'female' ? '🧕🏻' : '🧔🏻‍♂️';
 
   return (
-    <div className="w-full bg-white/95 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between shadow-sm sticky top-0 z-50">
-      <button
-        onClick={() => router.push("/")}
-        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all duration-200 hover:scale-110"
-        type="button"
-      >
-        <Home className="h-5 w-5" />
+    <div
+      className="w-full px-4 py-3 flex items-center justify-between sticky top-0 z-50 backdrop-blur-md"
+      style={{
+        background: 'color-mix(in srgb, var(--app-surface1) 90%, transparent)',
+        borderBottom: '1px solid var(--app-border)',
+      }}
+    >
+      {/* Home */}
+      <button onClick={() => router.push("/")} type="button"
+        className="w-9 h-9 flex items-center justify-center rounded-xl transition-all hover:scale-110"
+        style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}>
+        <Home className="h-4 w-4" />
+      </button>
+
+      {/* Name pill */}
+      <button type="button" onClick={() => router.push("/history")}
+        className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-all hover:scale-[1.02]"
+        style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+        <span className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>
+          Salam, {firstName}
+        </span>
+        <span className="text-base leading-none">{emoji}</span>
       </button>
 
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => router.push("/history")}
-          className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 hover:shadow-sm transition-all duration-200 active:scale-95 group mr-1"
-          title="Zum Logbuch"
-        >
-          <span className="font-bold text-sm text-slate-900 leading-none group-hover:text-blue-600 transition-colors duration-200">
-            Salam, {firstName} 👋🏼
-          </span>
-          <div className="bg-white p-1 rounded-full border border-slate-200 group-hover:border-blue-300 transition-colors duration-200">
-            <UserCircle className="h-4 w-4 text-slate-600 group-hover:text-blue-600 transition-colors duration-200" />
-          </div>
+        {/* Settings */}
+        <button type="button" onClick={() => router.push("/profile")}
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-all hover:scale-110"
+          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}>
+          <Settings className="h-4 w-4" />
         </button>
 
-        <button
-          type="button"
-          onClick={() => router.push("/profile")}
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-all duration-200 hover:scale-110"
-        >
-          <Settings className="h-5 w-5" />
-        </button>
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all duration-200 hover:scale-110"
-        >
-          <LogOut className="h-5 w-5" />
+        {/* Logout */}
+        <button type="button" onClick={handleLogout}
+          className="w-9 h-9 flex items-center justify-center rounded-xl transition-all hover:scale-110"
+          style={{ background: 'rgba(240,98,146,0.1)', border: '1px solid rgba(240,98,146,0.2)', color: 'var(--app-rose)' }}>
+          <LogOut className="h-4 w-4" />
         </button>
       </div>
     </div>

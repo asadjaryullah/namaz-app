@@ -2,66 +2,286 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS — Light (warmes Creme)
+═══════════════════════════════════════════ */
+:root {
+  --app-bg:          #f5f0e8;
+  --app-surface1:    #ede8df;
+  --app-surface2:    #ffffff;
+  --app-card:        #f8f4ee;
+  --app-border:      #ddd5c5;
+  --app-gold:        #a07820;
+  --app-gold-dim:    rgba(160,120,32,0.10);
+  --app-gold-glow:   rgba(160,120,32,0.20);
+  --app-emerald:     #16a06a;
+  --app-emerald-dim: rgba(22,160,106,0.10);
+  --app-rose:        #c0396e;
+  --app-blue:        #3a5fd9;
+  --app-blue-dim:    rgba(58,95,217,0.10);
+  --app-text:        #1a1408;
+  --app-text2:       #7a6a50;
+  --app-text3:       #b0a080;
+
+  /* shadcn/ui */
+  --background: 39 33% 93%;
+  --foreground: 30 40% 8%;
+  --card: 38 40% 97%;
+  --card-foreground: 30 40% 8%;
+  --popover: 38 40% 97%;
+  --popover-foreground: 30 40% 8%;
+  --primary: 33 78% 28%;
+  --primary-foreground: 38 40% 97%;
+  --secondary: 35 25% 87%;
+  --secondary-foreground: 30 40% 8%;
+  --muted: 35 25% 87%;
+  --muted-foreground: 30 25% 40%;
+  --accent: 35 25% 87%;
+  --accent-foreground: 30 40% 8%;
+  --destructive: 336 58% 47%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 35 28% 79%;
+  --input: 35 28% 79%;
+  --ring: 33 78% 28%;
+  --radius: 0.75rem;
+}
+
+/* ═══════════════════════════════════════════
+   DARK MODE — System (prefers-color-scheme)
+═══════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --app-bg:          #07070e;
+    --app-surface1:    #0f0f1a;
+    --app-surface2:    #161624;
+    --app-card:        #1c1c2e;
+    --app-border:      #2a2a42;
+    --app-gold:        #C9A23C;
+    --app-gold-dim:    rgba(201,162,60,0.15);
+    --app-gold-glow:   rgba(201,162,60,0.30);
+    --app-emerald:     #22D38A;
+    --app-emerald-dim: rgba(34,211,138,0.12);
+    --app-rose:        #F06292;
+    --app-blue:        #5B7FFF;
+    --app-blue-dim:    rgba(91,127,255,0.12);
+    --app-text:        #EEEEFA;
+    --app-text2:       #8888aa;
+    --app-text3:       #44445a;
+
+    --background: 240 54% 4%;
+    --foreground: 240 46% 96%;
+    --card: 238 40% 11%;
+    --card-foreground: 240 46% 96%;
+    --popover: 238 40% 11%;
+    --popover-foreground: 240 46% 96%;
+    --primary: 40 55% 51%;
+    --primary-foreground: 240 54% 5%;
+    --secondary: 238 35% 17%;
+    --secondary-foreground: 240 46% 96%;
+    --muted: 238 35% 17%;
+    --muted-foreground: 240 20% 60%;
+    --accent: 238 35% 17%;
+    --accent-foreground: 240 46% 96%;
+    --destructive: 330 60% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
-    --radius: 0.5rem;
+    --border: 237 26% 24%;
+    --input: 237 26% 24%;
+    --ring: 40 55% 51%;
   }
 }
 
+/* ═══════════════════════════════════════════
+   DARK MODE — Manuelles Override
+═══════════════════════════════════════════ */
+[data-theme="dark"] {
+  --app-bg:          #07070e;
+  --app-surface1:    #0f0f1a;
+  --app-surface2:    #161624;
+  --app-card:        #1c1c2e;
+  --app-border:      #2a2a42;
+  --app-gold:        #C9A23C;
+  --app-gold-dim:    rgba(201,162,60,0.15);
+  --app-gold-glow:   rgba(201,162,60,0.30);
+  --app-emerald:     #22D38A;
+  --app-emerald-dim: rgba(34,211,138,0.12);
+  --app-rose:        #F06292;
+  --app-blue:        #5B7FFF;
+  --app-blue-dim:    rgba(91,127,255,0.12);
+  --app-text:        #EEEEFA;
+  --app-text2:       #8888aa;
+  --app-text3:       #44445a;
+
+  --background: 240 54% 4%;
+  --foreground: 240 46% 96%;
+  --card: 238 40% 11%;
+  --card-foreground: 240 46% 96%;
+  --popover: 238 40% 11%;
+  --popover-foreground: 240 46% 96%;
+  --primary: 40 55% 51%;
+  --primary-foreground: 240 54% 5%;
+  --secondary: 238 35% 17%;
+  --secondary-foreground: 240 46% 96%;
+  --muted: 238 35% 17%;
+  --muted-foreground: 240 20% 60%;
+  --accent: 238 35% 17%;
+  --accent-foreground: 240 46% 96%;
+  --destructive: 330 60% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 237 26% 24%;
+  --input: 237 26% 24%;
+  --ring: 40 55% 51%;
+}
+
+/* ═══════════════════════════════════════════
+   BASE STYLES
+═══════════════════════════════════════════ */
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; box-sizing: border-box; }
   body {
-    @apply bg-background text-foreground;
+    font-family: var(--font-jakarta, 'Plus Jakarta Sans'), sans-serif;
+    background-color: var(--app-bg);
+    color: var(--app-text);
+    transition: background-color 0.4s ease, color 0.3s ease;
+    min-height: 100vh;
   }
-}
-.font-arabic {
-  font-family: var(--font-amiri), serif;
 }
 
+/* ═══════════════════════════════════════════
+   ISLAMISCHES GEOMETRIE-MUSTER
+═══════════════════════════════════════════ */
+.geo-pattern::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg stroke='%23C9A23C' stroke-width='0.35' opacity='0.07'%3E%3Cpolygon points='30,2 36,15 50,15 40,24 44,38 30,30 16,38 20,24 10,15 24,15'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════
+   FONT HELPERS
+═══════════════════════════════════════════ */
+.font-arabic  { font-family: var(--font-amiri), serif; }
+.font-mono-app { font-family: var(--font-dm-mono), 'DM Mono', monospace; }
+
+/* ═══════════════════════════════════════════
+   ANIMATIONEN
+═══════════════════════════════════════════ */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-10px); }
+  50%       { transform: translateY(-8px); }
 }
 @keyframes shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
 }
 @keyframes pulse-ring {
-  0%   { transform: scale(1);    opacity: 0.6; }
-  100% { transform: scale(1.6);  opacity: 0; }
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(1.7); opacity: 0; }
 }
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1; }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
-.animate-float      { animation: float 3.5s ease-in-out infinite; }
-.animate-shimmer    { animation: shimmer 2.4s linear infinite; background-size: 200% auto; }
-.animate-pulse-ring { animation: pulse-ring 1.4s cubic-bezier(0.4,0,0.6,1) infinite; }
+.animate-float       { animation: float 3.5s ease-in-out infinite; }
+.animate-shimmer     { animation: shimmer 2.4s linear infinite; background-size: 200% auto; }
+.animate-pulse-ring  { animation: pulse-ring 1.4s cubic-bezier(0.4,0,0.6,1) infinite; }
+.animate-glow-pulse  { animation: glow-pulse 2.5s ease-in-out infinite; }
 
-.stagger-1 { animation: slide-up 0.55s ease both; animation-delay: 0ms; }
-.stagger-2 { animation: slide-up 0.55s ease both; animation-delay: 120ms; }
-.stagger-3 { animation: slide-up 0.55s ease both; animation-delay: 240ms; }
-.stagger-4 { animation: slide-up 0.55s ease both; animation-delay: 360ms; }
-.stagger-5 { animation: slide-up 0.55s ease both; animation-delay: 480ms; }
+.stagger-1 { animation: slide-up 0.5s ease both 0.05s; }
+.stagger-2 { animation: slide-up 0.5s ease both 0.12s; }
+.stagger-3 { animation: slide-up 0.5s ease both 0.20s; }
+.stagger-4 { animation: slide-up 0.5s ease both 0.28s; }
+.stagger-5 { animation: slide-up 0.5s ease both 0.36s; }
+.stagger-6 { animation: slide-up 0.5s ease both 0.44s; }
+
+/* ═══════════════════════════════════════════
+   APP PRIMITIVE KLASSEN
+═══════════════════════════════════════════ */
+
+/* Gold Gradient Button */
+.btn-gold {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 24px; border-radius: 14px; border: none; cursor: pointer;
+  font-weight: 700; font-size: 15px; font-family: inherit;
+  background: linear-gradient(135deg, var(--app-gold), color-mix(in srgb, var(--app-gold) 70%, #fff));
+  color: #0a0808;
+  box-shadow: 0 4px 24px var(--app-gold-glow);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 8px 32px var(--app-gold-glow); }
+.btn-gold:active { transform: scale(0.98); }
+
+/* Emerald Button */
+.btn-emerald {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 24px; border-radius: 14px; border: none; cursor: pointer;
+  font-weight: 700; font-size: 15px; font-family: inherit;
+  background: linear-gradient(135deg, var(--app-emerald), color-mix(in srgb, var(--app-emerald) 80%, #000));
+  color: #042b1a;
+  box-shadow: 0 4px 20px rgba(34,211,138,0.25);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.btn-emerald:hover { transform: translateY(-1px); }
+.btn-emerald:active { transform: scale(0.98); }
+
+/* Surface Card */
+.app-card {
+  background: var(--app-surface2);
+  border: 1px solid var(--app-border);
+  border-radius: 18px;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.25s;
+}
+.app-card-hover:hover {
+  border-color: var(--app-gold);
+  box-shadow: 0 8px 32px var(--app-gold-glow);
+  transform: translateY(-2px);
+}
+.app-card-hover-emerald:hover {
+  border-color: var(--app-emerald);
+  box-shadow: 0 4px 24px var(--app-emerald-dim);
+}
+.app-card-hover-blue:hover {
+  border-color: var(--app-blue);
+  box-shadow: 0 8px 32px var(--app-blue-dim);
+  transform: translateY(-2px);
+}
+
+/* Input Focus Gold */
+.input-gold:focus {
+  outline: none;
+  border-color: var(--app-gold) !important;
+  box-shadow: 0 0 0 3px var(--app-gold-dim);
+}
+
+/* Glow orb helper */
+.glow-top {
+  position: absolute;
+  top: -80px; left: 50%; transform: translateX(-50%);
+  width: 300px; height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--app-gold-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+.glow-bottom-left {
+  position: absolute;
+  bottom: 40px; left: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--app-emerald-dim) 0%, transparent 70%);
+  pointer-events: none;
+}

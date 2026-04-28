@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from "lucide-react";
-import { Card } from "@/components/ui/card";
 
 export default function ZikrWidget({ userId }: { userId: string }) {
   const router = useRouter();
@@ -17,9 +16,9 @@ export default function ZikrWidget({ userId }: { userId: string }) {
       const { data } = await supabase.from('zikr_logs').select('*').eq('user_id', userId).eq('log_date', today).maybeSingle();
       if (data) {
         setData({
-            zikr1: Math.min((data.zikr1_count / 200) * 100, 100),
-            zikr2: Math.min((data.zikr2_count / 100) * 100, 100),
-            zikr3: Math.min((data.zikr3_count / 100) * 100, 100),
+          zikr1: Math.min((data.zikr1_count / 200) * 100, 100),
+          zikr2: Math.min((data.zikr2_count / 100) * 100, 100),
+          zikr3: Math.min((data.zikr3_count / 100) * 100, 100),
         });
       }
       setLoading(false);
@@ -27,57 +26,72 @@ export default function ZikrWidget({ userId }: { userId: string }) {
     fetchZikr();
   }, [userId]);
 
-  // Wir nutzen einen Query-Parameter (?tab=zikr), damit die History-Seite den richtigen Tab öffnet
-  const handleClick = () => router.push('/history?tab=zikr');
-
-  if (loading) return <div className="h-24 w-full bg-slate-100 rounded-2xl animate-pulse mb-4"></div>;
+  if (loading) {
+    return (
+      <div className="h-24 w-full rounded-2xl animate-pulse"
+        style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }} />
+    );
+  }
 
   return (
-    <div 
-      onClick={handleClick}
-      className="w-full bg-white rounded-2xl p-4 shadow-sm border border-slate-100 cursor-pointer hover:border-emerald-300 hover:shadow-md transition-all mb-4 group"
+    <div
+      onClick={() => router.push('/history?tab=zikr')}
+      className="w-full rounded-[18px] p-4 cursor-pointer transition-all"
+      style={{
+        background: 'var(--app-surface2)',
+        border: '1px solid var(--app-border)',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-emerald)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 20px var(--app-emerald-dim)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border)';
+        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+      }}
     >
       <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">Täglicher Zikr</p>
-          <ArrowRight size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
+        <p className="text-[11px] font-bold uppercase tracking-[0.1em]"
+          style={{ color: 'var(--app-text2)' }}>
+          Täglicher Zikr
+        </p>
+        <ArrowRight size={14} style={{ color: 'var(--app-text3)' }} />
       </div>
-
       <div className="flex justify-around items-center">
-        <Ring color="#f43f5e" percent={data.zikr1} label="Tasbih" />
-        <Ring color="#0ea5e9" percent={data.zikr2} label="Istighfar" />
-        <Ring color="#f59e0b" percent={data.zikr3} label="Dua" />
+        <Ring color="var(--app-rose)" percent={data.zikr1} label="Tasbih" />
+        <Ring color="var(--app-blue)" percent={data.zikr2} label="Istighfar" />
+        <Ring color="var(--app-gold)" percent={data.zikr3} label="Dua" />
       </div>
     </div>
   );
 }
 
-function Ring({ color, percent, label }: { color: string, percent: number, label: string }) {
-    const radius = 18;
-    const stroke = 4;
-    const normalizedRadius = radius - stroke * 2;
-    const circumference = normalizedRadius * 2 * Math.PI;
-    const strokeDashoffset = circumference - (percent / 100) * circumference;
-  
-    return (
-      <div className="flex flex-col items-center gap-1">
-        <div className="relative w-12 h-12 flex items-center justify-center">
-            <svg height={radius * 2} width={radius * 2} className="rotate-[-90deg]">
-                <circle stroke="#f1f5f9" strokeWidth={stroke} r={normalizedRadius} cx={radius} cy={radius} fill="transparent" />
-                <circle
-                stroke={color}
-                fill="transparent"
-                strokeWidth={stroke}
-                strokeDasharray={circumference + ' ' + circumference}
-                style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.5s ease-in-out' }}
-                strokeLinecap="round"
-                r={normalizedRadius}
-                cx={radius}
-                cy={radius}
-                />
-            </svg>
-            <span className="absolute text-[10px] font-bold text-slate-600">{Math.round(percent)}%</span>
-        </div>
-        <span className="text-[9px] font-bold text-slate-400 uppercase">{label}</span>
+function Ring({ color, percent, label }: { color: string; percent: number; label: string }) {
+  const r = 20, stroke = 4, nr = r - stroke * 2;
+  const circ = nr * 2 * Math.PI;
+  const offset = circ - (percent / 100) * circ;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative flex items-center justify-center" style={{ width: r * 2, height: r * 2 }}>
+        <svg width={r * 2} height={r * 2} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={r} cy={r} r={nr} fill="transparent"
+            stroke="rgba(128,128,128,0.12)" strokeWidth={stroke} />
+          <circle cx={r} cy={r} r={nr} fill="transparent"
+            stroke={color} strokeWidth={stroke}
+            strokeDasharray={`${circ} ${circ}`}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+        </svg>
+        <span className="absolute text-[9px] font-bold" style={{ color: 'var(--app-text2)' }}>
+          {Math.round(percent)}%
+        </span>
       </div>
-    );
+      <span className="text-[9px] font-bold uppercase tracking-[0.08em]"
+        style={{ color: 'var(--app-text3)' }}>
+        {label}
+      </span>
+    </div>
+  );
 }
