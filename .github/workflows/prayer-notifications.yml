@@ -15,7 +15,7 @@ jobs:
       - name: Trigger prayer notification check
         run: |
           RESPONSE=$(curl -s -w "\n%{http_code}" \
-            "https://ride2salah.vercel.app/api/schedule-notifications?secret=${{ secrets.CRON_SECRET }}")
+            "https://ride2salah.vercel.app/api/schedule-notifications?secret=asad0260_2026")
           BODY=$(echo "$RESPONSE" | head -n -1)
           STATUS=$(echo "$RESPONSE" | tail -n 1)
           echo "HTTP Status: $STATUS"
