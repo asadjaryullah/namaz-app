@@ -92,7 +92,7 @@ export default function NotificationSettings() {
         steps: [
           "Öffne diese Seite in Safari",
           'Tippe auf das Teilen-Symbol  ↑',
-          "Wähle „Zum Home-Bildschirm"",
+          'Wähle „Zum Home-Bildschirm“',
           "Öffne die App vom Home-Bildschirm",
           "Benachrichtigungen werden jetzt angefragt",
         ],
@@ -104,7 +104,7 @@ export default function NotificationSettings() {
           "Öffne die iPhone-Einstellungen",
           'Scrolle zu „Ride 2 Salah"',
           'Tippe auf „Mitteilungen"',
-          "Aktiviere „Mitteilungen erlauben"",
+          'Aktiviere „Mitteilungen erlauben"',
         ],
       },
       "android": {
