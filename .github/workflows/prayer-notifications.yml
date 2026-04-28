@@ -1,0 +1,27 @@
+name: Prayer Notifications Cron
+
+on:
+  schedule:
+    # Alle 10 Minuten (GitHub Actions Minimum: 5min, aber 10min reicht)
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Manuell auslösbar (zum Testen)
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Trigger prayer notification check
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            "https://ride2salah.vercel.app/api/schedule-notifications?secret=${{ secrets.CRON_SECRET }}")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
+          echo "HTTP Status: $STATUS"
+          echo "Response: $BODY"
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Fehler: HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Erfolgreich"
