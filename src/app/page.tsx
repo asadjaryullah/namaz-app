@@ -6,10 +6,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell } from "lucide-react";
 import MapComponent from '@/components/MapComponent';
-import OneSignal from 'react-onesignal';
 import ZikrWidget from '@/components/ZikrWidget';
 import NextPrayerBanner from '@/components/NextPrayerBanner';
-import { waitForOneSignalReady } from '@/lib/onesignal';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -39,12 +37,6 @@ export default function HomePage() {
         if (!session?.user) {
           if (mounted) { setUser(null); setLoading(false); }
           return;
-        }
-
-        if (typeof window !== 'undefined') {
-          waitForOneSignalReady(4000).then(() => {
-            try { OneSignal.login(session.user.id); } catch(e) {}
-          }).catch(() => {});
         }
 
         if (mounted) setUser(session.user);
@@ -250,10 +242,23 @@ export default function HomePage() {
             if (notifPerm === 'denied') { router.push('/profile'); return; }
             const result = await Notification.requestPermission();
             setNotifPerm(result);
-            if (result === 'granted') {
+            if (result === 'granted' && 'serviceWorker' in navigator && 'PushManager' in window) {
               try {
-                const anyOS = OneSignal as any;
-                if (anyOS?.User?.PushSubscription?.optIn) await anyOS.User.PushSubscription.optIn();
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                await navigator.serviceWorker.ready;
+                const sub = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+                });
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData?.session?.access_token;
+                if (token) {
+                  await fetch('/api/push-subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify(sub.toJSON()),
+                  });
+                }
               } catch (_) {}
             }
           }}>

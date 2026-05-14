@@ -9,8 +9,7 @@ import { Toaster } from "sonner";
 import ProfileBar from "@/components/ProfileBar";
 import MosqueDetector from "@/components/MosqueDetector";
 import InstallPrompt from "@/components/InstallPrompt";
-import OneSignalInit from "@/components/OneSignalInit";
-import NotificationManager from "@/components/NotificationManager";
+import PushManager from "@/components/PushManager";
 
 // Provider
 import { AuthProvider } from "@/providers/AuthProvider";
@@ -84,8 +83,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           {/* Background services */}
-          <OneSignalInit />
-          <NotificationManager />
+          <PushManager />
           <InstallPrompt />
           <MosqueDetector />
 

@@ -1,0 +1,68 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// POST /api/push-subscribe  → Subscription speichern
+export async function POST(req: Request) {
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  if (userErr || !userData?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = await req.json().catch(() => null);
+  const endpoint = body?.endpoint;
+  const p256dh = body?.keys?.p256dh;
+  const auth = body?.keys?.auth;
+
+  if (!endpoint || !p256dh || !auth) {
+    return NextResponse.json({ error: "endpoint, p256dh und auth erforderlich" }, { status: 400 });
+  }
+
+  // Upsert: bei gleichem endpoint einfach updaten
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    { user_id: userData.user.id, endpoint, p256dh, auth },
+    { onConflict: "endpoint" }
+  );
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ success: true });
+}
+
+// DELETE /api/push-subscribe  → Subscription löschen
+export async function DELETE(req: Request) {
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  if (!token) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+  if (userErr || !userData?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const body = await req.json().catch(() => null);
+  const endpoint = body?.endpoint;
+
+  if (!endpoint) {
+    // Alle Subscriptions dieses Users löschen
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", userData.user.id);
+  } else {
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("endpoint", endpoint)
+      .eq("user_id", userData.user.id);
+  }
+
+  return NextResponse.json({ success: true });
+}

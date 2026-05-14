@@ -9,7 +9,6 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 // Alle Icons (inkl. List & MessageSquareWarning)
 import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock, MessageSquareWarning, List } from "lucide-react";
 
-import NotificationSettings from '@/components/NotificationSettings';
 import LocationSettings from '@/components/LocationSettings'; 
 
 // HIER DEINE NUMMER FÜR BUGS EINTRAGEN (Format: 49...)
@@ -221,8 +220,7 @@ export default function ProfilePage() {
             {/* PUSH */}
             <div>
               <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
-              <p className="text-xs text-slate-500 mb-3">Erlaube Push-Nachrichten für Fahrten.</p>
-              <NotificationSettings />
+              <p className="text-xs text-slate-500 mb-3">Push-Benachrichtigungen werden beim ersten Öffnen der App aktiviert.</p>
             </div>
 
             {/* GPS */}

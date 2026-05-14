@@ -4,8 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, User, Phone, BadgeInfo } from "lucide-react";
-import OneSignal from 'react-onesignal';
-import { waitForOneSignalReady } from '@/lib/onesignal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,10 +55,6 @@ export default function LoginPage() {
     try {
       const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' });
       if (error) throw error;
-      if (data.user && typeof window !== 'undefined') {
-        await waitForOneSignalReady(4000);
-        try { OneSignal.login(data.user.id); } catch(e) {}
-      }
       router.push('/');
     } catch (err: any) {
       setError("Der Code ist falsch oder abgelaufen.");
