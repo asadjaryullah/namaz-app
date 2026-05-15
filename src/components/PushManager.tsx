@@ -18,12 +18,46 @@ export default function PushManager() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    if (Notification.permission !== 'default') return;
-    if (sessionStorage.getItem('push-dismissed') === '1') return;
 
-    const t = setTimeout(() => setShowBanner(true), 3000);
-    return () => clearTimeout(t);
+    const perm = Notification.permission;
+
+    // Permission bereits erteilt → still im Hintergrund subscriben (kein Banner)
+    if (perm === 'granted') {
+      subscribeInBackground();
+      return;
+    }
+
+    // Permission noch nicht entschieden → Banner zeigen
+    if (perm === 'default' && sessionStorage.getItem('push-dismissed') !== '1') {
+      const t = setTimeout(() => setShowBanner(true), 3000);
+      return () => clearTimeout(t);
+    }
   }, []);
+
+  const subscribeInBackground = async () => {
+    try {
+      const reg = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+
+      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      });
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (token) {
+        await fetch('/api/push-subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(sub.toJSON()),
+        });
+      }
+    } catch (e) {
+      console.error('Push background subscribe Fehler:', e);
+    }
+  };
 
   const enable = async () => {
     setLoading(true);
@@ -35,30 +69,7 @@ export default function PushManager() {
         return;
       }
 
-      // Service Worker registrieren
-      const reg = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-
-      // Subscription an Server senden
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (token) {
-        await fetch('/api/push-subscribe', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(sub.toJSON()),
-        });
-      }
-
+      await subscribeInBackground();
       setShowBanner(false);
     } catch (e) {
       console.error('Push Fehler:', e);
