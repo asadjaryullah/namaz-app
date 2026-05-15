@@ -11,6 +11,35 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
+async function registerAndSave(token: string) {
+  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidKey) {
+    console.error('❌ NEXT_PUBLIC_VAPID_PUBLIC_KEY fehlt');
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.register('/sw.js');
+  await navigator.serviceWorker.ready;
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidKey),
+  });
+
+  const res = await fetch('/api/push-subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(sub.toJSON()),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    console.error('❌ push-subscribe Fehler:', err);
+  } else {
+    console.log('✅ Push Subscription gespeichert');
+  }
+}
+
 export default function PushManager() {
   const [showBanner, setShowBanner] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,45 +48,23 @@ export default function PushManager() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
-    const perm = Notification.permission;
+    // Auf Auth-Session warten, dann erst subscriben
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.access_token) return;
 
-    // Permission bereits erteilt → still im Hintergrund subscriben (kein Banner)
-    if (perm === 'granted') {
-      subscribeInBackground();
-      return;
-    }
+      const perm = Notification.permission;
 
-    // Permission noch nicht entschieden → Banner zeigen
-    if (perm === 'default' && sessionStorage.getItem('push-dismissed') !== '1') {
-      const t = setTimeout(() => setShowBanner(true), 3000);
-      return () => clearTimeout(t);
-    }
-  }, []);
-
-  const subscribeInBackground = async () => {
-    try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
-
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (token) {
-        await fetch('/api/push-subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(sub.toJSON()),
-        });
+      if (perm === 'granted') {
+        // Sofort still subscriben
+        registerAndSave(session.access_token).catch(console.error);
+      } else if (perm === 'default' && sessionStorage.getItem('push-dismissed') !== '1') {
+        // Banner nach 3s zeigen
+        setTimeout(() => setShowBanner(true), 3000);
       }
-    } catch (e) {
-      console.error('Push background subscribe Fehler:', e);
-    }
-  };
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const enable = async () => {
     setLoading(true);
@@ -65,11 +72,17 @@ export default function PushManager() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setShowBanner(false);
-        setLoading(false);
         return;
       }
 
-      await subscribeInBackground();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        console.error('❌ Kein Token – User nicht eingeloggt?');
+        return;
+      }
+
+      await registerAndSave(token);
       setShowBanner(false);
     } catch (e) {
       console.error('Push Fehler:', e);
