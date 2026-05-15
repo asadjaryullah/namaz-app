@@ -27,11 +27,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "endpoint, p256dh und auth erforderlich" }, { status: 400 });
   }
 
-  // Upsert: bei gleichem endpoint einfach updaten
-  const { error } = await supabase.from("push_subscriptions").upsert(
-    { user_id: userData.user.id, endpoint, p256dh, auth },
-    { onConflict: "endpoint" }
-  );
+  // Erst löschen falls endpoint schon existiert, dann neu einfügen
+  await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+
+  const { error } = await supabase.from("push_subscriptions").insert({
+    user_id: userData.user.id, endpoint, p256dh, auth,
+  });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
