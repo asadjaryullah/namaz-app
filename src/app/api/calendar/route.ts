@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const APP_URL = "https://ride2salah.vercel.app";
 
 export async function GET() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   try {
-    // Nur Gebete laden
     const { data: prayers } = await supabase.from('prayer_times').select('*');
     if (!prayers) return new NextResponse('Error', { status: 500 });
 
@@ -20,22 +22,21 @@ export async function GET() {
       'PRODID:-//Ride2Salah//DE',
       'NAME:Ride 2 Salah Gebetszeiten',
       'X-WR-CALNAME:Gebetszeiten (Ride 2 Salah)',
-      'REFRESH-INTERVAL;VALUE=DURATION:PT12H', 
+      'REFRESH-INTERVAL;VALUE=DURATION:PT12H',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH'
     ].join('\r\n');
 
     const now = new Date();
-    
-    // Für die nächsten 7 Tage
+
     for (let i = 0; i < 7; i++) {
       const day = new Date(now);
-      day.setDate(day.getDate() + i); 
+      day.setDate(day.getDate() + i);
 
       for (const p of prayers) {
         if (!p.time) continue;
         const [h, m] = p.time.split(':').map(Number);
-        
+
         const startDate = new Date(day);
         startDate.setHours(h, m, 0, 0);
         const endDate = new Date(startDate);
@@ -48,14 +49,14 @@ export async function GET() {
           'BEGIN:VEVENT',
           `UID:prayer-${p.id}-${startStr}@ride2salah.app`,
           `DTSTAMP:${formatLocal(new Date())}`,
-          `DTSTART:${startStr}`, 
+          `DTSTART:${startStr}`,
           `DTEND:${endStr}`,
           `SUMMARY:${p.name} Namaz 🕌`,
           'LOCATION:Bashier Moschee Bensheim',
           `URL:${APP_URL}`,
           `DESCRIPTION:Fahrt buchen: ${APP_URL}`,
           'BEGIN:VALARM',
-          'TRIGGER;RELATED=START:-PT15M', 
+          'TRIGGER;RELATED=START:-PT15M',
           'ACTION:DISPLAY',
           'DESCRIPTION:In 15 min ist Namaz!',
           'END:VALARM',

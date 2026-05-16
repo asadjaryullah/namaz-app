@@ -5,10 +5,12 @@ import { sendPushToAll } from "@/lib/webpush";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 const SECRET = process.env.CRON_SECRET!;
 const TZ = "Europe/Berlin";
@@ -72,7 +74,7 @@ export async function GET(req: Request) {
 }
 
 async function handlePrayerPushes(today: string, nowHHMM: string, logs: string[], debug: boolean) {
-  const { data: prayers, error } = await supabase
+  const { data: prayers, error } = await getSupabase()
     .from("prayer_times")
     .select("name,time,sort_order")
     .order("sort_order", { ascending: true });
@@ -141,7 +143,7 @@ async function sendOnce(
   logs: string[],
   debug: boolean
 ) {
-  const { data: existing } = await supabase
+  const { data: existing } = await getSupabase()
     .from("push_sent")
     .select("key")
     .eq("key", key)
@@ -157,7 +159,7 @@ async function sendOnce(
     logs.push(`⚠️ Kein Subscriber erreichbar: ${key}`);
   }
 
-  await supabase.from("push_sent").insert({ key });
+  await getSupabase().from("push_sent").insert({ key });
   logs.push(`✅ sent (${count} subscriber): ${key}`);
   return true;
 }

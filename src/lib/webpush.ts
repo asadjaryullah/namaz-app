@@ -14,10 +14,12 @@ function ensureVapid() {
   vapidConfigured = true;
 }
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 export interface PushPayload {
   title: string;
@@ -28,7 +30,7 @@ export interface PushPayload {
 // Sendet an alle Subscriptions in der Datenbank
 export async function sendPushToAll(payload: PushPayload, logs: string[] = []) {
   ensureVapid();
-  const { data: subs, error } = await supabase
+  const { data: subs, error } = await getSupabase()
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth");
 
@@ -68,7 +70,7 @@ export async function sendPushToAll(payload: PushPayload, logs: string[] = []) {
   );
 
   if (invalidIds.length > 0) {
-    await supabase.from("push_subscriptions").delete().in("id", invalidIds);
+    await getSupabase().from("push_subscriptions").delete().in("id", invalidIds);
   }
 
   logs.push(`✅ ${successCount}/${subs.length} erfolgreich gesendet`);
@@ -82,7 +84,7 @@ export async function sendPushToUser(
   logs: string[] = []
 ) {
   ensureVapid();
-  const { data: subs, error } = await supabase
+  const { data: subs, error } = await getSupabase()
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
     .eq("user_id", userId);
@@ -119,7 +121,7 @@ export async function sendPushToUser(
   );
 
   if (invalidIds.length > 0) {
-    await supabase.from("push_subscriptions").delete().in("id", invalidIds);
+    await getSupabase().from("push_subscriptions").delete().in("id", invalidIds);
   }
 
   return successCount;
