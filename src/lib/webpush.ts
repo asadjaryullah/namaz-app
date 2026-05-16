@@ -1,11 +1,18 @@
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+let vapidConfigured = false;
+
+function ensureVapid() {
+  if (vapidConfigured) return;
+  if (!process.env.VAPID_SUBJECT) throw new Error("VAPID_SUBJECT nicht gesetzt");
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  vapidConfigured = true;
+}
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +27,7 @@ export interface PushPayload {
 
 // Sendet an alle Subscriptions in der Datenbank
 export async function sendPushToAll(payload: PushPayload, logs: string[] = []) {
+  ensureVapid();
   const { data: subs, error } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth");
@@ -73,6 +81,7 @@ export async function sendPushToUser(
   payload: PushPayload,
   logs: string[] = []
 ) {
+  ensureVapid();
   const { data: subs, error } = await supabase
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
