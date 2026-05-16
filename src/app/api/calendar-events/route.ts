@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   try {
     const { data: events } = await supabase
       .from('mosque_events')
@@ -28,14 +31,13 @@ export async function GET() {
 
     for (const e of events) {
       const start = new Date(e.event_date);
-      
-      // HIER DIE ÄNDERUNG: Enddatum nutzen!
+
       let end;
       if (e.event_end_date) {
         end = new Date(e.event_end_date);
       } else {
         end = new Date(start);
-        end.setHours(start.getHours() + 2); // Fallback: 2 Std
+        end.setHours(start.getHours() + 2);
       }
 
       const startStr = formatLocal(start);
@@ -45,7 +47,7 @@ export async function GET() {
         'BEGIN:VEVENT',
         `UID:event-${e.id}@ride2salah.app`,
         `DTSTAMP:${formatLocal(new Date())}`,
-        `DTSTART:${startStr}`, 
+        `DTSTART:${startStr}`,
         `DTEND:${endStr}`,
         `SUMMARY:📅 ${e.title}`,
         'LOCATION:Bashier Moschee Bensheim',

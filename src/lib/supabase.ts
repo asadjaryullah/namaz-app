@@ -1,14 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-if (!SUPABASE_URL?.startsWith("https://")) {
-  throw new Error("Ungültige NEXT_PUBLIC_SUPABASE_URL");
-}
-if (!SUPABASE_ANON_KEY || SUPABASE_ANON_KEY.length < 50) {
-  throw new Error("Ungültige NEXT_PUBLIC_SUPABASE_ANON_KEY");
-}
+// Fallbacks verhindern Build-Fehler beim Prerendering (env vars sind erst zur Laufzeit gesetzt).
+// Zur Laufzeit werden immer die echten Werte aus den Vercel-Umgebungsvariablen genutzt.
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {

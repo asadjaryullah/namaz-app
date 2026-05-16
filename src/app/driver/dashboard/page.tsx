@@ -263,13 +263,14 @@ export default function DriverDashboard() {
   }, [rideId]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+    <div className="min-h-screen flex flex-col relative" style={{ background: 'var(--app-bg)' }}>
 
       {/* Zurück-Button */}
       <div className="absolute top-4 left-4 z-50">
         <Button
           size="icon"
-          className="rounded-full bg-white text-slate-900 shadow-md hover:bg-slate-100 h-10 w-10"
+          className="rounded-full shadow-md h-10 w-10"
+          style={{ background: 'var(--app-surface2)', color: 'var(--app-text)', border: '1px solid var(--app-border)' }}
           onClick={() => router.push('/')}
         >
           <ArrowLeft className="h-6 w-6" />
@@ -313,33 +314,33 @@ export default function DriverDashboard() {
       </div>
 
       {/* INFO UNTEN */}
-      <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10">
-        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
+      <div className="flex-1 p-6 -mt-6 rounded-t-3xl z-10 shadow-up overflow-y-auto pb-10" style={{ background: 'var(--app-surface2)' }}>
+        <div className="w-12 h-1 rounded-full mx-auto mb-6" style={{ background: 'var(--app-border)' }}></div>
 
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Aktive Fahrt</h1>
-          <span className="bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--app-text)' }}>Aktive Fahrt</h1>
+          <span className="text-xs font-bold px-2 py-1 rounded-full animate-pulse" style={{ background: 'var(--app-emerald-dim)', color: 'var(--app-emerald)' }}>
             GPS AKTIV
           </span>
         </div>
 
-        <h3 className="text-sm font-bold text-slate-500 uppercase mb-3">Abholungen ({passengers.length})</h3>
+        <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text2)' }}>Abholungen ({passengers.length})</h3>
 
         {passengers.length === 0 ? (
-          <p className="text-slate-400 text-sm mb-6 bg-slate-50 p-4 rounded-xl text-center border border-dashed">
+          <p className="text-sm mb-6 p-4 rounded-xl text-center border border-dashed" style={{ color: 'var(--app-text3)', background: 'var(--app-card)', borderColor: 'var(--app-border)' }}>
             Noch keine Mitfahrer gebucht.
           </p>
         ) : (
           <div className="space-y-3 mb-8">
             {passengers.map((p) => (
-              <div key={p.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 animate-in slide-in-from-right duration-300">
+              <div key={p.id} className="flex justify-between items-center p-3 rounded-xl animate-in slide-in-from-right duration-300" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                 <div className="flex items-center gap-3">
-                  <div className="bg-white p-2 rounded-full border shadow-sm">
-                    <MapPin size={18} className="text-blue-600"/>
+                  <div className="p-2 rounded-full shadow-sm" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+                    <MapPin size={18} style={{ color: 'var(--app-blue)' }}/>
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900">{p.passenger_name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-bold" style={{ color: 'var(--app-text)' }}>{p.passenger_name}</p>
+                    <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
                        {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'} warten
                     </p>
                   </div>
@@ -365,7 +366,8 @@ export default function DriverDashboard() {
         <div className="grid grid-cols-1 gap-3">
           <Button
             variant="outline"
-            className="w-full h-12 text-lg rounded-xl border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+            className="w-full h-12 text-lg rounded-xl"
+            style={{ borderColor: 'var(--app-blue)', color: 'var(--app-blue)', background: 'var(--app-blue-dim)' }}
             onClick={() => {
                const origin = `${startPoint?.lat},${startPoint?.lng}`;
                const destination = `${MOSQUE_LOCATION.lat},${MOSQUE_LOCATION.lng}`;
@@ -377,7 +379,8 @@ export default function DriverDashboard() {
           </Button>
 
           <Button
-            className="w-full h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+            className="w-full h-12 text-lg rounded-xl"
+            style={{ background: 'var(--app-text)', color: 'var(--app-bg)' }}
             onClick={() => handleEndRide(false)}
             disabled={loadingEnd || undoVisible}
           >
@@ -387,7 +390,8 @@ export default function DriverDashboard() {
 
           <Button
             variant="ghost"
-            className="w-full text-red-500 hover:text-red-600 hover:bg-red-50"
+            className="w-full"
+            style={{ color: 'var(--app-rose)' }}
             onClick={() => setConfirmType('cancel')}
             disabled={loadingEnd || undoVisible}
           >
@@ -400,12 +404,12 @@ export default function DriverDashboard() {
       {/* CONFIRM DIALOG (Bottom Sheet) */}
       {confirmType && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setConfirmType(null)}>
-          <div className="w-full bg-white rounded-t-3xl p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
-            <h3 className="text-lg font-bold text-center">
+          <div className="w-full rounded-t-3xl p-6 space-y-3" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'var(--app-border)' }}></div>
+            <h3 className="text-lg font-bold text-center" style={{ color: 'var(--app-text)' }}>
               {confirmType === 'end' ? 'Fahrt beenden?' : 'Fahrt absagen?'}
             </h3>
-            <p className="text-sm text-slate-500 text-center pb-2">
+            <p className="text-sm text-center pb-2" style={{ color: 'var(--app-text2)' }}>
               {confirmType === 'end'
                 ? 'Die Fahrt wird als abgeschlossen markiert.'
                 : 'Die Fahrt und alle Buchungen werden gelöscht.'}

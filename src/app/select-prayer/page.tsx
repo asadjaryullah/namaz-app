@@ -123,16 +123,17 @@ function SelectPrayerContent() {
           const today = new Date().toLocaleDateString('en-CA');
 
           const { error } = await supabase.from('rides').insert({
-            driver_id: user.id, 
-            driver_name: profile?.full_name || "Unbekannt", 
+            driver_id: user.id,
+            driver_name: profile?.full_name || "Unbekannt",
             driver_phone: profile?.phone || "",
-            driver_gender: profile?.gender || "male", 
-            prayer_id: selectedPrayer.id, 
-            prayer_time: selectedPrayer.time, 
-            seats: seats, 
-            start_lat: lat, 
-            start_lon: lon, 
-            ride_date: today
+            driver_gender: profile?.gender || "male",
+            prayer_id: selectedPrayer.id,
+            prayer_time: selectedPrayer.time,
+            seats: seats,
+            start_lat: lat,
+            start_lon: lon,
+            ride_date: today,
+            status: 'active',
           });
 
           setCreatingRide(false);
@@ -151,9 +152,9 @@ function SelectPrayerContent() {
       <div className="w-full flex items-center justify-between mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.push('/')}><ChevronLeft className="h-6 w-6" /></Button>
         <div className="text-center">
-          <h1 className="text-xl font-bold">Wann ist das Gebet?</h1>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--app-text)' }}>Wann ist das Gebet?</h1>
           {isAdmin && <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded font-bold">ADMIN VIEW</span>}
-          {!isAdmin && <p className="text-xs text-slate-500 uppercase font-bold mt-1">{role === 'driver' ? 'Fahrt anbieten' : 'Fahrt suchen'}</p>}
+          {!isAdmin && <p className="text-xs uppercase font-bold mt-1" style={{ color: 'var(--app-text2)' }}>{role === 'driver' ? 'Fahrt anbieten' : 'Fahrt suchen'}</p>}
         </div>
         <div className="w-9"></div>
       </div>
@@ -170,22 +171,24 @@ function SelectPrayerContent() {
             const isDisabled = isAlreadyBooked && !isAdmin;
 
             return (
-              <Card 
-                key={prayer.id} 
-                onClick={() => !isDisabled && setSelectedId(prayer.id)} 
-                className={`
-                  p-3 flex items-center gap-3 transition-all border-2 
-                  ${isDisabled ? 'opacity-50 bg-slate-100 border-transparent cursor-not-allowed' : 'cursor-pointer'}
-                  ${isSelected ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-transparent hover:border-slate-200'}
-                `}
+              <Card
+                key={prayer.id}
+                onClick={() => !isDisabled && setSelectedId(prayer.id)}
+                className={`p-3 flex items-center gap-3 transition-all border-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                style={{
+                  borderColor: isSelected ? 'var(--app-text)' : 'transparent',
+                  background: isSelected ? 'var(--app-surface2)' : 'var(--app-card)',
+                  outline: isSelected ? '1px solid var(--app-text)' : 'none',
+                }}
               >
-                <div className={`p-2 rounded-full ${isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}><Icon size={20} /></div>
-                <div className="flex-1">
-                  <h3 className="font-bold text-slate-900">{prayer.name}</h3>
-                  {isDisabled && <span className="text-[10px] text-green-600 font-bold flex items-center gap-1"><CheckCircle2 size={10}/> BEREITS AKTIV</span>}
+                <div className="p-2 rounded-full" style={{ background: isSelected ? 'var(--app-text)' : 'var(--app-surface2)', color: isSelected ? 'var(--app-bg)' : 'var(--app-text2)' }}>
+                  <Icon size={20} />
                 </div>
-                {/* HIER GEÄNDERT: NUR NOCH TEXT ANZEIGEN, KEIN INPUT MEHR */}
-                <div className="text-xl font-mono font-bold text-slate-700">{prayer.time}</div>
+                <div className="flex-1">
+                  <h3 className="font-bold" style={{ color: 'var(--app-text)' }}>{prayer.name}</h3>
+                  {isDisabled && <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: 'var(--app-emerald)' }}><CheckCircle2 size={10}/> BEREITS AKTIV</span>}
+                </div>
+                <div className="text-xl font-mono font-bold" style={{ color: 'var(--app-text2)' }}>{prayer.time}</div>
               </Card>
             );
           })}
@@ -204,7 +207,7 @@ function SelectPrayerContent() {
       )}
 
       {!loading && (
-          <div className="fixed bottom-0 left-0 right-0 p-6 bg-white border-t flex justify-center z-10">
+          <div className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-10" style={{ background: 'var(--app-surface2)', borderTop: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
             <Button className="w-full max-w-md h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-lg" disabled={!selectedId || creatingRide} onClick={handleNext}>
               {creatingRide ? <><Loader2 className="animate-spin mr-2"/> Starten...</> : role === 'driver' ? `Fahrt mit ${seats} Plätzen starten ➜` : 'Fahrer suchen ➜'}
             </Button>
@@ -216,7 +219,7 @@ function SelectPrayerContent() {
 
 export default function SelectPrayerPage() {
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col">
+    <main className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)' }}>
       <div className="p-6 flex flex-col items-center">
         <Suspense fallback={<div>Lade...</div>}>
           <SelectPrayerContent />

@@ -97,7 +97,7 @@ export default function RootLayout({
           <Toaster richColors position="bottom-center" />
 
           {/* Footer */}
-          <footer className="relative z-10 py-8 text-center text-xs mt-4" style={{ color: 'var(--app-text3)', borderTop: '1px solid var(--app-border)' }}>
+          <footer className="relative z-10 pt-8 text-center text-xs mt-4" style={{ color: 'var(--app-text3)', borderTop: '1px solid var(--app-border)', paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
             <div className="flex justify-center mb-3">
               <div className="relative w-12 h-12 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-500 cursor-pointer">
                 <Image
@@ -114,10 +114,10 @@ export default function RootLayout({
             </p>
 
             <div className="flex justify-center gap-4">
-              <a href="/impressum" className="hover:underline underline-offset-4 transition-colors" style={{ color: 'var(--app-text3)' }}>
+              <a href="/impressum" className="hover:underline underline-offset-4 transition-colors py-2 px-3" style={{ color: 'var(--app-text2)' }}>
                 Impressum
               </a>
-              <a href="/datenschutz" className="hover:underline underline-offset-4 transition-colors" style={{ color: 'var(--app-text3)' }}>
+              <a href="/datenschutz" className="hover:underline underline-offset-4 transition-colors py-2 px-3" style={{ color: 'var(--app-text2)' }}>
                 Datenschutz
               </a>
             </div>
