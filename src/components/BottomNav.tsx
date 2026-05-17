@@ -50,6 +50,8 @@ export default function BottomNav() {
       pathname.startsWith('/arrival')
     ) {
       setActiveTab('fahrt');
+    } else if (pathname.startsWith('/learn')) {
+      setActiveTab('lernen');
     } else {
       setActiveTab('');
     }

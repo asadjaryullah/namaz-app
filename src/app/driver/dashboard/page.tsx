@@ -171,15 +171,20 @@ export default function DriverDashboard() {
     rideEndedRef.current = true;
     setLoadingEnd(true);
 
-    const { error } = await supabase
-      .from('rides')
-      .update({ status: 'completed' })
-      .eq('id', rideId);
-
-    if (!error) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/complete-ride', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ ride_id: rideId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Fehler');
       router.push('/arrival');
-    } else {
-      toast.error("Fehler: " + error.message);
+    } catch (err: any) {
+      toast.error("Fehler: " + err.message);
       setLoadingEnd(false);
       rideEndedRef.current = false;
     }
