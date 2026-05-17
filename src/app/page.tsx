@@ -233,24 +233,14 @@ export default function HomePage() {
         style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at top, var(--app-gold-dim), transparent 60%)' }} />
-        <div className="relative z-10 py-6 px-6">
-          <p className="text-5xl text-center leading-loose"
-            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', direction: 'rtl', textShadow: '0 0 30px var(--app-gold-glow)' }}>
-            حَيَّ عَلَىٰ ٱلصَّلَاةِ
+        <div className="relative z-10 py-4 px-6 flex flex-col items-center gap-1">
+          <p className="text-2xl text-center whitespace-nowrap"
+            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', direction: 'rtl', textShadow: '0 0 20px var(--app-gold-glow)' }}>
+            حَيَّ عَلَىٰ ٱلصَّلَاةِ · حَيَّ عَلَىٰ ٱلْفَلَاحِ
           </p>
-          <p className="text-center text-[9px] uppercase tracking-[0.22em] mt-1"
+          <p className="text-[10px] uppercase tracking-[0.18em] text-center"
             style={{ color: 'var(--app-text2)' }}>
-            „Kommt zum Gebet"
-          </p>
-          <div className="mx-auto my-4 h-px w-8"
-            style={{ background: 'linear-gradient(90deg, transparent, var(--app-gold), transparent)' }} />
-          <p className="text-5xl text-center leading-loose"
-            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', direction: 'rtl', textShadow: '0 0 30px var(--app-gold-glow)' }}>
-            حَيَّ عَلَىٰ ٱلْفَلَاحِ
-          </p>
-          <p className="text-center text-[9px] uppercase tracking-[0.22em] mt-1"
-            style={{ color: 'var(--app-text2)' }}>
-            „Kommt zum Erfolg"
+            „Kommt zum Gebet · Kommt zum Erfolg"
           </p>
         </div>
       </div>
@@ -466,23 +456,34 @@ export default function HomePage() {
       {/* ── Quick Links ── */}
       {quickLinks.length > 0 && (
         <div className="stagger-5 space-y-2">
-          {quickLinks.map((link) => (
-            <a
-              key={link.id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="app-card flex items-center gap-4 p-4 active:opacity-60 transition-opacity"
-              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
-            >
-              <span className="text-3xl shrink-0">{link.emoji || '🔗'}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>{link.title}</p>
-                <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--app-text3)' }}>{link.url}</p>
-              </div>
-              <ArrowRight size={16} style={{ color: 'var(--app-text3)', flexShrink: 0 }} />
-            </a>
-          ))}
+          {quickLinks.map((link) => {
+            const isYoutube = /youtube\.com|youtu\.be/i.test(link.url);
+            return (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="app-card flex items-center gap-4 p-4 active:opacity-60 transition-opacity"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
+              >
+                {isYoutube ? (
+                  <span className="shrink-0 flex items-center justify-center rounded-xl" style={{ width: 44, height: 36, background: '#FF0000' }}>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </span>
+                ) : (
+                  <span className="text-3xl shrink-0">{link.emoji || '🔗'}</span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>{link.title}</p>
+                  <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--app-text3)' }}>{link.url}</p>
+                </div>
+                <ArrowRight size={16} style={{ color: 'var(--app-text3)', flexShrink: 0 }} />
+              </a>
+            );
+          })}
         </div>
       )}
 
