@@ -432,7 +432,11 @@ export default function DriverDashboard() {
                 : 'Die Fahrt und alle Buchungen werden gelöscht.'}
             </p>
             <Button
-              className={`w-full h-12 rounded-xl ${confirmType === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+              className="w-full h-12 rounded-xl"
+              style={confirmType === 'cancel'
+                ? { background: '#dc2626', color: '#fff' }
+                : { background: 'var(--app-text)', color: 'var(--app-bg)' }
+              }
               onClick={() => {
                 if (confirmType === 'end') {
                   setConfirmType(null);
