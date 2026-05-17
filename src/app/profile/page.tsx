@@ -5,42 +5,33 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-// Alle Icons (inkl. List & MessageSquareWarning)
 import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock, MessageSquareWarning, List } from "lucide-react";
 
-import LocationSettings from '@/components/LocationSettings'; 
+import LocationSettings from '@/components/LocationSettings';
 
-// HIER DEINE NUMMER FÜR BUGS EINTRAGEN (Format: 49...)
-const ADMIN_WHATSAPP = "+4915904273761"; 
+const ADMIN_WHATSAPP = "+4915904273761";
 
 export default function ProfilePage() {
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  
-  const [formData, setFormData] = useState({ 
-    fullName: '', 
-    phone: '', 
-    gender: 'male', 
-    memberId: '' 
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    gender: 'male',
+    memberId: ''
   });
   const [userId, setUserId] = useState<string | null>(null);
-  
-  // Sperre für das Geschlecht
   const [isGenderLocked, setIsGenderLocked] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          router.push('/login');
-          return;
-        }
-        
+        if (!user) { router.push('/login'); return; }
+
         setUserId(user.id);
 
         const { data: profile } = await supabase
@@ -54,10 +45,8 @@ export default function ProfilePage() {
             fullName: profile.full_name || '',
             phone: profile.phone || '',
             gender: profile.gender || 'male',
-            memberId: profile.member_id || '' 
+            memberId: profile.member_id || ''
           });
-
-          // Wenn ein Geschlecht da ist, sperren wir es
           if (profile.gender) setIsGenderLocked(true);
         }
       } catch (err) {
@@ -66,32 +55,25 @@ export default function ProfilePage() {
         setLoading(false);
       }
     };
-
     loadProfile();
   }, [router]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
-    
     setSaving(true);
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          full_name: formData.fullName,
-          phone: formData.phone,
-          gender: formData.gender,
-          member_id: formData.memberId
-        });
-
+      const { error } = await supabase.from('profiles').upsert({
+        id: userId,
+        full_name: formData.fullName,
+        phone: formData.phone,
+        gender: formData.gender,
+        member_id: formData.memberId
+      });
       if (error) throw error;
-
       alert("Profil gespeichert!");
-      router.refresh(); 
-      router.push('/'); 
+      router.refresh();
+      router.push('/');
     } catch (error: any) {
       alert("Fehler: " + error.message);
     } finally {
@@ -99,7 +81,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Hilfsfunktion für Kalender-URLs (iOS: webcal://, Android: Google Calendar)
   const openCalendar = (apiUrl: string) => {
     const host = window.location.host;
     const isAndroid = /Android/i.test(navigator.userAgent);
@@ -112,51 +93,65 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="animate-spin h-8 w-8 text-slate-400"/>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--app-bg)' }}>
+        <Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--app-text2)' }} />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 pb-20">
-      
+    <main className="min-h-screen flex flex-col items-center p-4 pb-20" style={{ background: 'var(--app-bg)' }}>
+
       <div className="w-full max-w-sm flex items-center mb-6 mt-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+        <Button variant="ghost" size="sm" onClick={() => router.push('/')}
+          style={{ color: 'var(--app-text2)' }}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Zurück
         </Button>
       </div>
 
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader>
-          <CardTitle>Profil bearbeiten</CardTitle>
-          <CardDescription>Hier kannst du deine Daten ändern.</CardDescription>
-        </CardHeader>
-        
-        <CardContent>
+      <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+
+        <div className="p-6 pb-2">
+          <h2 className="text-lg font-bold" style={{ color: 'var(--app-text)' }}>Profil bearbeiten</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--app-text2)' }}>Hier kannst du deine Daten ändern.</p>
+        </div>
+
+        <div className="p-6">
           <form onSubmit={handleSave} className="space-y-4">
-            
-            {/* 1. GESCHLECHT AUSWAHL */}
+
+            {/* GESCHLECHT */}
             <div className="space-y-2">
               <div className="flex justify-between">
-                 <label className="text-xs font-bold uppercase text-slate-500 ml-1">Geschlecht</label>
-                 {isGenderLocked && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Lock size={10}/> Festgelegt</span>}
+                <label className="text-xs font-bold uppercase ml-1" style={{ color: 'var(--app-text2)' }}>Geschlecht</label>
+                {isGenderLocked && (
+                  <span className="text-[10px] flex items-center gap-1" style={{ color: 'var(--app-text3)' }}>
+                    <Lock size={10} /> Festgelegt
+                  </span>
+                )}
               </div>
               <div className={`grid grid-cols-2 gap-2 ${isGenderLocked ? 'opacity-60 cursor-not-allowed' : ''}`}>
-                <div 
+                <div
                   onClick={() => !isGenderLocked && setFormData({...formData, gender: 'male'})}
-                  className={`rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1 
-                    ${formData.gender === 'male' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-500'}
-                    ${!isGenderLocked ? 'cursor-pointer hover:border-slate-300' : ''}`}
+                  className="rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1"
+                  style={{
+                    borderColor: formData.gender === 'male' ? 'var(--app-gold)' : 'var(--app-border)',
+                    background: formData.gender === 'male' ? 'var(--app-gold-dim)' : 'var(--app-card)',
+                    color: formData.gender === 'male' ? 'var(--app-gold)' : 'var(--app-text2)',
+                    cursor: isGenderLocked ? 'not-allowed' : 'pointer',
+                  }}
                 >
                   <span className="text-xl">🧔🏻‍♂️</span>
                   <span className="text-sm font-bold">Bruder</span>
                 </div>
-                <div 
+                <div
                   onClick={() => !isGenderLocked && setFormData({...formData, gender: 'female'})}
-                  className={`rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1
-                    ${formData.gender === 'female' ? 'border-pink-600 bg-pink-600 text-white' : 'border-slate-200 text-slate-500'}
-                    ${!isGenderLocked ? 'cursor-pointer hover:border-pink-200' : ''}`}
+                  className="rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1"
+                  style={{
+                    borderColor: formData.gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)',
+                    background: formData.gender === 'female' ? 'rgba(240,98,146,0.12)' : 'var(--app-card)',
+                    color: formData.gender === 'female' ? 'var(--app-rose)' : 'var(--app-text2)',
+                    cursor: isGenderLocked ? 'not-allowed' : 'pointer',
+                  }}
                 >
                   <span className="text-xl">🧕🏻</span>
                   <span className="text-sm font-bold">Schwester</span>
@@ -164,133 +159,111 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* 2. ID NUMMER */}
+            {/* ID NUMMER */}
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">ID-Nummer</label>
+              <label className="text-xs font-bold uppercase ml-1" style={{ color: 'var(--app-text2)' }}>ID-Nummer</label>
               <div className="relative">
-                <BadgeInfo className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input 
-                  value={formData.memberId}
-                  onChange={(e) => setFormData({...formData, memberId: e.target.value})}
-                  className="pl-9"
-                  placeholder="z.B. 12345"
-                />
+                <BadgeInfo className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'var(--app-text3)' }} />
+                <Input value={formData.memberId} onChange={(e) => setFormData({...formData, memberId: e.target.value})} className="pl-9" placeholder="z.B. 12345" />
               </div>
             </div>
 
-            {/* 3. NAME */}
+            {/* NAME */}
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Name</label>
+              <label className="text-xs font-bold uppercase ml-1" style={{ color: 'var(--app-text2)' }}>Name</label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input 
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                  className="pl-9"
-                  placeholder="Dein Name"
-                />
+                <User className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'var(--app-text3)' }} />
+                <Input value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} className="pl-9" placeholder="Dein Name" />
               </div>
             </div>
 
-            {/* 4. HANDY */}
+            {/* HANDY */}
             <div className="space-y-1">
-              <label className="text-xs font-bold uppercase text-slate-500 ml-1">Handynummer</label>
+              <label className="text-xs font-bold uppercase ml-1" style={{ color: 'var(--app-text2)' }}>Handynummer</label>
               <div className="relative">
-                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                <Input 
-                  value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  className="pl-9"
-                  type="tel"
-                  placeholder="0176..."
-                />
+                <Phone className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'var(--app-text3)' }} />
+                <Input value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="pl-9" type="tel" placeholder="0176..." />
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-slate-900 mt-4" disabled={saving}>
-              {saving ? <Loader2 className="animate-spin mr-2"/> : <Save className="mr-2 h-4 w-4"/>}
+            <button type="submit" className="btn-gold w-full mt-4" disabled={saving}>
+              {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save className="mr-2 h-4 w-4" />}
               Speichern
-            </Button>
-
+            </button>
           </form>
 
           {/* EINSTELLUNGEN */}
-          <div className="mt-8 pt-6 border-t border-slate-100 space-y-6">
-            
+          <div className="mt-8 pt-6 space-y-6" style={{ borderTop: '1px solid var(--app-border)' }}>
+
             {/* PUSH */}
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Benachrichtigungen</h3>
-              <p className="text-xs text-slate-500 mb-3">Push-Benachrichtigungen werden beim ersten Öffnen der App aktiviert.</p>
+              <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--app-text)' }}>Benachrichtigungen</h3>
+              <p className="text-xs" style={{ color: 'var(--app-text2)' }}>Push-Benachrichtigungen werden beim ersten Öffnen der App aktiviert.</p>
             </div>
 
             {/* GPS */}
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">GPS / Standort</h3>
-              <p className="text-xs text-slate-500 mb-3">Wird benötigt, damit Fahrer und Mitfahrer sich finden.</p>
+              <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--app-text)' }}>GPS / Standort</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--app-text2)' }}>Wird benötigt, damit Fahrer und Mitfahrer sich finden.</p>
               <LocationSettings />
             </div>
 
-            {/* KALENDER SYNC */}
+            {/* KALENDER */}
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">Kalender</h3>
-              <p className="text-xs text-slate-500 mb-3">
-                Wähle, was du im Handy-Kalender sehen möchtest.
-              </p>
-              
+              <h3 className="text-sm font-bold mb-1" style={{ color: 'var(--app-text)' }}>Kalender</h3>
+              <p className="text-xs mb-3" style={{ color: 'var(--app-text2)' }}>Wähle, was du im Handy-Kalender sehen möchtest.</p>
+
               <div className="flex flex-col gap-3">
-                
-                {/* Button 1: Veranstaltungen */}
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start gap-2 border-orange-200 text-orange-800 bg-orange-50 hover:bg-orange-100"
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'rgba(251,146,60,0.12)', border: '1px solid rgba(251,146,60,0.3)', color: '#c2410c' }}
                   onClick={() => openCalendar('/api/calendar-events')}
                 >
-                  <Calendar size={18} />
-                  Veranstaltungen (Abo)
-                </Button>
+                  <Calendar size={18} /> Veranstaltungen (Abo)
+                </button>
 
-                {/* Button 2: Gebetszeiten */}
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start gap-2 border-slate-300 text-slate-700"
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
                   onClick={() => openCalendar('/api/calendar')}
                 >
-                  <Calendar size={18} />
-                  Gebetszeiten (Abo)
-                </Button>
-                
-                {/* Button 3: Web-Liste (Der fehlende Button!) */}
-                <Button 
-                  variant="secondary" 
-                  className="w-full justify-start gap-2 text-slate-600 bg-slate-100"
+                  <Calendar size={18} /> Gebetszeiten (Abo)
+                </button>
+
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
                   onClick={() => router.push('/events')}
                 >
-                  <List size={18} />
-                  Liste ansehen (Web)
-                </Button>
-
+                  <List size={18} /> Liste ansehen (Web)
+                </button>
               </div>
             </div>
 
-            {/* SUPPORT / BUG REPORT */}
-            <div className="pt-4 border-t border-dashed border-slate-200">
-               <h3 className="text-sm font-bold text-slate-900 mb-2">Hilfe & Support</h3>
-               <a 
-                 href={`https://wa.me/${ADMIN_WHATSAPP}?text=Salam, ich habe einen Fehler in der App gefunden:`}
-                 target="_blank"
-                 rel="noopener noreferrer"
-               >
-                 <Button variant="secondary" className="w-full justify-start gap-2 text-slate-600 bg-slate-50 hover:bg-slate-100 border border-slate-200">
-                    <MessageSquareWarning size={18} />
-                    Fehler melden (WhatsApp)
-                 </Button>
-               </a>
+            {/* SUPPORT */}
+            <div className="pt-4" style={{ borderTop: '1px dashed var(--app-border)' }}>
+              <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--app-text)' }}>Hilfe & Support</h3>
+              <a
+                href={`https://wa.me/${ADMIN_WHATSAPP}?text=Salam, ich habe einen Fehler in der App gefunden:`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <button
+                  type="button"
+                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
+                >
+                  <MessageSquareWarning size={18} /> Fehler melden (WhatsApp)
+                </button>
+              </a>
             </div>
 
           </div>
-
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }

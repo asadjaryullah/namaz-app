@@ -10,7 +10,6 @@ import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle, ArrowLeft } from 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
 
-// Route zeichnen
 function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | null }) {
   const map = useMap();
   const routesLibrary = useMapsLibrary('routes');
@@ -20,10 +19,10 @@ function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | n
   useEffect(() => {
     if (!routesLibrary || !map) return;
     setDs(new routesLibrary.DirectionsService());
-    setDr(new routesLibrary.DirectionsRenderer({ 
-      map, 
+    setDr(new routesLibrary.DirectionsRenderer({
+      map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#16a34a', strokeWeight: 5 } 
+      polylineOptions: { strokeColor: '#16a34a', strokeWeight: 5 }
     }));
   }, [routesLibrary, map]);
 
@@ -46,21 +45,18 @@ function PassengerDashboardContent() {
 
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Eigener Standort
   const [myPos, setMyPos] = useState<{lat: number, lng: number} | null>(null);
 
-  // Fahrt laden und überwachen
   useEffect(() => {
     if (!rideId) return;
-    
+
     const fetchRide = async () => {
       const { data } = await supabase
         .from('rides')
         .select('*')
         .eq('id', rideId)
         .single();
-      
+
       if (data) setRide(data);
       setLoading(false);
     };
@@ -70,7 +66,6 @@ function PassengerDashboardContent() {
     return () => clearInterval(interval);
   }, [rideId]);
 
-  // --- LIVE TRACKING DES MITFAHRERS ---
   useEffect(() => {
     if (!rideId) return;
 
@@ -83,7 +78,6 @@ function PassengerDashboardContent() {
         async (pos) => {
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
-
           setMyPos({ lat, lng: lon });
 
           await supabase
@@ -103,7 +97,6 @@ function PassengerDashboardContent() {
       if (watcherId !== null) navigator.geolocation.clearWatch(watcherId);
     };
   }, [rideId]);
-  // ----------------------------------------
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
@@ -122,22 +115,30 @@ function PassengerDashboardContent() {
     return `https://wa.me/${cleanNumber}?text=${text}`;
   };
 
-  if (loading) return <div className="h-screen flex justify-center items-center"><Loader2 className="animate-spin"/></div>;
-  if (!ride) return <div className="p-10 text-center">Fahrt nicht gefunden.</div>;
+  if (loading) return (
+    <div className="h-screen flex justify-center items-center" style={{ background: 'var(--app-bg)' }}>
+      <Loader2 className="animate-spin" style={{ color: 'var(--app-text2)' }} />
+    </div>
+  );
 
-  // Wenn Fahrt beendet -> Ankunfts-Seite
+  if (!ride) return (
+    <div className="p-10 text-center" style={{ color: 'var(--app-text2)' }}>Fahrt nicht gefunden.</div>
+  );
+
   if (ride.status === 'completed') {
     return (
-      <div className="min-h-screen bg-green-50 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500">
-        <div className="bg-white p-6 rounded-full shadow-xl mb-6 animate-bounce">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500"
+        style={{ background: 'var(--app-emerald-dim)' }}>
+        <div className="p-6 rounded-full shadow-xl mb-6 animate-bounce" style={{ background: 'var(--app-surface2)' }}>
           <span className="text-4xl">🕌</span>
         </div>
-        <h1 className="text-2xl font-bold text-green-900">Alhamdulillah!</h1>
-        <p className="text-green-800 mt-2 mb-8">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--app-emerald)' }}>Alhamdulillah!</h1>
+        <p className="mt-2 mb-8" style={{ color: 'var(--app-text)' }}>
           Ihr seid an der Bashier Moschee angekommen.
         </p>
-        <Button 
-          className="w-full max-w-xs bg-green-600 hover:bg-green-700 text-white h-14 text-lg shadow-lg rounded-xl"
+        <Button
+          className="w-full max-w-xs h-14 text-lg shadow-lg rounded-xl"
+          style={{ background: 'var(--app-emerald)', color: '#042b1a' }}
           onClick={() => router.push('/arrival')}
         >
           Zur Gebetsvorbereitung ➜
@@ -146,80 +147,74 @@ function PassengerDashboardContent() {
     );
   }
 
-  // Wo steht das Auto?
   const currentCarPosition = {
     lat: ride.current_lat || ride.start_lat,
     lng: ride.current_lon || ride.start_lon
   };
-
   const driverStart = { lat: ride.start_lat, lng: ride.start_lon };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col relative">
-      
+    <div className="min-h-screen flex flex-col relative" style={{ background: 'var(--app-bg)' }}>
+
       {/* Zurück-Button */}
       <div className="absolute top-4 left-4 z-50">
-        <Button 
-          size="icon" 
-          className="rounded-full bg-white text-slate-900 shadow-md hover:bg-slate-100 h-10 w-10"
+        <Button
+          size="icon"
+          className="rounded-full shadow-md h-10 w-10"
+          style={{ background: 'var(--app-surface2)', color: 'var(--app-text)', border: '1px solid var(--app-border)' }}
           onClick={() => router.push('/')}
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
       </div>
-      
+
       {/* KARTE */}
       <div className="h-[50vh] w-full relative">
         <APIProvider apiKey={MAP_API_KEY}>
           <Map defaultCenter={MOSQUE_LOCATION} defaultZoom={13} disableDefaultUI={true} mapId="DEMO_MAP_ID">
-            
             <Directions startPoint={driverStart} />
-            
             <AdvancedMarker position={MOSQUE_LOCATION} title="Moschee"><div className="text-3xl">🕌</div></AdvancedMarker>
 
-            {/* LIVE POSITION DES FAHRERS */}
             <AdvancedMarker position={currentCarPosition} title="Fahrer">
-               <div className="bg-slate-900 text-white text-xs px-2 py-1 rounded-full shadow border-2 border-white flex items-center gap-1 animate-pulse transition-all duration-1000">
-                 🚗 {ride.driver_name}
-               </div>
+              <div className="text-xs px-2 py-1 rounded-full shadow border-2 border-white flex items-center gap-1 animate-pulse"
+                style={{ background: 'var(--app-text)', color: 'var(--app-bg)' }}>
+                🚗 {ride.driver_name}
+              </div>
             </AdvancedMarker>
 
-            {/* EIGENE POSITION (Blauer Punkt) */}
             {myPos && (
               <AdvancedMarker position={myPos} title="Ich">
-                <div className="w-4 h-4 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+                <div className="w-4 h-4 rounded-full border-2 border-white shadow-lg" style={{ background: 'var(--app-emerald)' }}></div>
               </AdvancedMarker>
             )}
-
           </Map>
         </APIProvider>
       </div>
 
       {/* INFO UNTEN */}
-      <div className="flex-1 p-6 -mt-6 bg-white rounded-t-3xl z-10 shadow-up">
-        <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-6"></div>
-        
-        <div className="flex items-center gap-3 mb-6 bg-green-50 p-4 rounded-xl border border-green-100">
-          <CheckCircle2 className="text-green-600 h-8 w-8" />
+      <div className="flex-1 p-6 -mt-6 rounded-t-3xl z-10 shadow-up" style={{ background: 'var(--app-surface2)' }}>
+        <div className="w-12 h-1 rounded-full mx-auto mb-6" style={{ background: 'var(--app-border)' }}></div>
+
+        <div className="flex items-center gap-3 mb-6 p-4 rounded-xl" style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
+          <CheckCircle2 className="h-8 w-8 shrink-0" style={{ color: 'var(--app-emerald)' }} />
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-green-800">Du bist dabei!</h1>
+            <h1 className="text-lg font-bold" style={{ color: 'var(--app-emerald)' }}>Du bist dabei!</h1>
             <div className="flex items-center gap-2 mt-1">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                <p className="text-xs text-green-700 font-medium">Standort wird live geteilt</p>
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--app-emerald)' }}></span>
+                <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: 'var(--app-emerald)' }}></span>
+              </span>
+              <p className="text-xs font-medium" style={{ color: 'var(--app-emerald)' }}>Standort wird live geteilt</p>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border">
+          <div className="flex justify-between items-center p-4 rounded-xl" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
             <div>
-              <p className="text-xs text-slate-500 uppercase font-bold">Dein Fahrer</p>
-              <p className="text-xl font-bold text-slate-900">{ride.driver_name}</p>
+              <p className="text-xs uppercase font-bold" style={{ color: 'var(--app-text2)' }}>Dein Fahrer</p>
+              <p className="text-xl font-bold" style={{ color: 'var(--app-text)' }}>{ride.driver_name}</p>
             </div>
-            
             <div className="flex gap-2">
               <a href={getWhatsAppLink(ride.driver_phone)} target="_blank" rel="noopener noreferrer">
                 <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-md">
@@ -227,7 +222,8 @@ function PassengerDashboardContent() {
                 </Button>
               </a>
               <a href={`tel:${ride.driver_phone}`}>
-                <Button size="icon" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100 rounded-full h-10 w-10">
+                <Button size="icon" variant="outline" className="rounded-full h-10 w-10"
+                  style={{ borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}>
                   <Phone className="h-5 w-5" />
                 </Button>
               </a>
@@ -235,13 +231,13 @@ function PassengerDashboardContent() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-slate-50 p-3 rounded-lg text-center">
-              <p className="text-xs text-slate-500 uppercase">Gebet</p>
-              <p className="font-mono font-bold text-lg">{ride.prayer_time} Uhr</p>
+            <div className="p-3 rounded-lg text-center" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+              <p className="text-xs uppercase" style={{ color: 'var(--app-text2)' }}>Gebet</p>
+              <p className="font-mono font-bold text-lg" style={{ color: 'var(--app-text)' }}>{ride.prayer_time} Uhr</p>
             </div>
-            <div className="bg-slate-50 p-3 rounded-lg text-center">
-              <p className="text-xs text-slate-500 uppercase">Status</p>
-              <p className="font-bold text-blue-600 uppercase text-sm mt-1">
+            <div className="p-3 rounded-lg text-center" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+              <p className="text-xs uppercase" style={{ color: 'var(--app-text2)' }}>Status</p>
+              <p className="font-bold uppercase text-sm mt-1" style={{ color: 'var(--app-blue)' }}>
                 {ride.status === 'active' ? 'Unterwegs' : 'Beendet'}
               </p>
             </div>
@@ -253,13 +249,13 @@ function PassengerDashboardContent() {
         </div>
       </div>
 
-      {/* CONFIRM DIALOG (Bottom Sheet) */}
+      {/* CONFIRM DIALOG */}
       {showCancelDialog && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowCancelDialog(false)}>
-          <div className="w-full bg-white rounded-t-3xl p-6 space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-2"></div>
-            <h3 className="text-lg font-bold text-center">Buchung stornieren?</h3>
-            <p className="text-sm text-slate-500 text-center pb-2">
+          <div className="w-full rounded-t-3xl p-6 space-y-3" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
+            <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'var(--app-border)' }}></div>
+            <h3 className="text-lg font-bold text-center" style={{ color: 'var(--app-text)' }}>Buchung stornieren?</h3>
+            <p className="text-sm text-center pb-2" style={{ color: 'var(--app-text2)' }}>
               Du wirst aus der Fahrt entfernt und der Fahrer wird informiert.
             </p>
             <Button className="w-full h-12 rounded-xl bg-red-600 hover:bg-red-700" onClick={handleCancel}>
