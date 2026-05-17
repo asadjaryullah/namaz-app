@@ -38,8 +38,8 @@ export default function ArrivalPage() {
       </p>
 
       {/* DUA KARTE */}
-      <Card className="w-full max-w-md p-6 border-l-4 border-l-green-600 shadow-md mb-6" style={{ background: 'var(--app-card)' }}>
-        <div className="flex items-center gap-2 mb-4 text-green-600 font-semibold">
+      <Card className="w-full max-w-md p-6 border-l-4 shadow-md mb-6" style={{ background: 'var(--app-card)', borderLeftColor: 'var(--app-emerald)' }}>
+        <div className="flex items-center gap-2 mb-4 font-semibold" style={{ color: 'var(--app-emerald)' }}>
           <BookOpen size={20} />
           <h2>Bittgebet beim Eintreten</h2>
         </div>
@@ -72,17 +72,17 @@ export default function ArrivalPage() {
 
         <div className="w-full h-2 rounded-full mb-4 overflow-hidden" style={{ background: 'var(--app-border)' }}>
           <div
-            className="bg-green-600 h-full transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
+            className="h-full transition-all duration-500 ease-out"
+            style={{ width: `${progress}%`, background: 'var(--app-emerald)' }}
           ></div>
         </div>
 
         {([
-          { key: 'wudhu', Icon: Droplets, label: 'Wudhu machen', sub: 'Frisch und sauber zum Gebet', iconBg: 'bg-blue-100', iconColor: 'text-blue-500' },
-          { key: 'rightFoot', Icon: ArrowRight, label: 'Rechter Fuß zuerst', sub: 'Sunnah beim Eintreten', iconBg: 'bg-orange-100', iconColor: 'text-orange-500' },
-          { key: 'dua', Icon: BookOpen, label: 'Dua sprechen', sub: 'Bittgebet für Barmherzigkeit', iconBg: 'bg-purple-100', iconColor: 'text-purple-500' },
-          { key: 'nawafil', Icon: Moon, label: "2 Raka'at Nawafil", sub: "Tahiyat-ul-Masjid beten", iconBg: 'bg-indigo-100', iconColor: 'text-indigo-500' },
-        ] as const).map(({ key, Icon, label, sub, iconBg, iconColor }) => {
+          { key: 'wudhu', Icon: Droplets, label: 'Wudhu machen', sub: 'Frisch und sauber zum Gebet', iconStyle: { background: 'var(--app-blue-dim)', color: 'var(--app-blue)' } },
+          { key: 'rightFoot', Icon: ArrowRight, label: 'Rechter Fuß zuerst', sub: 'Sunnah beim Eintreten', iconStyle: { background: 'rgba(251,146,60,0.12)', color: '#f97316' } },
+          { key: 'dua', Icon: BookOpen, label: 'Dua sprechen', sub: 'Bittgebet für Barmherzigkeit', iconStyle: { background: 'rgba(167,139,250,0.15)', color: '#a78bfa' } },
+          { key: 'nawafil', Icon: Moon, label: "2 Raka'at Nawafil", sub: "Tahiyat-ul-Masjid beten", iconStyle: { background: 'rgba(99,102,241,0.12)', color: '#6366f1' } },
+        ] as const).map(({ key, Icon, label, sub, iconStyle }) => {
           const isChecked = checked[key as keyof typeof checked];
           return (
             <div
@@ -94,7 +94,7 @@ export default function ArrivalPage() {
                 borderColor: isChecked ? 'var(--app-emerald)' : 'transparent',
               }}
             >
-              <div className={`p-2 rounded-full ${isChecked ? 'bg-green-500 text-white' : `${iconBg} ${iconColor}`}`}>
+              <div className="p-2 rounded-full" style={isChecked ? { background: 'var(--app-emerald)', color: '#fff' } : iconStyle}>
                 <Icon size={24} />
               </div>
               <div className="flex-1">

@@ -22,7 +22,7 @@ function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | n
     setDr(new routesLibrary.DirectionsRenderer({
       map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#16a34a', strokeWeight: 5 }
+      polylineOptions: { strokeColor: '#22D38A', strokeWeight: 5 }
     }));
   }, [routesLibrary, map]);
 
@@ -138,7 +138,7 @@ function PassengerDashboardContent() {
         </p>
         <Button
           className="w-full max-w-xs h-14 text-lg shadow-lg rounded-xl"
-          style={{ background: 'var(--app-emerald)', color: '#042b1a' }}
+          style={{ background: 'var(--app-emerald)', color: '#fff' }}
           onClick={() => router.push('/arrival')}
         >
           Zur Gebetsvorbereitung ➜
@@ -273,7 +273,11 @@ function PassengerDashboardContent() {
 
 export default function PassengerDashboard() {
   return (
-    <Suspense fallback={<div>Lade...</div>}>
+    <Suspense fallback={
+      <div className="h-screen flex justify-center items-center" style={{ background: 'var(--app-bg)' }}>
+        <Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--app-text3)' }} />
+      </div>
+    }>
       <PassengerDashboardContent />
     </Suspense>
   );

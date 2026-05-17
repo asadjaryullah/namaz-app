@@ -16,7 +16,7 @@ const ZIKR_LIST = [
   {
     key: 'zikr1_count',
     target: 200,
-    theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', bar: 'bg-rose-500' },
+    theme: { cardBg: 'rgba(240,98,146,0.07)', cardBorder: 'rgba(240,98,146,0.20)', accent: 'var(--app-rose)' },
     arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
     translation: "Heilig ist Allah und jeder Verehrung würdig. Erhaben ist Allah, der Größte. O Allah, schütte Deine Gnade aus über Muhammadsaw und seinen Anhängern.",
     title: "Tasbih & Salawat"
@@ -24,7 +24,7 @@ const ZIKR_LIST = [
   {
     key: 'zikr2_count',
     target: 100,
-    theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', bar: 'bg-sky-500' },
+    theme: { cardBg: 'var(--app-blue-dim)', cardBorder: 'rgba(91,127,255,0.25)', accent: 'var(--app-blue)' },
     arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
     translation: "Ich ersuche Vergebung bei Allah, meinem Herrn, für all meine Sünden und wende mich zu Ihm in Reue.",
     title: "Istighfar"
@@ -32,7 +32,7 @@ const ZIKR_LIST = [
   {
     key: 'zikr3_count',
     target: 100,
-    theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', bar: 'bg-amber-500' },
+    theme: { cardBg: 'var(--app-gold-dim)', cardBorder: 'rgba(201,162,60,0.30)', accent: 'var(--app-gold)' },
     arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
     translation: "O mein Herr, alles ist Dein Diener. O mein Herr, beschütze mich und hilf mir und sei mir gnädig.",
     title: "Dua"
@@ -44,51 +44,15 @@ type OrgKey = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
 
 const ORG_META: Record<OrgKey, {
   label: string;
-  dayBg: string;
-  dayText: string;
-  dayBorder: string;
-  dot: string;
-  boxBg: string;
-  boxMonthText: string;
-  badgeBg: string;
-  badgeText: string;
+  color: string;
+  dimColor: string;
 }> = {
-  ansar: {
-    label: 'Ansar',
-    dayBg: 'bg-amber-100', dayText: 'text-amber-800', dayBorder: 'border-amber-200',
-    dot: 'bg-amber-700', boxBg: 'bg-amber-50', boxMonthText: 'text-amber-700',
-    badgeBg: 'bg-amber-100', badgeText: 'text-amber-900',
-  },
-  khuddam: {
-    label: 'Khuddam',
-    dayBg: 'bg-blue-100', dayText: 'text-blue-800', dayBorder: 'border-blue-200',
-    dot: 'bg-blue-600', boxBg: 'bg-blue-50', boxMonthText: 'text-blue-700',
-    badgeBg: 'bg-blue-100', badgeText: 'text-blue-900',
-  },
-  atfal: {
-    label: 'Atfal',
-    dayBg: 'bg-green-100', dayText: 'text-green-800', dayBorder: 'border-green-200',
-    dot: 'bg-green-600', boxBg: 'bg-green-50', boxMonthText: 'text-green-700',
-    badgeBg: 'bg-green-100', badgeText: 'text-green-900',
-  },
-  lajna: {
-    label: 'Lajna',
-    dayBg: 'bg-red-100', dayText: 'text-red-800', dayBorder: 'border-red-200',
-    dot: 'bg-red-600', boxBg: 'bg-red-50', boxMonthText: 'text-red-700',
-    badgeBg: 'bg-red-100', badgeText: 'text-red-900',
-  },
-  nasirat: {
-    label: 'Nasirat',
-    dayBg: 'bg-pink-100', dayText: 'text-pink-800', dayBorder: 'border-pink-200',
-    dot: 'bg-pink-600', boxBg: 'bg-pink-50', boxMonthText: 'text-pink-700',
-    badgeBg: 'bg-pink-100', badgeText: 'text-pink-900',
-  },
-  jamaat: {
-    label: 'Jamaat',
-    dayBg: 'bg-orange-100', dayText: 'text-orange-800', dayBorder: 'border-orange-200',
-    dot: 'bg-orange-600', boxBg: 'bg-orange-50', boxMonthText: 'text-orange-700',
-    badgeBg: 'bg-orange-100', badgeText: 'text-orange-900',
-  },
+  ansar:   { label: 'Ansar',   color: '#f97316', dimColor: 'rgba(251,146,60,0.13)' },
+  khuddam: { label: 'Khuddam', color: 'var(--app-blue)', dimColor: 'var(--app-blue-dim)' },
+  atfal:   { label: 'Atfal',   color: 'var(--app-emerald)', dimColor: 'var(--app-emerald-dim)' },
+  lajna:   { label: 'Lajna',   color: 'var(--app-rose)', dimColor: 'rgba(240,98,146,0.12)' },
+  nasirat: { label: 'Nasirat', color: '#ec4899', dimColor: 'rgba(236,72,153,0.12)' },
+  jamaat:  { label: 'Jamaat',  color: '#a78bfa', dimColor: 'rgba(167,139,250,0.12)' },
 };
 
 function normalizeOrg(v: any): OrgKey {
@@ -307,11 +271,11 @@ function HistoryContent() {
 
   const getRingStyle = (count: number) => {
     const p = Math.min(count * 20, 100);
-    let c = '#cbd5e1';
-    if (count >= 5) c = '#16a34a';
-    else if (count >= 3) c = '#3b82f6';
-    else if (count > 0) c = '#f97316';
-    return { background: `conic-gradient(${c} ${p}%, #f1f5f9 0)` };
+    let c = 'var(--app-border)';
+    if (count >= 5) c = 'var(--app-emerald)';
+    else if (count >= 3) c = 'var(--app-blue)';
+    else if (count > 0) c = 'var(--app-gold)';
+    return { background: `conic-gradient(${c} ${p}%, var(--app-surface2) 0)` };
   };
 
   const getEventsForDay = (dayNum: number) => {
@@ -365,28 +329,33 @@ function HistoryContent() {
                   <Card
                     key={item.key}
                     onClick={() => !isDone && handleZikrClick(item.key, item.target)}
-                    className={`relative overflow-hidden transition-all duration-200 border-0 shadow-md ${isDone ? 'bg-emerald-500 cursor-default' : `cursor-pointer active:scale-95 ${item.theme.bg} ${item.theme.text}`}`}
+                    className="relative overflow-hidden transition-all duration-200 shadow-md active:scale-95"
+                    style={{
+                      background: isDone ? 'var(--app-emerald)' : item.theme.cardBg,
+                      border: `1px solid ${isDone ? 'var(--app-emerald)' : item.theme.cardBorder}`,
+                      cursor: isDone ? 'default' : 'pointer',
+                    }}
                   >
-                    {isDone && <div className="absolute right-[-20px] bottom-[-20px] text-white/20 transform rotate-12"><Check size={120} /></div>}
-                    {!isDone && <div className={`absolute bottom-0 left-0 h-1.5 transition-all duration-300 ${item.theme.bar}`} style={{ width: `${progress}%` }} />}
+                    {isDone && <div className="absolute right-[-20px] bottom-[-20px] transform rotate-12" style={{ color: 'rgba(255,255,255,0.2)' }}><Check size={120} /></div>}
+                    {!isDone && <div className="absolute bottom-0 left-0 h-1.5 transition-all duration-300" style={{ width: `${progress}%`, background: item.theme.accent }} />}
                     {count > 0 && !isDone && (
                       <div className="absolute top-3 left-3 z-10">
-                        <button onClick={(e) => handleReset(e, item.key)} className="p-1.5 bg-white/60 rounded-full text-slate-400 hover:text-red-500 hover:bg-white transition-all shadow-sm">
+                        <button onClick={(e) => handleReset(e, item.key)} className="p-1.5 rounded-full transition-all shadow-sm" style={{ background: 'var(--app-surface2)', color: 'var(--app-text3)' }}>
                           <RotateCcw size={14} />
                         </button>
                       </div>
                     )}
                     <div className="p-5 flex items-start justify-between gap-4">
                       <div className="shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] pt-2">
-                        <span className={`text-3xl font-black ${isDone ? 'text-white' : item.theme.text}`}>{count}</span>
-                        <span className={`text-[9px] font-bold uppercase ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>{isDone ? 'FERTIG' : `von ${item.target}`}</span>
+                        <span className="text-3xl font-black" style={{ color: isDone ? '#fff' : item.theme.accent }}>{count}</span>
+                        <span className="text-[9px] font-bold uppercase" style={{ color: isDone ? 'rgba(255,255,255,0.7)' : 'var(--app-text3)' }}>{isDone ? 'FERTIG' : `von ${item.target}`}</span>
                       </div>
                       <div className="flex-1 flex flex-col items-end text-right">
-                        <p className={`text-xs font-bold uppercase mb-2 tracking-widest ${isDone ? 'text-emerald-100' : 'opacity-60'}`}>{item.title}</p>
-                        <p className={`text-xl font-bold leading-loose ${isDone ? 'text-white' : 'text-slate-800'}`} style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', lineHeight: '1.8' }}>
+                        <p className="text-xs font-bold uppercase mb-2 tracking-widest" style={{ color: isDone ? 'rgba(255,255,255,0.7)' : 'var(--app-text3)' }}>{item.title}</p>
+                        <p className="text-xl font-bold leading-loose" style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', lineHeight: '1.8', color: isDone ? '#fff' : 'var(--app-text)' }}>
                           {item.arabic}
                         </p>
-                        <p className={`text-xs mt-3 italic leading-relaxed text-right w-full ${isDone ? 'text-emerald-100' : 'text-slate-500'}`}>{item.translation}</p>
+                        <p className="text-xs mt-3 italic leading-relaxed text-right w-full" style={{ color: isDone ? 'rgba(255,255,255,0.7)' : 'var(--app-text2)' }}>{item.translation}</p>
                       </div>
                     </div>
                   </Card>
@@ -431,19 +400,12 @@ function HistoryContent() {
                     return (
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border
-                            ${isToday ? 'ring-2 ring-offset-1' : ''}
-                            ${!hasEvent
-                              ? ''
-                              : overlap
-                                ? `${meta.dayBg} ${meta.dayText} ${meta.dayBorder} font-bold`
-                                : `${meta.dayBg} ${meta.dayText} ${meta.dayBorder} font-bold`
-                            }`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border font-bold ${isToday ? 'ring-2 ring-offset-1' : ''}`}
                           style={!hasEvent
-                            ? { background: 'var(--app-surface2)', color: 'var(--app-text3)', borderColor: 'var(--app-border)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                            ? { background: 'var(--app-surface2)', color: 'var(--app-text3)', borderColor: 'var(--app-border)', fontWeight: 'normal', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
                             : overlap
                               ? { background: 'var(--app-text)', color: 'var(--app-bg)', borderColor: 'var(--app-text)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
-                              : { ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                              : { background: meta.dimColor, color: meta.color, borderColor: meta.color, ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
                           }
                         >
                           {dayNum}
@@ -452,7 +414,7 @@ function HistoryContent() {
                         {hasEvent && (
                           <div className="absolute -bottom-1 flex items-center gap-1">
                             {dots.map((o) => (
-                              <div key={o} className={`w-1.5 h-1.5 rounded-full ${ORG_META[o].dot}`} />
+                              <div key={o} className="w-1.5 h-1.5 rounded-full" style={{ background: ORG_META[o].color }} />
                             ))}
                           </div>
                         )}
@@ -464,7 +426,7 @@ function HistoryContent() {
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px]">
                   {(['ansar', 'khuddam', 'atfal', 'lajna', 'nasirat', 'jamaat'] as OrgKey[]).map((k) => (
                     <div key={k} className="flex items-center gap-2 px-2 py-1 rounded-full" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
-                      <span className={`w-2 h-2 rounded-full ${ORG_META[k].dot}`} />
+                      <span className="w-2 h-2 rounded-full" style={{ background: ORG_META[k].color }} />
                       <span className="font-bold" style={{ color: 'var(--app-text2)' }}>{ORG_META[k].label}</span>
                     </div>
                   ))}
@@ -489,17 +451,17 @@ function HistoryContent() {
 
                     return (
                       <div key={e.id} className="rounded-2xl shadow-sm overflow-hidden flex" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
-                        <div className={`w-1.5 shrink-0 ${meta.dot}`} />
+                        <div className="w-1.5 shrink-0" style={{ background: meta.color }} />
                         <div className="p-4 flex gap-3 flex-1">
-                          <div className={`${meta.boxBg} px-3 py-2 rounded-xl text-center min-w-[3.5rem] flex flex-col items-center justify-center`}>
-                            <span className={`text-[10px] font-bold uppercase ${meta.boxMonthText}`}>{box.monthLabel}</span>
-                            <span className="text-xl font-black leading-tight text-slate-800">{box.dayLabel}</span>
+                          <div className="px-3 py-2 rounded-xl text-center min-w-[3.5rem] flex flex-col items-center justify-center" style={{ background: meta.dimColor }}>
+                            <span className="text-[10px] font-bold uppercase" style={{ color: meta.color }}>{box.monthLabel}</span>
+                            <span className="text-xl font-black leading-tight" style={{ color: 'var(--app-text)' }}>{box.dayLabel}</span>
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="font-bold leading-snug" style={{ color: 'var(--app-text)' }}>{e.title}</h3>
-                              <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${meta.badgeBg} ${meta.badgeText}`}>
+                              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase" style={{ background: meta.dimColor, color: meta.color }}>
                                 {meta.label}
                               </span>
                             </div>
@@ -549,27 +511,27 @@ function HistoryContent() {
           {/* STATISTIK */}
           {activeTab === 'calendar' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
+              <Card className="col-span-2 p-5 shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                 <div className="relative z-10">
-                  <p className="text-slate-400 text-xs uppercase font-bold tracking-widest mb-1">{monthName}</p>
-                  <div className="flex items-baseline gap-2"><span className="text-5xl font-black">{totalCount}</span><span className="text-sm font-medium text-slate-400">Gebete</span></div>
+                  <p className="text-xs uppercase font-bold tracking-widest mb-1" style={{ color: 'var(--app-text2)' }}>{monthName}</p>
+                  <div className="flex items-baseline gap-2"><span className="text-5xl font-black" style={{ color: 'var(--app-text)' }}>{totalCount}</span><span className="text-sm font-medium" style={{ color: 'var(--app-text2)' }}>Gebete</span></div>
                 </div>
-                <div className="bg-white/10 p-3 rounded-full relative z-10"><TrendingUp size={32} /></div>
+                <div className="p-3 rounded-full relative z-10" style={{ background: 'var(--app-gold-dim)', color: 'var(--app-gold)' }}><TrendingUp size={32} /></div>
               </Card>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
-                  <div className="bg-slate-100 p-2 rounded-full text-slate-700"><Car size={18} /></div>
+                  <div className="p-2 rounded-full" style={{ background: 'var(--app-gold-dim)', color: 'var(--app-gold)' }}><Car size={18} /></div>
                   <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{driverCount}</span>
                   <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Fahrer</span>
                 </div>
                 <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
-                  <div className="bg-blue-50 p-2 rounded-full text-blue-600"><User size={18} /></div>
+                  <div className="p-2 rounded-full" style={{ background: 'var(--app-blue-dim)', color: 'var(--app-blue)' }}><User size={18} /></div>
                   <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{passengerCount}</span>
                   <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Mitfahrer</span>
                 </div>
                 <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
-                  <div className="bg-green-50 p-2 rounded-full text-green-600"><Footprints size={18} /></div>
+                  <div className="p-2 rounded-full" style={{ background: 'var(--app-emerald-dim)', color: 'var(--app-emerald)' }}><Footprints size={18} /></div>
                   <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{walkInCount}</span>
                   <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Besucher</span>
                 </div>
