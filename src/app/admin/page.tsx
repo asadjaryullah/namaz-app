@@ -67,6 +67,22 @@ export default function AdminPage() {
   const [editEventForm, setEditEventForm] = useState({ title: '', location: '', org: 'jamaat' as Org, start: '', end: '' });
   const [editEventSaving, setEditEventSaving] = useState(false);
 
+  // Quick links state
+  const [quickLinks, setQuickLinks] = useState<any[]>([]);
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkEmoji, setNewLinkEmoji] = useState('🔗');
+  const [savingLink, setSavingLink] = useState(false);
+  const [editingLink, setEditingLink] = useState<any | null>(null);
+
+  // Daily quotes state
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [newQuoteArabic, setNewQuoteArabic] = useState('');
+  const [newQuoteTranslation, setNewQuoteTranslation] = useState('');
+  const [newQuoteSource, setNewQuoteSource] = useState('');
+  const [savingQuote, setSavingQuote] = useState(false);
+  const [editingQuote, setEditingQuote] = useState<any | null>(null);
+
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
@@ -97,8 +113,8 @@ export default function AdminPage() {
       if (prayersData) setPrayers(prayersData);
 
       const fetchTasks = isMainAdmin
-        ? [fetchPendingUsers(), fetchAllProfiles(), fetchEvents()]
-        : [fetchEvents()];
+        ? [fetchPendingUsers(), fetchAllProfiles(), fetchEvents(), fetchQuickLinks(), fetchDailyQuotes()]
+        : [fetchEvents(), fetchQuickLinks(), fetchDailyQuotes()];
       await Promise.all(fetchTasks);
       setLoading(false);
     };
@@ -109,6 +125,16 @@ export default function AdminPage() {
   const fetchEvents = async () => {
     const { data } = await supabase.from('mosque_events').select('id,title,location,org,event_date,event_end_date').order('event_date', { ascending: true });
     if (data) setEvents(data);
+  };
+
+  const fetchQuickLinks = async () => {
+    const { data } = await supabase.from('quick_links').select('*').order('sort_order', { ascending: true });
+    if (data) setQuickLinks(data);
+  };
+
+  const fetchDailyQuotes = async () => {
+    const { data } = await supabase.from('daily_quotes').select('*').order('sort_order', { ascending: true });
+    if (data) setQuotes(data);
   };
 
   const fetchPendingUsers = async () => {
@@ -261,6 +287,64 @@ export default function AdminPage() {
       },
       cancel: { label: "Abbrechen", onClick: () => {} },
     });
+  };
+
+  const handleAddLink = async () => {
+    if (!newLinkTitle || !newLinkUrl) { toast.error("Bitte Titel und URL angeben."); return; }
+    setSavingLink(true);
+    const { error } = await supabase.from('quick_links').insert({
+      title: newLinkTitle.trim(),
+      url: newLinkUrl.trim(),
+      emoji: newLinkEmoji || '🔗',
+      sort_order: quickLinks.length,
+      is_active: true,
+    });
+    setSavingLink(false);
+    if (error) { toast.error("Fehler: " + error.message); return; }
+    setNewLinkTitle(''); setNewLinkUrl(''); setNewLinkEmoji('🔗');
+    await fetchQuickLinks();
+    toast.success("Link hinzugefügt!");
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    toast("Link löschen?", {
+      action: { label: "Löschen", onClick: async () => { await supabase.from('quick_links').delete().eq('id', id); await fetchQuickLinks(); } },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
+  };
+
+  const handleToggleLink = async (id: string, current: boolean) => {
+    await supabase.from('quick_links').update({ is_active: !current }).eq('id', id);
+    await fetchQuickLinks();
+  };
+
+  const handleAddQuote = async () => {
+    if (!newQuoteTranslation) { toast.error("Bitte Übersetzung angeben."); return; }
+    setSavingQuote(true);
+    const { error } = await supabase.from('daily_quotes').insert({
+      arabic: newQuoteArabic.trim() || null,
+      translation: newQuoteTranslation.trim(),
+      source: newQuoteSource.trim() || null,
+      sort_order: quotes.length,
+      is_active: true,
+    });
+    setSavingQuote(false);
+    if (error) { toast.error("Fehler: " + error.message); return; }
+    setNewQuoteArabic(''); setNewQuoteTranslation(''); setNewQuoteSource('');
+    await fetchDailyQuotes();
+    toast.success("Zitat hinzugefügt!");
+  };
+
+  const handleDeleteQuote = async (id: string) => {
+    toast("Zitat löschen?", {
+      action: { label: "Löschen", onClick: async () => { await supabase.from('daily_quotes').delete().eq('id', id); await fetchDailyQuotes(); } },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
+  };
+
+  const handleToggleQuote = async (id: string, current: boolean) => {
+    await supabase.from('daily_quotes').update({ is_active: !current }).eq('id', id);
+    await fetchDailyQuotes();
   };
 
   const handleTimeChange = (id: string, newTime: string) => {
@@ -644,6 +728,87 @@ export default function AdminPage() {
                 </div>
               );
             })()}
+
+            {/* Quick Links */}
+            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Quick Links (Startseite)</p>
+              <div className="flex gap-2">
+                <Input placeholder="Emoji" value={newLinkEmoji} onChange={e => setNewLinkEmoji(e.target.value)} className="w-16 text-center text-lg" />
+                <Input placeholder="Titel" value={newLinkTitle} onChange={e => setNewLinkTitle(e.target.value)} className="flex-1" />
+              </div>
+              <Input placeholder="URL (https://...)" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} />
+              <Button className="w-full" style={{ background: 'var(--app-blue)', color: '#fff' }} onClick={handleAddLink} disabled={savingLink}>
+                {savingLink ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                Link hinzufügen
+              </Button>
+              <div className="space-y-2 mt-1">
+                {quickLinks.map(link => (
+                  <div key={link.id} className="flex items-center gap-2 p-2.5 rounded-xl" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', opacity: link.is_active ? 1 : 0.5 }}>
+                    <span className="text-xl shrink-0">{link.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: 'var(--app-text)' }}>{link.title}</p>
+                      <p className="text-[10px] truncate" style={{ color: 'var(--app-text3)' }}>{link.url}</p>
+                    </div>
+                    <button onClick={() => handleToggleLink(link.id, link.is_active)} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: link.is_active ? 'var(--app-emerald-dim)' : 'var(--app-surface2)', color: link.is_active ? 'var(--app-emerald)' : 'var(--app-text3)', border: '1px solid var(--app-border)' }}>
+                      {link.is_active ? <Check size={13} /> : <X size={13} />}
+                    </button>
+                    <button onClick={() => handleDeleteLink(link.id)} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(240,98,146,0.08)', color: 'var(--app-rose)' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                {quickLinks.length === 0 && <p className="text-xs italic text-center py-2" style={{ color: 'var(--app-text3)' }}>Noch keine Links.</p>}
+              </div>
+            </div>
+
+            {/* Tägliche Zitate */}
+            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+              <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Tägliche Zitate (Zikr-Seite)</p>
+              <textarea
+                placeholder="Arabischer Text (optional)"
+                value={newQuoteArabic}
+                onChange={e => setNewQuoteArabic(e.target.value)}
+                rows={2}
+                className="w-full rounded-md px-3 py-2 text-lg text-right"
+                style={{ fontFamily: 'var(--font-amiri)', background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text)', resize: 'none', outline: 'none' }}
+              />
+              <textarea
+                placeholder="Übersetzung / Zitat (Deutsch) *"
+                value={newQuoteTranslation}
+                onChange={e => setNewQuoteTranslation(e.target.value)}
+                rows={2}
+                className="w-full rounded-md px-3 py-2 text-sm"
+                style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text)', resize: 'none', outline: 'none' }}
+              />
+              <Input placeholder="Quelle (z.B. Sahih Bukhari 1)" value={newQuoteSource} onChange={e => setNewQuoteSource(e.target.value)} />
+              <Button className="w-full" style={{ background: 'var(--app-gold)', color: '#fff' }} onClick={handleAddQuote} disabled={savingQuote}>
+                {savingQuote ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                Zitat hinzufügen
+              </Button>
+              <div className="space-y-2 mt-1">
+                {quotes.map((q, idx) => (
+                  <div key={q.id} className="flex items-start gap-2 p-2.5 rounded-xl" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', opacity: q.is_active ? 1 : 0.5 }}>
+                    <span className="text-xs font-black mt-0.5 shrink-0 w-5 text-center" style={{ color: 'var(--app-text3)' }}>{idx + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      {q.arabic && <p className="text-sm text-right truncate" style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)' }}>{q.arabic}</p>}
+                      <p className="text-xs leading-snug italic" style={{ color: 'var(--app-text)' }}>„{q.translation}"</p>
+                      {q.source && <p className="text-[10px] mt-0.5" style={{ color: 'var(--app-text3)' }}>— {q.source}</p>}
+                    </div>
+                    <button onClick={() => handleToggleQuote(q.id, q.is_active)} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: q.is_active ? 'var(--app-emerald-dim)' : 'var(--app-surface2)', color: q.is_active ? 'var(--app-emerald)' : 'var(--app-text3)', border: '1px solid var(--app-border)' }}>
+                      {q.is_active ? <Check size={13} /> : <X size={13} />}
+                    </button>
+                    <button onClick={() => handleDeleteQuote(q.id)} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: 'rgba(240,98,146,0.08)', color: 'var(--app-rose)' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                {quotes.length === 0 && <p className="text-xs italic text-center py-2" style={{ color: 'var(--app-text3)' }}>Noch keine Zitate.</p>}
+              </div>
+            </div>
           </div>
         )}
 

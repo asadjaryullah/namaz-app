@@ -89,6 +89,7 @@ function HistoryContent() {
   const [todayLogId, setTodayLogId] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [dailyQuote, setDailyQuote] = useState<any | null>(null);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -194,6 +195,16 @@ function HistoryContent() {
         .order('event_date', { ascending: true });
 
       if (eventsData) setEvents(eventsData);
+
+      const { data: quotesData } = await supabase
+        .from('daily_quotes')
+        .select('arabic, translation, source')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (quotesData?.length) {
+        const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+        setDailyQuote(quotesData[dayOfYear % quotesData.length]);
+      }
 
       setLoading(false);
     };
@@ -326,6 +337,25 @@ function HistoryContent() {
           {/* ZIKR */}
           {activeTab === 'zikr' && (
             <div className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
+              {/* Tägliches Zitat */}
+              {dailyQuote && (
+                <div className="rounded-2xl p-4" style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
+                  {dailyQuote.arabic && (
+                    <p className="text-xl text-center leading-loose mb-2 font-bold"
+                      style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', color: 'var(--app-gold)', textShadow: '0 0 20px var(--app-gold-glow)' }}>
+                      {dailyQuote.arabic}
+                    </p>
+                  )}
+                  <p className="text-sm text-center italic leading-relaxed" style={{ color: 'var(--app-text)' }}>
+                    „{dailyQuote.translation}"
+                  </p>
+                  {dailyQuote.source && (
+                    <p className="text-[10px] text-center mt-2 font-bold uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>
+                      — {dailyQuote.source}
+                    </p>
+                  )}
+                </div>
+              )}
               {ZIKR_LIST.map((item) => {
                 const count = zikrData[item.key] || 0;
                 const isDone = count >= item.target;
