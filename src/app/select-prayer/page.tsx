@@ -2,11 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image'; 
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Loader2, Settings, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Loader2, Settings, CheckCircle2, UserRound, X } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,34 +24,86 @@ const getIcon = (id: string) => {
 
 function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats: number, onChange: (n: number) => void, gender: string }) {
   const [seats, setSeats] = useState([true, true, true, true]);
+
   const toggleSeat = (index: number) => {
     const newSeats = [...seats];
     newSeats[index] = !newSeats[index];
     setSeats(newSeats);
     onChange(newSeats.filter(s => s).length);
   };
-  const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
+
+  const Seat = ({ index, size = 56 }: { index: number; size?: number }) => {
+    const free = seats[index];
+    return (
+      <button
+        onClick={() => toggleSeat(index)}
+        className="flex flex-col items-center justify-center rounded-2xl border-2 transition-opacity active:opacity-60 gap-0.5 select-none"
+        style={{
+          width: size, height: size,
+          touchAction: 'manipulation',
+          WebkitTapHighlightColor: 'transparent',
+          background: free ? 'rgba(34,211,138,0.13)' : 'rgba(240,98,146,0.10)',
+          borderColor: free ? 'var(--app-emerald)' : 'rgba(240,98,146,0.45)',
+        }}
+      >
+        {free
+          ? <UserRound size={size === 56 ? 18 : 15} strokeWidth={2} style={{ color: 'var(--app-emerald)' }} />
+          : <X size={size === 56 ? 16 : 13} strokeWidth={2.5} style={{ color: 'var(--app-rose)' }} />
+        }
+        <span className="text-[8px] font-bold uppercase leading-none"
+          style={{ color: free ? 'var(--app-emerald)' : 'var(--app-rose)' }}>
+          {free ? 'Frei' : 'Belegt'}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
-      <p className="text-sm font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--app-text2)' }}>Freie Plätze ({availableSeats})</p>
-      <div className="p-4 rounded-[2.5rem] shadow-2xl w-48 relative" style={{ background: 'var(--app-surface1)', border: '4px solid var(--app-border)' }}>
-        <div className="h-10 rounded-t-xl opacity-60 mb-4 mx-2" style={{ background: 'var(--app-blue-dim)', borderBottom: '4px solid var(--app-border)' }}></div>
-        <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg border-2 flex items-center justify-center shadow-inner relative overflow-hidden"
-              style={{ background: gender === 'female' ? 'rgba(240,98,146,0.15)' : 'var(--app-surface2)', borderColor: gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)' }}>
-               <Image src={driverImage} alt="Fahrer" fill className="object-contain p-1" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-               <span className="absolute -z-10 text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
-            </div>
-            <span className="text-[10px] font-bold mt-1" style={{ color: 'var(--app-text3)' }}>DU</span>
-          </div>
-          {[0,1,2].map(i => (
-            <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[i] ? '✔' : '❌'}</button>
-          ))}
-          <div className="col-span-2 flex justify-center -mt-2"><button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[3] ? '✔' : '❌'}</button></div>
-        </div>
+
+      {/* Freie-Plätze Counter */}
+      <div className="flex items-baseline gap-1.5 mb-4">
+        <span className="text-3xl font-black" style={{ color: 'var(--app-emerald)' }}>{availableSeats}</span>
+        <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--app-text2)' }}>
+          {availableSeats === 1 ? 'freier Platz' : 'freie Plätze'}
+        </span>
       </div>
-      <p className="text-xs mt-2" style={{ color: 'var(--app-text3)' }}>Tippe auf einen Sitz, um ihn zu blockieren.</p>
+
+      {/* Auto-Körper */}
+      <div className="relative rounded-[2rem] shadow-xl" style={{ width: 240, background: 'var(--app-surface1)', border: '3px solid var(--app-border)', padding: '16px' }}>
+
+        {/* Windschutzscheibe */}
+        <div className="rounded-t-2xl mb-4 mx-2 opacity-50" style={{ height: 20, background: 'var(--app-blue-dim)', borderBottom: '2px solid var(--app-border)' }} />
+
+        {/* Vordere Reihe: Fahrer + Beifahrer */}
+        <div className="flex items-end justify-between mb-5">
+          <div className="flex flex-col items-center gap-1">
+            <div className="rounded-2xl border-2 flex items-center justify-center"
+              style={{ width: 56, height: 56, background: gender === 'female' ? 'rgba(240,98,146,0.12)' : 'var(--app-surface2)', borderColor: 'var(--app-border)' }}>
+              <span className="text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Du</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Seat index={0} />
+          </div>
+        </div>
+
+        {/* Mittelkonsole-Trennlinie */}
+        <div className="mx-6 mb-5 opacity-25" style={{ height: 1, background: 'var(--app-border)' }} />
+
+        {/* Hintere Reihe: 3 Sitze */}
+        <div className="flex items-center justify-between mb-4">
+          <Seat index={1} size={52} />
+          <Seat index={2} size={52} />
+          <Seat index={3} size={52} />
+        </div>
+
+        {/* Heckscheibe */}
+        <div className="rounded-b-2xl mx-2 mt-2 opacity-40" style={{ height: 16, background: 'var(--app-blue-dim)', borderTop: '2px solid var(--app-border)' }} />
+      </div>
+
+      <p className="text-xs mt-3 text-center" style={{ color: 'var(--app-text3)' }}>Tippe auf einen Sitz um ihn zu blockieren</p>
     </div>
   );
 }

@@ -482,8 +482,8 @@ export default function AdminPage() {
                   <button
                     key={p.id}
                     onClick={() => openEditProfile(p)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl transition-all active:scale-[0.99] text-left"
-                    style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl transition-opacity active:opacity-60 text-left"
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
                   >
                     <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold shrink-0 text-sm"
                       style={{ background: 'var(--app-card)', color: 'var(--app-text2)' }}>

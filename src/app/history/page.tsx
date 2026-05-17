@@ -334,7 +334,7 @@ function HistoryContent() {
                   <Card
                     key={item.key}
                     onClick={() => !isDone && handleZikrClick(item.key, item.target)}
-                    className="relative overflow-hidden transition-all duration-200 shadow-md active:scale-95"
+                    className="relative overflow-hidden transition-opacity duration-150 shadow-md active:opacity-60"
                     style={{
                       background: isDone ? 'var(--app-emerald)' : item.theme.cardBg,
                       border: `1px solid ${isDone ? 'var(--app-emerald)' : item.theme.cardBorder}`,

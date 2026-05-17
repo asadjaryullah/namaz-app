@@ -51,7 +51,8 @@ export default function ProfileBar() {
         {/* 1. BUTTON: ZUR STATISTIK (Klick auf Name) */}
         <div 
           onClick={() => router.push('/history')} 
-          className="flex items-center gap-3 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100 cursor-pointer hover:bg-slate-100 hover:border-slate-300 transition-all active:scale-95 group"
+          className="flex items-center gap-3 px-3 py-1.5 rounded-full border cursor-pointer transition-opacity active:opacity-60 group"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-surface2)', borderColor: 'var(--app-border)' }}
           title="Zur Statistik"
         >
           <div className="flex flex-col items-end mr-1">
