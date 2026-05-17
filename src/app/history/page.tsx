@@ -599,8 +599,8 @@ function HistoryContent() {
             onClick={() => setSelectedDay(null)}
           >
             <div
-              className="w-full max-h-[75vh] overflow-y-auto rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
-              style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+              className="w-full max-h-[80vh] overflow-y-auto rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
+              style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(calc(env(safe-area-inset-bottom) + 5rem), 5.5rem)' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-center pt-4 pb-3">

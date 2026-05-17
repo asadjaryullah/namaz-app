@@ -230,6 +230,21 @@ export default function HomePage() {
         </button>
       </div>
 
+      {/* ── Jubiläum ── */}
+      <div className="stagger-2 flex items-center justify-center gap-3 py-2">
+        <div className="h-px flex-1" style={{ background: 'var(--app-border)' }} />
+        <div className="relative w-14 h-14 shrink-0">
+          <Image
+            src="/jubilaeum.png"
+            alt="100 Jahre Jubiläum"
+            fill
+            className="object-contain"
+            style={{ filter: 'drop-shadow(0 0 10px var(--app-gold-glow))' }}
+          />
+        </div>
+        <div className="h-px flex-1" style={{ background: 'var(--app-border)' }} />
+      </div>
+
       {/* ── Nächstes Gebet ── */}
       <div className="stagger-2"><NextPrayerBanner /></div>
 
