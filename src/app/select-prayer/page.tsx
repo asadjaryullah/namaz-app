@@ -139,8 +139,20 @@ function SelectPrayerContent() {
           });
 
           setCreatingRide(false);
-          if (error) toast.error("Fehler: " + error.message);
-          else router.push('/driver/dashboard');
+          if (error) {
+            toast.error("Fehler: " + error.message);
+          } else {
+            supabase.auth.getSession().then(({ data: { session } }) => {
+              if (session?.access_token) {
+                fetch('/api/notify-new-ride', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+                  body: JSON.stringify({ prayer_id: selectedPrayer.id, driver_name: profile?.full_name, seats }),
+                }).catch(() => {});
+              }
+            });
+            router.push('/driver/dashboard');
+          }
         },
         () => { setCreatingRide(false); toast.error("GPS-Zugriff wird benötigt."); }
       );
