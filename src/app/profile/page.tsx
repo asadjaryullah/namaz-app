@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock, MessageSquareWarning, List } from "lucide-react";
+import { User, Phone, Save, Loader2, ArrowLeft, Calendar, BadgeInfo, Lock, MessageSquareWarning, List, LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 import LocationSettings from '@/components/LocationSettings';
 
@@ -71,11 +72,11 @@ export default function ProfilePage() {
         member_id: formData.memberId
       });
       if (error) throw error;
-      alert("Profil gespeichert!");
+      toast.success("Profil gespeichert!");
       router.refresh();
       router.push('/');
     } catch (error: any) {
-      alert("Fehler: " + error.message);
+      toast.error("Fehler: " + error.message);
     } finally {
       setSaving(false);
     }
@@ -259,6 +260,21 @@ export default function ProfilePage() {
                   <MessageSquareWarning size={18} /> Fehler melden (WhatsApp)
                 </button>
               </a>
+            </div>
+
+            {/* ABMELDEN */}
+            <div className="pt-4" style={{ borderTop: '1px dashed var(--app-border)' }}>
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                style={{ background: 'rgba(240,98,146,0.08)', border: '1px solid rgba(240,98,146,0.25)', color: 'var(--app-rose)' }}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  router.replace('/login');
+                }}
+              >
+                <LogOut size={18} /> Abmelden
+              </button>
             </div>
 
           </div>

@@ -50,14 +50,14 @@ export default function HomePage() {
           { data: events },
         ] = await Promise.all([
           supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
-          supabase.from('rides').select('id').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
-          supabase.from('bookings').select('ride_id, rides!inner(status, ride_date)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
+          supabase.from('rides').select('id, prayer_id, prayer_time').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
+          supabase.from('bookings').select('ride_id, rides!inner(id, status, ride_date, prayer_id, prayer_time)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
           supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
         ]);
 
         if (mounted && profileData) setProfile(profileData);
         if (mounted && driverRide) setActiveDriverRide(driverRide);
-        if (mounted && myBooking) setActivePassengerRide(myBooking.ride_id);
+        if (mounted && myBooking) setActivePassengerRide({ rideId: myBooking.ride_id, ...((myBooking as any).rides || {}) });
         if (mounted && events) setUpcomingEvents(events);
 
         // Notification permission check
@@ -307,30 +307,58 @@ export default function HomePage() {
       {/* ── Aktive Fahrten ── */}
       {activeDriverRide && (
         <div onClick={() => router.push('/driver/dashboard')}
-          className="stagger-3 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:scale-[1.01] transition-transform"
-          style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', boxShadow: '0 4px 24px var(--app-gold-glow)' }}>
-          <div>
-            <p className="font-bold text-base" style={{ color: 'var(--app-gold)' }}>Du bist Fahrer</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Zur Navigation</p>
+          className="stagger-3 rounded-2xl cursor-pointer hover:scale-[1.01] transition-transform overflow-hidden"
+          style={{ background: 'var(--app-gold-dim)', border: '2px solid var(--app-gold)', boxShadow: '0 0 32px var(--app-gold-glow)' }}>
+          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--app-gold)' }}></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: 'var(--app-gold)' }}></span>
+            </span>
+            <p className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: 'var(--app-gold)' }}>Aktive Fahrt · Live</p>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse"
-            style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
-            <Car size={20} style={{ color: 'var(--app-gold)' }} />
+          <div className="px-4 pb-4 flex items-center justify-between">
+            <div>
+              <p className="font-extrabold text-xl leading-tight" style={{ color: 'var(--app-gold)' }}>Du bist Fahrer</p>
+              {activeDriverRide.prayer_time && (
+                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--app-text2)' }}>
+                  🕐 Gebet um {activeDriverRide.prayer_time} Uhr
+                </p>
+              )}
+              <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--app-text2)' }}>Tippe für Navigation & Mitfahrer-Übersicht →</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
+              <Car size={24} style={{ color: 'var(--app-gold)' }} />
+            </div>
           </div>
         </div>
       )}
 
       {activePassengerRide && (
-        <div onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide}`)}
-          className="stagger-3 rounded-2xl p-4 flex items-center justify-between cursor-pointer hover:scale-[1.01] transition-transform"
-          style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)', boxShadow: '0 4px 24px rgba(34,211,138,0.15)' }}>
-          <div>
-            <p className="font-bold text-base" style={{ color: 'var(--app-emerald)' }}>Du fährst mit</p>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Standort ansehen</p>
+        <div onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide.rideId}`)}
+          className="stagger-3 rounded-2xl cursor-pointer hover:scale-[1.01] transition-transform overflow-hidden"
+          style={{ background: 'var(--app-emerald-dim)', border: '2px solid var(--app-emerald)', boxShadow: '0 0 32px rgba(34,211,138,0.2)' }}>
+          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--app-emerald)' }}></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: 'var(--app-emerald)' }}></span>
+            </span>
+            <p className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: 'var(--app-emerald)' }}>Aktive Fahrt · Live</p>
           </div>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center animate-pulse"
-            style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
-            <User size={20} style={{ color: 'var(--app-emerald)' }} />
+          <div className="px-4 pb-4 flex items-center justify-between">
+            <div>
+              <p className="font-extrabold text-xl leading-tight" style={{ color: 'var(--app-emerald)' }}>Du fährst mit</p>
+              {activePassengerRide.prayer_time && (
+                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--app-text2)' }}>
+                  🕐 Gebet um {activePassengerRide.prayer_time} Uhr
+                </p>
+              )}
+              <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--app-text2)' }}>Tippe für Fahrer-Standort & Details →</p>
+            </div>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
+              <User size={24} style={{ color: 'var(--app-emerald)' }} />
+            </div>
           </div>
         </div>
       )}

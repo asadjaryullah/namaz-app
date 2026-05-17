@@ -4,14 +4,14 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { User, ChevronLeft, MapPin, Loader2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 function PassengerListContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const prayerId = searchParams.get('prayer'); 
-  const prayerTime = searchParams.get('time'); 
+  const prayerId = searchParams.get('prayer');
+  const prayerTime = searchParams.get('time');
 
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,8 +21,8 @@ function PassengerListContent() {
     const fetchRidesAndBookings = async () => {
       const today = new Date().toLocaleDateString('en-CA');
       const { data: { user } } = await supabase.auth.getUser();
-      
-      let myGender = 'male'; 
+
+      let myGender = 'male';
 
       if (user) {
         const { data: profile } = await supabase
@@ -30,40 +30,38 @@ function PassengerListContent() {
           .select('gender')
           .eq('id', user.id)
           .single();
-        
+
         if (profile) myGender = profile.gender;
 
         const { data: existingBooking } = await supabase
-            .from('bookings')
-            .select('ride_id, rides!inner(status, ride_date)')
-            .eq('passenger_id', user.id)
-            .eq('rides.status', 'active')
-            .eq('rides.ride_date', today)
-            .eq('rides.prayer_id', prayerId)
-            .maybeSingle();
+          .from('bookings')
+          .select('ride_id, rides!inner(status, ride_date)')
+          .eq('passenger_id', user.id)
+          .eq('rides.status', 'active')
+          .eq('rides.ride_date', today)
+          .eq('rides.prayer_id', prayerId)
+          .maybeSingle();
 
         if (existingBooking) {
-            alert("Du hast bereits eine aktive Fahrt für dieses Gebet!");
-            router.push(`/passenger/dashboard?rideId=${existingBooking.ride_id}`);
-            return;
+          toast.info("Du hast bereits eine aktive Fahrt für dieses Gebet.");
+          router.push(`/passenger/dashboard?rideId=${existingBooking.ride_id}`);
+          return;
         }
       }
 
-      // Fahrten laden
       const { data: ridesData, error: ridesError } = await supabase
         .from('rides')
         .select('*')
         .eq('prayer_id', prayerId)
         .eq('status', 'active')
         .eq('ride_date', today)
-        .eq('driver_gender', myGender); // Nur gleiches Geschlecht anzeigen
+        .eq('driver_gender', myGender);
 
       if (ridesError || !ridesData) {
         setLoading(false);
-        return; 
+        return;
       }
 
-      // Buchungen laden
       const rideIds = ridesData.map((r: any) => r.id);
       const { data: bookingsData } = await supabase
         .from('bookings')
@@ -82,40 +80,36 @@ function PassengerListContent() {
     };
 
     fetchRidesAndBookings();
-    
+
     const interval = setInterval(fetchRidesAndBookings, 10000);
     return () => clearInterval(interval);
+  }, [prayerId, router]);
 
-  }, [prayerId, router]); 
-
-  // --- BUCHUNGS-LOGIK ---
   const handleBookRide = async (rideId: string) => {
-    setBookingRideId(rideId); 
+    setBookingRideId(rideId);
 
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
-      alert("Bitte melde dich kurz an, um mitzufahren!");
+      toast.error("Bitte melde dich an, um mitzufahren.");
       router.push('/login');
       return;
     }
 
-    // 1. HIER LADEN WIR DAS PROFIL ZUERST (Das war der Fehler!)
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    // 2. JETZT KÖNNEN WIR PRÜFEN
     if (!profile || !profile.is_approved) {
-       alert("Dein Konto wurde noch nicht von einem Admin freigeschaltet.");
-       setBookingRideId(null);
-       return;
+      toast.error("Dein Konto wurde noch nicht freigeschaltet.");
+      setBookingRideId(null);
+      return;
     }
 
     if (!navigator.geolocation) {
-      alert("GPS nicht verfügbar.");
+      toast.error("GPS nicht verfügbar.");
       setBookingRideId(null);
       return;
     }
@@ -136,7 +130,6 @@ function PassengerListContent() {
             body: JSON.stringify({
               ride_id: rideId,
               passenger_id: user.id,
-              // Hier nutzen wir das oben geladene Profil sicher
               passenger_name: profile.full_name || "Mitfahrer",
               passenger_phone: profile.phone || "",
               pickup_lat: lat,
@@ -146,42 +139,41 @@ function PassengerListContent() {
 
           const result = await response.json();
           if (!response.ok) throw new Error(result.error);
-          
-          router.push(`/passenger/dashboard?rideId=${rideId}`);
 
+          router.push(`/passenger/dashboard?rideId=${rideId}`);
         } catch (err: any) {
-          alert("Fehler bei der Buchung: " + err.message);
+          toast.error("Fehler bei der Buchung: " + err.message);
           setBookingRideId(null);
         }
       },
-      (err) => {
+      () => {
         setBookingRideId(null);
-        alert("GPS wird benötigt!");
+        toast.error("GPS-Zugriff wird benötigt.");
       }
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">
-      
+    <div className="min-h-screen p-6 flex flex-col items-center" style={{ background: 'var(--app-bg)' }}>
+
       <div className="w-full max-w-md flex items-center mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <div className="ml-2">
-          <h1 className="text-xl font-bold">Verfügbare Fahrer</h1>
-          <p className="text-xs text-slate-500">
-             Für {prayerId} um {prayerTime} Uhr
+          <h1 className="text-xl font-bold" style={{ color: 'var(--app-text)' }}>Verfügbare Fahrer</h1>
+          <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
+            Für {prayerId} um {prayerTime} Uhr
           </p>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-20"><Loader2 className="animate-spin text-slate-400 h-8 w-8" /></div>
+        <div className="py-20"><Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--app-text3)' }} /></div>
       ) : rides.length === 0 ? (
-        <div className="text-center mt-10 p-6 bg-white rounded-xl shadow border">
-          <p className="text-lg font-semibold text-slate-700">Keine Fahrer gefunden 😔</p>
-          <p className="text-xs text-slate-400 mt-2">
+        <div className="text-center mt-10 p-6 rounded-xl shadow" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+          <p className="text-lg font-semibold" style={{ color: 'var(--app-text)' }}>Keine Fahrer gefunden 😔</p>
+          <p className="text-xs mt-2" style={{ color: 'var(--app-text3)' }}>
             Es werden nur Fahrer deines Geschlechts angezeigt.
           </p>
           <Button className="mt-4" onClick={() => router.push('/')}>Zurück</Button>
@@ -192,40 +184,53 @@ function PassengerListContent() {
             const isFull = ride.freeSeats <= 0;
 
             return (
-              <Card key={ride.id} className={`p-5 border-l-4 shadow-sm transition-all ${isFull ? 'border-l-gray-300 opacity-70' : 'border-l-slate-900'}`}>
+              <div
+                key={ride.id}
+                className="p-5 rounded-xl shadow-sm border-l-4 transition-all"
+                style={{
+                  background: 'var(--app-card)',
+                  border: '1px solid var(--app-border)',
+                  borderLeftColor: isFull ? 'var(--app-border)' : 'var(--app-text)',
+                  borderLeftWidth: '4px',
+                  opacity: isFull ? 0.7 : 1,
+                }}
+              >
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-3">
-                    <div className={`p-3 rounded-full ${isFull ? 'bg-gray-100' : 'bg-slate-100'}`}>
-                      <User className={`h-6 w-6 ${isFull ? 'text-gray-400' : 'text-slate-700'}`} />
+                    <div className="p-3 rounded-full" style={{ background: 'var(--app-surface2)' }}>
+                      <User className="h-6 w-6" style={{ color: isFull ? 'var(--app-text3)' : 'var(--app-text2)' }} />
                     </div>
                     <div>
-                      <h3 className="font-bold text-lg">{ride.driver_name}</h3>
-                      <div className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                      <h3 className="font-bold text-lg" style={{ color: 'var(--app-text)' }}>{ride.driver_name}</h3>
+                      <div className="text-sm flex items-center gap-1 mt-1" style={{ color: 'var(--app-text2)' }}>
                         <MapPin size={12} /> Fährt zur Moschee
                       </div>
-                      
+
                       <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${
                         isFull ? 'text-red-500' : ride.freeSeats === 1 ? 'text-orange-500' : 'text-green-600'
                       }`}>
                         <Users size={12} />
-                        {isFull 
-                          ? "Auto voll belegt" 
+                        {isFull
+                          ? "Auto voll belegt"
                           : `Noch ${ride.freeSeats} ${ride.freeSeats === 1 ? 'Platz' : 'Plätze'} frei`
                         }
                       </div>
-
                     </div>
                   </div>
                 </div>
 
-                <Button 
-                  className={`w-full mt-4 ${isFull ? 'bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300' : 'bg-slate-900 hover:bg-slate-800'}`}
+                <Button
+                  className="w-full mt-4"
+                  style={isFull
+                    ? { background: 'var(--app-border)', color: 'var(--app-text3)', cursor: 'not-allowed' }
+                    : { background: 'var(--app-text)', color: 'var(--app-bg)' }
+                  }
                   disabled={bookingRideId === ride.id || isFull}
                   onClick={() => handleBookRide(ride.id)}
                 >
-                  {bookingRideId === ride.id ? <Loader2 className="animate-spin mr-2 h-4 w-4"/> : isFull ? "Leider voll" : "Mitfahren & Standort senden"}
+                  {bookingRideId === ride.id ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : isFull ? "Leider voll" : "Mitfahren & Standort senden"}
                 </Button>
-              </Card>
+              </div>
             );
           })}
         </div>

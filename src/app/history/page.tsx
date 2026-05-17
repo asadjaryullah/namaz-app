@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp,
   Car, User, Footprints, Check, RotateCcw, MapPin
 } from "lucide-react";
+import { toast } from "sonner";
 
 // --- KONFIGURATION ZIKR ---
 const ZIKR_LIST = [
@@ -16,7 +17,7 @@ const ZIKR_LIST = [
     key: 'zikr1_count',
     target: 200,
     theme: { bg: 'bg-rose-50 border-rose-100', text: 'text-rose-900', bar: 'bg-rose-500' },
-    arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
+    arabic: "سُبْحَانَ اللّٰهِ وَبِحَمْدِهِ\nسُبْحَانَ اللّٰهِ العَظِيمِ\nاللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ\nوَآلِ مُحَمَّدٍ",
     translation: "Heilig ist Allah und jeder Verehrung würdig. Erhaben ist Allah, der Größte. O Allah, schütte Deine Gnade aus über Muhammadsaw und seinen Anhängern.",
     title: "Tasbih & Salawat"
   },
@@ -24,7 +25,7 @@ const ZIKR_LIST = [
     key: 'zikr2_count',
     target: 100,
     theme: { bg: 'bg-sky-50 border-sky-100', text: 'text-sky-900', bar: 'bg-sky-500' },
-    arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
+    arabic: "أَسْتَغْفِرُ اللّٰهَ رَبِّي\nمِنْ كُلِّ ذَنْبٍ وَأَتُوبُ إِلَيْهِ",
     translation: "Ich ersuche Vergebung bei Allah, meinem Herrn, für all meine Sünden und wende mich zu Ihm in Reue.",
     title: "Istighfar"
   },
@@ -32,7 +33,7 @@ const ZIKR_LIST = [
     key: 'zikr3_count',
     target: 100,
     theme: { bg: 'bg-amber-50 border-amber-100', text: 'text-amber-900', bar: 'bg-amber-500' },
-    arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
+    arabic: "رَبِّ كُلُّ شَيْءٍ خَادِمُكَ\nرَبِّ فَاحْفَظْنِي وَانْصُرْنِي وَارْحَمْنِي",
     translation: "O mein Herr, alles ist Dein Diener. O mein Herr, beschütze mich und hilf mir und sei mir gnädig.",
     title: "Dua"
   }
@@ -43,88 +44,50 @@ type OrgKey = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
 
 const ORG_META: Record<OrgKey, {
   label: string;
-
-  // kalender tag (bubble)
   dayBg: string;
   dayText: string;
   dayBorder: string;
-
-  // punkt unter tag
   dot: string;
-
-  // liste box links (monat/tag)
   boxBg: string;
   boxMonthText: string;
-
-  // badge rechts
   badgeBg: string;
   badgeText: string;
 }> = {
   ansar: {
     label: 'Ansar',
-    dayBg: 'bg-amber-100',
-    dayText: 'text-amber-800',
-    dayBorder: 'border-amber-200',
-    dot: 'bg-amber-700',
-    boxBg: 'bg-amber-50',
-    boxMonthText: 'text-amber-700',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-900',
+    dayBg: 'bg-amber-100', dayText: 'text-amber-800', dayBorder: 'border-amber-200',
+    dot: 'bg-amber-700', boxBg: 'bg-amber-50', boxMonthText: 'text-amber-700',
+    badgeBg: 'bg-amber-100', badgeText: 'text-amber-900',
   },
   khuddam: {
     label: 'Khuddam',
-    dayBg: 'bg-blue-100',
-    dayText: 'text-blue-800',
-    dayBorder: 'border-blue-200',
-    dot: 'bg-blue-600',
-    boxBg: 'bg-blue-50',
-    boxMonthText: 'text-blue-700',
-    badgeBg: 'bg-blue-100',
-    badgeText: 'text-blue-900',
+    dayBg: 'bg-blue-100', dayText: 'text-blue-800', dayBorder: 'border-blue-200',
+    dot: 'bg-blue-600', boxBg: 'bg-blue-50', boxMonthText: 'text-blue-700',
+    badgeBg: 'bg-blue-100', badgeText: 'text-blue-900',
   },
   atfal: {
     label: 'Atfal',
-    dayBg: 'bg-green-100',
-    dayText: 'text-green-800',
-    dayBorder: 'border-green-200',
-    dot: 'bg-green-600',
-    boxBg: 'bg-green-50',
-    boxMonthText: 'text-green-700',
-    badgeBg: 'bg-green-100',
-    badgeText: 'text-green-900',
+    dayBg: 'bg-green-100', dayText: 'text-green-800', dayBorder: 'border-green-200',
+    dot: 'bg-green-600', boxBg: 'bg-green-50', boxMonthText: 'text-green-700',
+    badgeBg: 'bg-green-100', badgeText: 'text-green-900',
   },
   lajna: {
     label: 'Lajna',
-    dayBg: 'bg-red-100',
-    dayText: 'text-red-800',
-    dayBorder: 'border-red-200',
-    dot: 'bg-red-600',
-    boxBg: 'bg-red-50',
-    boxMonthText: 'text-red-700',
-    badgeBg: 'bg-red-100',
-    badgeText: 'text-red-900',
+    dayBg: 'bg-red-100', dayText: 'text-red-800', dayBorder: 'border-red-200',
+    dot: 'bg-red-600', boxBg: 'bg-red-50', boxMonthText: 'text-red-700',
+    badgeBg: 'bg-red-100', badgeText: 'text-red-900',
   },
   nasirat: {
     label: 'Nasirat',
-    dayBg: 'bg-pink-100',
-    dayText: 'text-pink-800',
-    dayBorder: 'border-pink-200',
-    dot: 'bg-pink-600',
-    boxBg: 'bg-pink-50',
-    boxMonthText: 'text-pink-700',
-    badgeBg: 'bg-pink-100',
-    badgeText: 'text-pink-900',
+    dayBg: 'bg-pink-100', dayText: 'text-pink-800', dayBorder: 'border-pink-200',
+    dot: 'bg-pink-600', boxBg: 'bg-pink-50', boxMonthText: 'text-pink-700',
+    badgeBg: 'bg-pink-100', badgeText: 'text-pink-900',
   },
   jamaat: {
     label: 'Jamaat',
-    dayBg: 'bg-orange-100',
-    dayText: 'text-orange-800',
-    dayBorder: 'border-orange-200',
-    dot: 'bg-orange-600',
-    boxBg: 'bg-orange-50',
-    boxMonthText: 'text-orange-700',
-    badgeBg: 'bg-orange-100',
-    badgeText: 'text-orange-900',
+    dayBg: 'bg-orange-100', dayText: 'text-orange-800', dayBorder: 'border-orange-200',
+    dot: 'bg-orange-600', boxBg: 'bg-orange-50', boxMonthText: 'text-orange-700',
+    badgeBg: 'bg-orange-100', badgeText: 'text-orange-900',
   },
 };
 
@@ -138,7 +101,6 @@ function normalizeOrg(v: any): OrgKey {
   return 'jamaat';
 }
 
-// Wenn mehrere Events am Tag → wir zeigen mehrere dots (bis 3)
 function getTopOrgDots(dayEvents: any[]) {
   const uniqueOrgs: OrgKey[] = [];
   for (const e of dayEvents) {
@@ -164,7 +126,6 @@ function HistoryContent() {
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ---------- DATE HELPERS (für mehrtägige Events) ----------
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
   const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
   const isSameDay = (a: Date, b: Date) =>
@@ -204,12 +165,10 @@ function HistoryContent() {
   const formatTimeRange = (startStr: string, endStr?: string | null) => {
     const start = new Date(startStr);
     const startFmt = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-
     if (!endStr) return `${startFmt} Uhr`;
     const end = new Date(endStr);
     const diffMs = end.getTime() - start.getTime();
     if (diffMs <= 60_000) return `${startFmt} Uhr`;
-
     const endFmt = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     return `${startFmt} - ${endFmt} Uhr`;
   };
@@ -218,7 +177,6 @@ function HistoryContent() {
     const s = new Date(e.event_date);
     const en = parseEventEnd(e);
     if (isSameDay(s, en)) return formatTimeRange(e.event_date, e.event_end_date);
-
     const sFmt = s.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
     const eFmt = en.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
     return `${sFmt} - ${eFmt}`;
@@ -232,7 +190,6 @@ function HistoryContent() {
     return { monthLabel, dayLabel: `${s.getDate()}–${en.getDate()}` };
   };
 
-  // ---------- FETCH ----------
   useEffect(() => {
     const fetchHistory = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -240,7 +197,6 @@ function HistoryContent() {
 
       const today = new Date().toLocaleDateString('en-CA');
 
-      // Fahrten
       const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
 
@@ -256,7 +212,6 @@ function HistoryContent() {
       const walkInRides = visitData?.map(v => ({ date: v.visit_date, role: 'walk-in' as const })) || [];
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      // Zikr
       const { data: zikrLog } = await supabase.from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
       if (zikrLog) {
         setZikrData(zikrLog);
@@ -266,7 +221,6 @@ function HistoryContent() {
         if (newLog) { setTodayLogId(newLog.id); setZikrData(newLog); }
       }
 
-      // ✅ Events (Future) – org mitziehen!
       const { data: eventsData } = await supabase
         .from('mosque_events')
         .select('id,title,event_date,event_end_date,location,description,org')
@@ -281,7 +235,6 @@ function HistoryContent() {
     fetchHistory();
   }, []);
 
-  // ---------- ZIKR SAVE ----------
   const saveToDb = (newData: any) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
@@ -300,10 +253,17 @@ function HistoryContent() {
 
   const handleReset = (e: React.MouseEvent, key: string) => {
     e.stopPropagation();
-    if (!confirm("Zähler zurücksetzen?")) return;
-    const newData = { ...zikrData, [key]: 0 };
-    setZikrData(newData);
-    saveToDb(newData);
+    toast("Zähler zurücksetzen?", {
+      action: {
+        label: "Zurücksetzen",
+        onClick: () => {
+          const newData = { ...zikrData, [key]: 0 };
+          setZikrData(newData);
+          saveToDb(newData);
+        },
+      },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
   };
 
   const openCalendarApple = (apiUrl: string) => {
@@ -330,7 +290,6 @@ function HistoryContent() {
   let startDay = new Date(year, month, 1).getDay();
   startDay = startDay === 0 ? 6 : startDay - 1;
 
-  // Statistik
   const currentMonthRides = allRides.filter(r => {
     const [y, m] = r.date.split('-');
     return parseInt(y) === year && parseInt(m) === month + 1;
@@ -374,14 +333,15 @@ function HistoryContent() {
     <div className="w-full max-w-md space-y-6">
       {/* TABS */}
       <div className="flex gap-1 mb-4">
-        {([['zikr','📿','Zikr'], ['events','📅','Termine'], ['calendar','📊','Statistik']] as const).map(([tab, icon, label]) => (
+        {([['zikr', '📿', 'Zikr'], ['events', '📅', 'Termine'], ['calendar', '📊', 'Statistik']] as const).map(([tab, icon, label]) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-0.5
-              ${activeTab === tab
-                ? 'bg-slate-900 text-white shadow-lg'
-                : 'bg-white text-slate-500 hover:text-slate-800 border border-slate-200'}`}
+            className="flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-0.5"
+            style={activeTab === tab
+              ? { background: 'var(--app-text)', color: 'var(--app-bg)' }
+              : { background: 'var(--app-surface2)', color: 'var(--app-text2)', border: '1px solid var(--app-border)' }
+            }
           >
             <span className="text-base">{icon}</span>
             <span className="text-[10px] uppercase tracking-wide">{label}</span>
@@ -390,7 +350,7 @@ function HistoryContent() {
       </div>
 
       {loading ? (
-        <div className="py-10"><Loader2 className="animate-spin text-slate-400 mx-auto" /></div>
+        <div className="py-10"><Loader2 className="animate-spin mx-auto" style={{ color: 'var(--app-text3)' }} /></div>
       ) : (
         <>
           {/* ZIKR */}
@@ -439,16 +399,19 @@ function HistoryContent() {
           {activeTab === 'events' && (
             <div className="space-y-4 animate-in fade-in duration-300">
               {/* Kalender Grid */}
-              <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
+              <div className="p-6 shadow-lg rounded-3xl" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                 <div className="flex justify-between items-center mb-6">
-                  <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
-                  <div className="text-center"><h2 className="text-lg font-bold text-slate-900">{monthName}</h2><p className="text-xs text-slate-400 font-bold uppercase">{year}</p></div>
-                  <Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button>
+                  <Button variant="ghost" size="icon" onClick={prevMonth} className="rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
+                  <div className="text-center">
+                    <h2 className="text-lg font-bold" style={{ color: 'var(--app-text)' }}>{monthName}</h2>
+                    <p className="text-xs font-bold uppercase" style={{ color: 'var(--app-text3)' }}>{year}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={nextMonth} className="rounded-full"><ChevronRight className="h-6 w-6" /></Button>
                 </div>
 
                 <div className="grid grid-cols-7 gap-y-4 gap-x-2">
                   {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
-                    <div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>
+                    <div key={d} className="text-center text-[10px] font-bold uppercase" style={{ color: 'var(--app-text3)' }}>{d}</div>
                   ))}
                   {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`} />))}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -458,11 +421,8 @@ function HistoryContent() {
                     const hasEvent = dayEvents.length > 0;
                     const overlap = hasOverlap(dayEvents, day);
 
-                    // ✅ wenn es events gibt: nimm org des ersten events als "main" farbe
                     const mainOrg: OrgKey = hasEvent ? normalizeOrg(dayEvents[0].org) : 'jamaat';
                     const meta = ORG_META[mainOrg];
-
-                    // ✅ mehrere orgs -> mehrere dots
                     const dots = getTopOrgDots(dayEvents);
 
                     const todayD = new Date();
@@ -472,13 +432,19 @@ function HistoryContent() {
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border
-                            ${isToday ? 'ring-2 ring-slate-900 ring-offset-1' : ''}
+                            ${isToday ? 'ring-2 ring-offset-1' : ''}
                             ${!hasEvent
-                              ? 'bg-slate-50 text-slate-400 border-slate-100'
+                              ? ''
                               : overlap
-                                ? 'bg-slate-900 text-white border-slate-800 font-bold'
+                                ? `${meta.dayBg} ${meta.dayText} ${meta.dayBorder} font-bold`
                                 : `${meta.dayBg} ${meta.dayText} ${meta.dayBorder} font-bold`
                             }`}
+                          style={!hasEvent
+                            ? { background: 'var(--app-surface2)', color: 'var(--app-text3)', borderColor: 'var(--app-border)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                            : overlap
+                              ? { background: 'var(--app-text)', color: 'var(--app-bg)', borderColor: 'var(--app-text)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                              : { ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                          }
                         >
                           {dayNum}
                         </div>
@@ -496,25 +462,25 @@ function HistoryContent() {
                 </div>
 
                 <div className="mt-6 flex flex-wrap gap-2 text-[11px]">
-                  {(['ansar','khuddam','atfal','lajna','nasirat','jamaat'] as OrgKey[]).map((k) => (
-                    <div key={k} className="flex items-center gap-2 px-2 py-1 rounded-full bg-slate-50 border border-slate-200">
+                  {(['ansar', 'khuddam', 'atfal', 'lajna', 'nasirat', 'jamaat'] as OrgKey[]).map((k) => (
+                    <div key={k} className="flex items-center gap-2 px-2 py-1 rounded-full" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
                       <span className={`w-2 h-2 rounded-full ${ORG_META[k].dot}`} />
-                      <span className="text-slate-600 font-bold">{ORG_META[k].label}</span>
+                      <span className="font-bold" style={{ color: 'var(--app-text2)' }}>{ORG_META[k].label}</span>
                     </div>
                   ))}
-                  <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-slate-50 border border-slate-200">
-                    <span className="w-2 h-2 rounded-full bg-slate-900" />
-                    <span className="text-slate-600 font-bold">Overlap</span>
+                  <div className="flex items-center gap-2 px-2 py-1 rounded-full" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+                    <span className="w-2 h-2 rounded-full" style={{ background: 'var(--app-text)' }} />
+                    <span className="font-bold" style={{ color: 'var(--app-text2)' }}>Overlap</span>
                   </div>
                 </div>
-              </Card>
+              </div>
 
               {/* Liste */}
               <div className="space-y-3 pt-2">
-                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">Termine im {monthName}</h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest" style={{ color: 'var(--app-text2)' }}>Termine im {monthName}</h3>
 
                 {monthEvents.length === 0 ? (
-                  <p className="text-sm text-slate-400 italic">Keine Termine in diesem Monat.</p>
+                  <p className="text-sm italic" style={{ color: 'var(--app-text3)' }}>Keine Termine in diesem Monat.</p>
                 ) : (
                   monthEvents.map(e => {
                     const org = normalizeOrg(e.org);
@@ -522,32 +488,32 @@ function HistoryContent() {
                     const box = formatDayBox(e);
 
                     return (
-                      <div key={e.id} className="bg-white rounded-2xl shadow-sm overflow-hidden flex border border-slate-100">
+                      <div key={e.id} className="rounded-2xl shadow-sm overflow-hidden flex" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                         <div className={`w-1.5 shrink-0 ${meta.dot}`} />
                         <div className="p-4 flex gap-3 flex-1">
                           <div className={`${meta.boxBg} px-3 py-2 rounded-xl text-center min-w-[3.5rem] flex flex-col items-center justify-center`}>
                             <span className={`text-[10px] font-bold uppercase ${meta.boxMonthText}`}>{box.monthLabel}</span>
-                            <span className="text-xl font-black text-slate-800 leading-tight">{box.dayLabel}</span>
+                            <span className="text-xl font-black leading-tight text-slate-800">{box.dayLabel}</span>
                           </div>
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h3 className="font-bold text-slate-900 leading-snug">{e.title}</h3>
+                              <h3 className="font-bold leading-snug" style={{ color: 'var(--app-text)' }}>{e.title}</h3>
                               <span className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${meta.badgeBg} ${meta.badgeText}`}>
                                 {meta.label}
                               </span>
                             </div>
 
-                            <p className="text-xs text-slate-500 mt-1 font-semibold">
+                            <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--app-text2)' }}>
                               {formatEventMeta(e)}
                             </p>
 
-                            <div className="flex items-center gap-1 mt-1.5 text-xs text-slate-400">
+                            <div className="flex items-center gap-1 mt-1.5 text-xs" style={{ color: 'var(--app-text3)' }}>
                               <MapPin size={11} className="shrink-0" />
                               <span className="truncate">{e.location || "Moschee"}</span>
                             </div>
 
-                            {e.description && <p className="text-sm text-slate-600 mt-2 leading-relaxed">{e.description}</p>}
+                            {e.description && <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--app-text2)' }}>{e.description}</p>}
                           </div>
                         </div>
                       </div>
@@ -557,18 +523,20 @@ function HistoryContent() {
               </div>
 
               <div className="mt-4 space-y-2">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Kalender abonnieren</p>
+                <p className="text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Kalender abonnieren</p>
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
-                    className="text-slate-700 border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 text-xs"
+                    className="flex items-center gap-2 text-xs"
+                    style={{ background: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
                     onClick={() => openCalendarApple('/api/calendar-events')}
                   >
                     <span className="text-base">🍎</span> Apple
                   </Button>
                   <Button
                     variant="outline"
-                    className="text-slate-700 border-slate-200 bg-white hover:bg-slate-50 flex items-center gap-2 text-xs"
+                    className="flex items-center gap-2 text-xs"
+                    style={{ background: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
                     onClick={() => openCalendarGoogle('/api/calendar-events')}
                   >
                     <span className="text-base">📅</span> Google
@@ -578,7 +546,7 @@ function HistoryContent() {
             </div>
           )}
 
-          {/* STATISTIK (unverändert) */}
+          {/* STATISTIK */}
           {activeTab === 'calendar' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <Card className="col-span-2 p-5 bg-slate-900 text-white shadow-xl rounded-3xl flex justify-between items-center relative overflow-hidden">
@@ -590,32 +558,37 @@ function HistoryContent() {
               </Card>
 
               <div className="grid grid-cols-3 gap-3">
-                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                   <div className="bg-slate-100 p-2 rounded-full text-slate-700"><Car size={18} /></div>
-                  <span className="text-2xl font-black text-slate-900">{driverCount}</span>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Fahrer</span>
-                </Card>
-                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                  <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{driverCount}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Fahrer</span>
+                </div>
+                <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                   <div className="bg-blue-50 p-2 rounded-full text-blue-600"><User size={18} /></div>
-                  <span className="text-2xl font-black text-slate-900">{passengerCount}</span>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Mitfahrer</span>
-                </Card>
-                <Card className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl border-0 shadow-sm bg-white">
+                  <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{passengerCount}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Mitfahrer</span>
+                </div>
+                <div className="p-4 flex flex-col items-center justify-center gap-2 rounded-2xl shadow-sm" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                   <div className="bg-green-50 p-2 rounded-full text-green-600"><Footprints size={18} /></div>
-                  <span className="text-2xl font-black text-slate-900">{walkInCount}</span>
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wide">Besucher</span>
-                </Card>
+                  <span className="text-2xl font-black" style={{ color: 'var(--app-text)' }}>{walkInCount}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wide" style={{ color: 'var(--app-text3)' }}>Besucher</span>
+                </div>
               </div>
 
-              <Card className="p-6 bg-white shadow-lg rounded-3xl border-0">
+              <div className="p-6 shadow-lg rounded-3xl" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                 <div className="flex justify-between items-center mb-6">
-                  <Button variant="ghost" size="icon" onClick={prevMonth} className="hover:bg-slate-100 rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
-                  <div className="text-center"><h2 className="text-lg font-bold text-slate-900">{monthName}</h2><p className="text-xs text-slate-400 font-bold uppercase">{year}</p></div>
-                  <Button variant="ghost" size="icon" onClick={nextMonth} className="hover:bg-slate-100 rounded-full"><ChevronRight className="h-6 w-6" /></Button>
+                  <Button variant="ghost" size="icon" onClick={prevMonth} className="rounded-full"><ChevronLeft className="h-6 w-6" /></Button>
+                  <div className="text-center">
+                    <h2 className="text-lg font-bold" style={{ color: 'var(--app-text)' }}>{monthName}</h2>
+                    <p className="text-xs font-bold uppercase" style={{ color: 'var(--app-text3)' }}>{year}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={nextMonth} className="rounded-full"><ChevronRight className="h-6 w-6" /></Button>
                 </div>
 
                 <div className="grid grid-cols-7 gap-y-5 gap-x-1">
-                  {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (<div key={d} className="text-center text-[10px] text-slate-400 font-bold uppercase">{d}</div>))}
+                  {['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => (
+                    <div key={d} className="text-center text-[10px] font-bold uppercase" style={{ color: 'var(--app-text3)' }}>{d}</div>
+                  ))}
                   {Array.from({ length: startDay }).map((_, i) => (<div key={`empty-${i}`} />))}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const dayNum = i + 1;
@@ -624,15 +597,18 @@ function HistoryContent() {
                     const isToday = year === todayD.getFullYear() && month === todayD.getMonth() && dayNum === todayD.getDate();
                     return (
                       <div key={dayNum} className="flex flex-col items-center gap-0.5">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isToday ? 'ring-2 ring-slate-900 ring-offset-1' : ''}`} style={getRingStyle(count)}>
-                          <div className={`w-7 h-7 bg-white rounded-full flex items-center justify-center text-xs font-bold shadow-sm ${isToday ? 'text-slate-900' : 'text-slate-700'}`}>{dayNum}</div>
+                        <div
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isToday ? 'ring-2 ring-offset-1' : ''}`}
+                          style={{ ...getRingStyle(count), ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '1px' } : {}) }}
+                        >
+                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-sm" style={{ background: 'var(--app-card)', color: 'var(--app-text)' }}>{dayNum}</div>
                         </div>
-                        <span className="text-[8px] text-slate-400 font-medium h-2.5 leading-none">{count > 0 ? `${count}×` : ''}</span>
+                        <span className="text-[8px] font-medium h-2.5 leading-none" style={{ color: 'var(--app-text3)' }}>{count > 0 ? `${count}×` : ''}</span>
                       </div>
                     );
                   })}
                 </div>
-              </Card>
+              </div>
             </div>
           )}
         </>
@@ -641,19 +617,18 @@ function HistoryContent() {
   );
 }
 
-// --- HAUPT EXPORT ---
 export default function HistoryPage() {
   const router = useRouter();
   return (
-    <main className="min-h-screen bg-slate-50 flex flex-col items-center p-4 pb-20">
+    <main className="min-h-screen flex flex-col items-center p-4 pb-20" style={{ background: 'var(--app-bg)' }}>
       <div className="w-full max-w-md flex items-center mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
-          <ArrowLeft className="h-6 w-6 text-slate-600" />
+          <ArrowLeft className="h-6 w-6" style={{ color: 'var(--app-text2)' }} />
         </Button>
-        <h1 className="text-xl font-bold ml-2 text-slate-800">Logbuch & Zikr</h1>
+        <h1 className="text-xl font-bold ml-2" style={{ color: 'var(--app-text)' }}>Logbuch & Zikr</h1>
       </div>
 
-      <Suspense fallback={<div className="py-20 flex justify-center"><Loader2 className="animate-spin text-slate-400" /></div>}>
+      <Suspense fallback={<div className="py-20 flex justify-center"><Loader2 className="animate-spin" style={{ color: 'var(--app-text3)' }} /></div>}>
         <HistoryContent />
       </Suspense>
     </main>

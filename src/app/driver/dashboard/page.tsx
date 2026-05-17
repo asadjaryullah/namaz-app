@@ -7,6 +7,7 @@ import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@
 import { Card } from "@/components/ui/card";
 import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
@@ -143,13 +144,13 @@ export default function DriverDashboard() {
             if (Notification.permission === "granted") {
               new Notification("Neuer Mitfahrer! 🙋‍♂️", { body: `${name} hat gerade deine Fahrt gebucht.`, icon: "/icon.png" });
             } else {
-              alert(`Neuer Mitfahrer: ${name} ist dabei!`);
+              toast.success(`${name} hat deine Fahrt gebucht! 🙋`);
             }
           } else if (currentCount < prevCount) {
             if (Notification.permission === "granted") {
               new Notification("Mitfahrer abgesprungen ⚠️", { body: "Ein Mitfahrer hat seine Buchung storniert.", icon: "/icon.png" });
             } else {
-              alert("Ein Mitfahrer hat seine Buchung storniert.");
+              toast.warning("Ein Mitfahrer hat seine Buchung storniert.");
             }
           }
         }
@@ -177,7 +178,7 @@ export default function DriverDashboard() {
     if (!error) {
       router.push('/arrival');
     } else {
-      alert("Fehler: " + error.message);
+      toast.error("Fehler: " + error.message);
       setLoadingEnd(false);
       rideEndedRef.current = false;
     }
@@ -225,7 +226,7 @@ export default function DriverDashboard() {
     if (!error) {
       router.push('/');
     } else {
-      alert("Fehler beim Stornieren: " + error.message);
+      toast.error("Fehler beim Stornieren: " + error.message);
       setLoadingEnd(false);
     }
   };

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, User, Phone, BadgeInfo } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +28,7 @@ export default function LoginPage() {
         queryParams: { access_type: 'offline', prompt: 'consent' },
       },
     });
-    if (error) alert("Google Login fehlgeschlagen: " + error.message);
+    if (error) toast.error("Google Login fehlgeschlagen: " + error.message);
   };
 
   const handleSendCode = async (e: React.FormEvent) => {

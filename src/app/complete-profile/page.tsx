@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Phone, Loader2, Save } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function CompleteProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || phone.length < 5) {
-        alert("Bitte eine gültige Nummer eingeben.");
+        toast.error("Bitte eine gültige Nummer eingeben.");
         return;
     }
     
@@ -45,7 +46,7 @@ export default function CompleteProfilePage() {
     setLoading(false);
 
     if (error) {
-      alert("Fehler: " + error.message);
+      toast.error("Fehler: " + error.message);
     } else {
       // Erfolgreich! Zurück zum Start
       router.push('/');
