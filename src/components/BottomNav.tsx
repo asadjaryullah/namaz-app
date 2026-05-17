@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Home, Car, CalendarDays, UserRound, Navigation } from 'lucide-react';
+import { Home, Car, CalendarDays, UserRound, Navigation, BookOpen } from 'lucide-react';
 
 const HIDDEN_PATHS = [
   '/login',
@@ -14,59 +14,86 @@ const HIDDEN_PATHS = [
   '/offline',
 ];
 
-const TABS = [
-  {
-    id: 'home',
-    label: 'Start',
-    icon: Home,
-    href: '/',
-    exact: true,
-    activePaths: ['/'],
-  },
-  {
-    id: 'fahrt',
-    label: 'Fahrt',
-    icon: Car,
-    href: null,
-    exact: false,
-    activePaths: ['/select-prayer', '/passenger/list', '/arrival'],
-  },
-  {
-    id: 'termine',
-    label: 'Termine',
-    icon: CalendarDays,
-    href: '/history',
-    exact: false,
-    activePaths: ['/history', '/events'],
-  },
-  {
-    id: 'profil',
-    label: 'Profil',
-    icon: UserRound,
-    href: '/profile',
-    exact: false,
-    activePaths: ['/profile', '/admin'],
-  },
-] as const;
-
 export default function BottomNav() {
   const router = useRouter();
   const pathname = usePathname();
   const [showFahrtSheet, setShowFahrtSheet] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('');
+
+  // Read query params without useSearchParams to avoid Suspense requirement
+  useEffect(() => {
+    if (pathname === '/') {
+      setActiveTab('home');
+    } else if (pathname.startsWith('/history')) {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      setActiveTab(tab === 'events' ? 'termine' : 'zikr');
+    } else if (pathname.startsWith('/events')) {
+      setActiveTab('termine');
+    } else if (pathname.startsWith('/profile') || pathname.startsWith('/admin')) {
+      setActiveTab('profil');
+    } else if (
+      pathname.startsWith('/select-prayer') ||
+      pathname.startsWith('/passenger/list') ||
+      pathname.startsWith('/arrival')
+    ) {
+      setActiveTab('fahrt');
+    } else {
+      setActiveTab('');
+    }
+  }, [pathname]);
 
   if (HIDDEN_PATHS.some(p => pathname.startsWith(p))) return null;
 
-  const isActive = (tab: (typeof TABS)[number]) => {
-    if (tab.exact) return pathname === tab.activePaths[0];
-    return (tab.activePaths as readonly string[]).some(p => pathname.startsWith(p));
+  const handleTabPress = (id: string, href: string | null) => {
+    if (id === 'fahrt') {
+      setShowFahrtSheet(true);
+    } else if (href) {
+      router.push(href);
+    }
   };
 
-  const handleTabPress = (tab: (typeof TABS)[number]) => {
-    if (tab.id === 'fahrt') {
-      setShowFahrtSheet(true);
-    } else if (tab.href) {
-      router.push(tab.href);
-    }
+  const leftTabs = [
+    { id: 'zikr', label: 'Zikr', icon: BookOpen, href: '/history?tab=zikr' },
+    { id: 'termine', label: 'Termine', icon: CalendarDays, href: '/history?tab=events' },
+  ];
+  const rightTabs = [
+    { id: 'fahrt', label: 'Fahrt', icon: Car, href: null },
+    { id: 'profil', label: 'Profil', icon: UserRound, href: '/profile' },
+  ];
+
+  const renderTab = (tab: { id: string; label: string; icon: React.ElementType; href: string | null }) => {
+    const active = activeTab === tab.id;
+    const Icon = tab.icon;
+    return (
+      <button
+        key={tab.id}
+        onClick={() => handleTabPress(tab.id, tab.href)}
+        className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-all duration-150 active:scale-95"
+        aria-label={tab.label}
+      >
+        <span
+          className="flex items-center justify-center rounded-xl transition-all duration-200"
+          style={{
+            width: 44,
+            height: 30,
+            background: active ? 'var(--app-gold-dim)' : 'transparent',
+          }}
+        >
+          <Icon
+            size={20}
+            strokeWidth={active ? 2.4 : 1.7}
+            style={{ color: active ? 'var(--app-gold)' : 'var(--app-text3)' }}
+          />
+        </span>
+        <span
+          className="text-[9px] font-bold uppercase tracking-widest leading-none transition-colors duration-150"
+          style={{ color: active ? 'var(--app-gold)' : 'var(--app-text3)' }}
+        >
+          {tab.label}
+        </span>
+      </button>
+    );
   };
 
   return (
@@ -82,43 +109,43 @@ export default function BottomNav() {
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
-        {TABS.map((tab) => {
-          const active = isActive(tab);
-          const Icon = tab.icon;
+        {/* Left tabs */}
+        {leftTabs.map(renderTab)}
 
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabPress(tab)}
-              className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-all duration-150 active:scale-95"
-              aria-label={tab.label}
-            >
-              {/* Icon with active pill */}
-              <span
-                className="flex items-center justify-center rounded-xl transition-all duration-200"
-                style={{
-                  width: 44,
-                  height: 30,
-                  background: active ? 'var(--app-gold-dim)' : 'transparent',
-                }}
-              >
-                <Icon
-                  size={20}
-                  strokeWidth={active ? 2.4 : 1.7}
-                  style={{ color: active ? 'var(--app-gold)' : 'var(--app-text3)' }}
-                />
-              </span>
+        {/* Center Start button */}
+        <div className="flex-1 flex flex-col items-center justify-center py-3">
+          <button
+            onClick={() => router.push('/')}
+            aria-label="Start"
+            className="flex items-center justify-center transition-all duration-150 active:scale-90"
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: '50%',
+              background: activeTab === 'home' ? 'var(--app-gold)' : 'var(--app-gold-dim)',
+              border: '2px solid var(--app-gold)',
+              boxShadow: activeTab === 'home'
+                ? '0 4px 20px rgba(201,162,60,0.5)'
+                : '0 2px 12px rgba(201,162,60,0.25)',
+              marginTop: -18,
+            }}
+          >
+            <Home
+              size={22}
+              strokeWidth={2.2}
+              style={{ color: activeTab === 'home' ? '#fff' : 'var(--app-gold)' }}
+            />
+          </button>
+          <span
+            className="text-[9px] font-bold uppercase tracking-widest leading-none mt-1.5 transition-colors duration-150"
+            style={{ color: activeTab === 'home' ? 'var(--app-gold)' : 'var(--app-text3)' }}
+          >
+            Start
+          </span>
+        </div>
 
-              {/* Label */}
-              <span
-                className="text-[9px] font-bold uppercase tracking-widest leading-none transition-colors duration-150"
-                style={{ color: active ? 'var(--app-gold)' : 'var(--app-text3)' }}
-              >
-                {tab.label}
-              </span>
-            </button>
-          );
-        })}
+        {/* Right tabs */}
+        {rightTabs.map(renderTab)}
       </nav>
 
       {/* ── Fahrt Bottom Sheet ────────────────────────────────────────────── */}
