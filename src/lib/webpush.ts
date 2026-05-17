@@ -77,6 +77,77 @@ export async function sendPushToAll(payload: PushPayload, logs: string[] = []) {
   return successCount;
 }
 
+// Sendet an alle User eines bestimmten Geschlechts + Admins/Teiladmins
+export async function sendPushToGender(
+  gender: string,
+  payload: PushPayload,
+  extraUserIds: string[] = [],
+  logs: string[] = []
+) {
+  ensureVapid();
+  const supabase = getSupabase();
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id")
+    .or(`gender.eq.${gender},can_edit_events.eq.true,can_edit_times.eq.true`);
+
+  const userIds = [...new Set([
+    ...(profiles?.map((p) => p.id) || []),
+    ...extraUserIds,
+  ])];
+
+  if (!userIds.length) {
+    logs.push("⚠️ Keine passenden User gefunden");
+    return 0;
+  }
+
+  const { data: subs, error } = await supabase
+    .from("push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .in("user_id", userIds);
+
+  if (error) {
+    logs.push(`❌ push_subscriptions fetch error: ${error.message}`);
+    return 0;
+  }
+
+  if (!subs?.length) {
+    logs.push("⚠️ Keine Subscriptions für diese Gruppe");
+    return 0;
+  }
+
+  logs.push(`📤 Sende an ${subs.length} Subscriber (Geschlecht: ${gender})...`);
+
+  let successCount = 0;
+  const invalidIds: string[] = [];
+
+  await Promise.all(
+    subs.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          JSON.stringify(payload)
+        );
+        successCount++;
+      } catch (err: any) {
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          invalidIds.push(sub.id);
+        } else {
+          logs.push(`⚠️ Push fehlgeschlagen (${err.statusCode}): ${err.message}`);
+        }
+      }
+    })
+  );
+
+  if (invalidIds.length > 0) {
+    await supabase.from("push_subscriptions").delete().in("id", invalidIds);
+  }
+
+  logs.push(`✅ ${successCount}/${subs.length} erfolgreich gesendet`);
+  return successCount;
+}
+
 // Sendet an einen bestimmten User (für Fahrer/Mitfahrer-Benachrichtigungen)
 export async function sendPushToUser(
   userId: string,

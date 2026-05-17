@@ -88,6 +88,7 @@ function HistoryContent() {
   const [zikrData, setZikrData] = useState<any>({ zikr1_count: 0, zikr2_count: 0, zikr3_count: 0 });
   const [todayLogId, setTodayLogId] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -404,17 +405,23 @@ function HistoryContent() {
 
                     return (
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
-                        <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border font-bold ${isToday ? 'ring-2 ring-offset-1' : ''}`}
-                          style={!hasEvent
-                            ? { background: 'var(--app-surface2)', color: 'var(--app-text3)', borderColor: 'var(--app-border)', fontWeight: 'normal', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
-                            : overlap
-                              ? { background: 'var(--app-text)', color: 'var(--app-bg)', borderColor: 'var(--app-text)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
-                              : { background: meta.dimColor, color: meta.color, borderColor: meta.color, ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
-                          }
+                        <button
+                          onClick={() => hasEvent && setSelectedDay(dayNum)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border font-bold ${isToday ? 'ring-2 ring-offset-1' : ''} ${hasEvent ? 'active:opacity-60' : ''}`}
+                          style={{
+                            touchAction: 'manipulation',
+                            WebkitTapHighlightColor: 'transparent',
+                            cursor: hasEvent ? 'pointer' : 'default',
+                            ...(!hasEvent
+                              ? { background: 'var(--app-surface2)', color: 'var(--app-text3)', borderColor: 'var(--app-border)', fontWeight: 'normal', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                              : overlap
+                                ? { background: 'var(--app-text)', color: 'var(--app-bg)', borderColor: 'var(--app-text)', ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                                : { background: meta.dimColor, color: meta.color, borderColor: meta.color, ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '2px' } : {}) }
+                            )
+                          }}
                         >
                           {dayNum}
-                        </div>
+                        </button>
 
                         {hasEvent && (
                           <div className="absolute -bottom-1 flex items-center gap-1">
@@ -580,6 +587,60 @@ function HistoryContent() {
           )}
         </>
       )}
+
+      {/* Day event popup */}
+      {selectedDay !== null && (() => {
+        const dayEvents = getEventsForDay(selectedDay);
+        const dateLabel = new Date(year, month, selectedDay).toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: 'long' });
+        return (
+          <div
+            className="fixed inset-0 z-[60] flex items-end"
+            style={{ background: 'rgba(0,0,0,0.55)' }}
+            onClick={() => setSelectedDay(null)}
+          >
+            <div
+              className="w-full max-h-[75vh] overflow-y-auto rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
+              style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center pt-4 pb-3">
+                <div className="w-10 h-1 rounded-full" style={{ background: 'var(--app-border)' }} />
+              </div>
+              <div className="px-6 pb-4">
+                <h3 className="text-base font-extrabold mb-1" style={{ color: 'var(--app-text)' }}>{dateLabel}</h3>
+                <p className="text-xs mb-4 font-bold uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>
+                  {dayEvents.length} {dayEvents.length === 1 ? 'Termin' : 'Termine'}
+                </p>
+                <div className="space-y-3">
+                  {dayEvents.map((e) => {
+                    const org = normalizeOrg(e.org);
+                    const meta = ORG_META[org];
+                    return (
+                      <div key={e.id} className="rounded-2xl overflow-hidden flex" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+                        <div className="w-1.5 shrink-0" style={{ background: meta.color }} />
+                        <div className="p-3 flex-1">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <p className="font-bold text-sm leading-snug" style={{ color: 'var(--app-text)' }}>{e.title}</p>
+                            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-black uppercase" style={{ background: meta.dimColor, color: meta.color }}>{meta.label}</span>
+                          </div>
+                          <p className="text-xs font-semibold" style={{ color: 'var(--app-text2)' }}>{formatEventMeta(e)}</p>
+                          {e.description && <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'var(--app-text2)' }}>{e.description}</p>}
+                          {e.location && (
+                            <div className="flex items-center gap-1 mt-1.5 text-xs" style={{ color: 'var(--app-text3)' }}>
+                              <MapPin size={10} className="shrink-0" />
+                              <span className="truncate">{e.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

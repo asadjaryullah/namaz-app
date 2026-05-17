@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Calendar, MapPin, Loader2 } from "lucide-react";
+import { ChevronLeft, Calendar, MapPin, Loader2, Settings } from "lucide-react";
+
+const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 export default function EventsPage() {
   const router = useRouter();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canEditEvents, setCanEditEvents] = useState(false);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -20,6 +23,21 @@ export default function EventsPage() {
         .order('event_date', { ascending: true });
 
       if (data) setEvents(data);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        if (user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) {
+          setCanEditEvents(true);
+        } else {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('can_edit_events, can_edit_times')
+            .eq('id', user.id)
+            .single();
+          if (profile?.can_edit_events || profile?.can_edit_times) setCanEditEvents(true);
+        }
+      }
+
       setLoading(false);
     };
     fetchEvents();
@@ -55,11 +73,18 @@ export default function EventsPage() {
   return (
     <main className="min-h-screen flex flex-col items-center p-4 pb-28" style={{ background: 'var(--app-bg)' }}>
 
-      <div className="w-full max-w-md flex items-center mb-6 mt-2">
+      <div className="w-full max-w-md flex items-center justify-between mb-6 mt-2">
         <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
           <ChevronLeft className="h-6 w-6" style={{ color: 'var(--app-text2)' }} />
         </Button>
-        <h1 className="text-xl font-bold ml-2" style={{ color: 'var(--app-text)' }}>Veranstaltungen</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--app-text)' }}>Veranstaltungen</h1>
+        {canEditEvents ? (
+          <Button variant="ghost" size="icon" onClick={() => router.push('/admin')}>
+            <Settings className="h-5 w-5" style={{ color: 'var(--app-text2)' }} />
+          </Button>
+        ) : (
+          <div className="w-9" />
+        )}
       </div>
 
       {loading ? (
