@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Car, CalendarDays, UserRound, Navigation, BookOpen } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const HIDDEN_PATHS = [
   '/login',
@@ -19,6 +20,17 @@ export default function BottomNav() {
   const pathname = usePathname();
   const [showFahrtSheet, setShowFahrtSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session?.user);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setIsLoggedIn(!!session?.user);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Read query params without useSearchParams to avoid Suspense requirement
   useEffect(() => {
@@ -43,6 +55,7 @@ export default function BottomNav() {
     }
   }, [pathname]);
 
+  if (!isLoggedIn) return null;
   if (HIDDEN_PATHS.some(p => pathname.startsWith(p))) return null;
 
   const handleTabPress = (id: string, href: string | null) => {
