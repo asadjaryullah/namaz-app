@@ -215,20 +215,10 @@ export default function HomePage() {
 
       {/* ── Header ── */}
       <div className="stagger-1 flex items-center justify-between pt-1">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.15em]"
-            style={{ color: 'var(--app-gold)' }}>
-            Salam, {firstName}
-          </p>
-          <p className="text-2xl leading-snug font-bold"
-            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', textShadow: '0 0 18px var(--app-gold-glow)' }}>
-            حَيَّ عَلَىٰ ٱلصَّلَاةِ
-          </p>
-          <p className="text-base leading-snug"
-            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-text2)' }}>
-            حَيَّ عَلَىٰ ٱلْفَلَاحِ
-          </p>
-        </div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em]"
+          style={{ color: 'var(--app-gold)' }}>
+          Salam, {firstName}
+        </p>
         <button
           onClick={() => router.push('/profile')}
           className="w-10 h-10 rounded-xl flex items-center justify-center text-lg hover:scale-110 transition-transform"
@@ -236,6 +226,33 @@ export default function HomePage() {
         >
           {emoji}
         </button>
+      </div>
+
+      {/* ── Arabic ── */}
+      <div className="stagger-2 w-full rounded-3xl relative overflow-hidden"
+        style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at top, var(--app-gold-dim), transparent 60%)' }} />
+        <div className="relative z-10 py-6 px-6">
+          <p className="text-5xl text-center leading-loose"
+            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', direction: 'rtl', textShadow: '0 0 30px var(--app-gold-glow)' }}>
+            حَيَّ عَلَىٰ ٱلصَّلَاةِ
+          </p>
+          <p className="text-center text-[9px] uppercase tracking-[0.22em] mt-1"
+            style={{ color: 'var(--app-text2)' }}>
+            „Kommt zum Gebet"
+          </p>
+          <div className="mx-auto my-4 h-px w-8"
+            style={{ background: 'linear-gradient(90deg, transparent, var(--app-gold), transparent)' }} />
+          <p className="text-5xl text-center leading-loose"
+            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', direction: 'rtl', textShadow: '0 0 30px var(--app-gold-glow)' }}>
+            حَيَّ عَلَىٰ ٱلْفَلَاحِ
+          </p>
+          <p className="text-center text-[9px] uppercase tracking-[0.22em] mt-1"
+            style={{ color: 'var(--app-text2)' }}>
+            „Kommt zum Erfolg"
+          </p>
+        </div>
       </div>
 
       {/* ── Jubiläum ── */}
