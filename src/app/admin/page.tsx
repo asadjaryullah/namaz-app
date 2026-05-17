@@ -29,6 +29,7 @@ type Profile = {
   gender: string | null;
   member_id: string | null;
   is_approved: boolean | null;
+  is_teiladmin: boolean | null;
 };
 
 export default function AdminPage() {
@@ -48,6 +49,7 @@ export default function AdminPage() {
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isTeilAdmin, setIsTeilAdmin] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'events' | 'system'>('users');
   const [usersSubTab, setUsersSubTab] = useState<'pending' | 'all'>('pending');
@@ -55,7 +57,7 @@ export default function AdminPage() {
 
   // Edit profile state
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [editForm, setEditForm] = useState({ fullName: '', phone: '', memberId: '', gender: 'male', isApproved: false });
+  const [editForm, setEditForm] = useState({ fullName: '', phone: '', memberId: '', gender: 'male', isApproved: false, isTeilAdmin: false });
   const [editSaving, setEditSaving] = useState(false);
 
   // Edit event state
@@ -73,17 +75,28 @@ export default function AdminPage() {
   useEffect(() => {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!ADMIN_EMAIL || !user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
-        toast.error("Zugriff verweigert! Du bist nicht als Admin erkannt.");
-        router.push('/');
-        return;
+      if (!user) { router.push('/'); return; }
+
+      const isMainAdmin = ADMIN_EMAIL && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+      if (!isMainAdmin) {
+        const { data: pf } = await supabase.from('profiles').select('is_teiladmin').eq('id', user.id).single();
+        if (!pf?.is_teiladmin) {
+          toast.error("Zugriff verweigert!");
+          router.push('/');
+          return;
+        }
+        setIsTeilAdmin(true);
+        setActiveAdminTab('events');
       }
       setIsAuthorized(true);
 
       const { data: prayersData } = await supabase.from('prayer_times').select('id,name,time,sort_order').order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
-      await Promise.all([fetchPendingUsers(), fetchAllProfiles(), fetchEvents()]);
+      const fetchTasks = isMainAdmin
+        ? [fetchPendingUsers(), fetchAllProfiles(), fetchEvents()]
+        : [fetchEvents()];
+      await Promise.all(fetchTasks);
       setLoading(false);
     };
     run();
@@ -96,12 +109,12 @@ export default function AdminPage() {
   };
 
   const fetchPendingUsers = async () => {
-    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved').eq('is_approved', false).order('full_name', { ascending: true });
+    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,is_teiladmin').eq('is_approved', false).order('full_name', { ascending: true });
     if (data) setPendingUsers(data);
   };
 
   const fetchAllProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved').order('full_name', { ascending: true });
+    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,is_teiladmin').order('full_name', { ascending: true });
     if (data) setAllProfiles(data);
   };
 
@@ -140,6 +153,7 @@ export default function AdminPage() {
       memberId: profile.member_id || '',
       gender: profile.gender || 'male',
       isApproved: profile.is_approved ?? false,
+      isTeilAdmin: profile.is_teiladmin ?? false,
     });
     setEditingProfile(profile);
   };
@@ -153,6 +167,7 @@ export default function AdminPage() {
       member_id: editForm.memberId,
       gender: editForm.gender,
       is_approved: editForm.isApproved,
+      is_teiladmin: editForm.isTeilAdmin,
     }).eq('id', editingProfile.id);
     setEditSaving(false);
     if (error) { toast.error("Fehler: " + error.message); return; }
@@ -345,10 +360,12 @@ export default function AdminPage() {
           onClick={() => router.push('/')}>
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-bold" style={{ color: 'var(--app-text)' }}>Admin-Bereich</h1>
+        <h1 className="text-base font-bold" style={{ color: 'var(--app-text)' }}>{isTeilAdmin ? 'Teiladmin' : 'Admin-Bereich'}</h1>
         <span className="text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1"
-          style={{ background: 'rgba(240,98,146,0.12)', border: '1px solid rgba(240,98,146,0.3)', color: 'var(--app-rose)' }}>
-          <ShieldAlert size={10} /> ADMIN
+          style={isTeilAdmin
+            ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)', color: 'var(--app-blue)' }
+            : { background: 'rgba(240,98,146,0.12)', border: '1px solid rgba(240,98,146,0.3)', color: 'var(--app-rose)' }}>
+          <ShieldAlert size={10} /> {isTeilAdmin ? 'TEILADMIN' : 'ADMIN'}
         </span>
       </div>
 
@@ -357,10 +374,10 @@ export default function AdminPage() {
         {/* TABS */}
         <div className="flex gap-1.5">
           {([
-            { id: 'users', Icon: Users, label: 'Anmeldungen', badge: pendingUsers.length },
-            { id: 'events', Icon: CalendarDays, label: 'Termine', badge: 0 },
-            { id: 'system', Icon: Settings, label: 'System', badge: 0 },
-          ] as const).map(({ id, Icon, label, badge }) => (
+            ...(!isTeilAdmin ? [{ id: 'users' as const, Icon: Users, label: 'Anmeldungen', badge: pendingUsers.length }] : []),
+            { id: 'events' as const, Icon: CalendarDays, label: 'Termine', badge: 0 },
+            { id: 'system' as const, Icon: Settings, label: isTeilAdmin ? 'Gebetszeiten' : 'System', badge: 0 },
+          ]).map(({ id, Icon, label, badge }) => (
             <button
               key={id}
               onClick={() => setActiveAdminTab(id)}
@@ -652,8 +669,8 @@ export default function AdminPage() {
               </button>
             </div>
 
-            {/* Push */}
-            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+            {/* Push — nur Hauptadmin */}
+            {!isTeilAdmin && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <BellRing size={12} /> Push Nachricht
               </p>
@@ -663,9 +680,10 @@ export default function AdminPage() {
                 {sendingPush ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
                 Senden
               </Button>
-            </div>
+            </div>}
 
-            {/* Cron */}
+            {/* Cron — nur Hauptadmin */}
+            {!isTeilAdmin &&
             <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <BellRing size={12} /> Cron / Push Diagnose
@@ -693,10 +711,10 @@ export default function AdminPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
 
-            {/* Export */}
-            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+            {/* Export — nur Hauptadmin */}
+            {!isTeilAdmin && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <Download size={12} /> Export (CSV)
               </p>
@@ -707,7 +725,7 @@ export default function AdminPage() {
                   </Button>
                 ))}
               </div>
-            </div>
+            </div>}
 
           </div>
         )}
@@ -782,6 +800,26 @@ export default function AdminPage() {
                   <Input className="pl-9" value={editForm.memberId} onChange={e => setEditForm(f => ({ ...f, memberId: e.target.value }))} placeholder="z.B. 12345" />
                 </div>
               </div>
+
+              {/* Teiladmin Toggle */}
+              <button
+                onClick={() => setEditForm(f => ({ ...f, isTeilAdmin: !f.isTeilAdmin }))}
+                className="w-full flex items-center justify-between p-4 rounded-2xl transition-all"
+                style={editForm.isTeilAdmin
+                  ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
+                  : { background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldAlert size={18} style={{ color: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-text3)' }} />
+                  <div className="text-left">
+                    <p className="font-bold text-sm" style={{ color: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-text2)' }}>Teiladmin</p>
+                    <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Termine + Gebetszeiten bearbeiten</p>
+                  </div>
+                </div>
+                <div className="w-12 h-6 rounded-full transition-all relative" style={{ background: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-border)' }}>
+                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: editForm.isTeilAdmin ? 'calc(100% - 1.375rem)' : '2px' }} />
+                </div>
+              </button>
 
               {/* Freigeschaltet Toggle */}
               <button
