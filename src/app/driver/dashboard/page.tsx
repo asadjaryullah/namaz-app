@@ -47,7 +47,7 @@ function Directions({ userLocation }: { userLocation: {lat: number, lng: number}
     setDr(new routesLibrary.DirectionsRenderer({
       map,
       suppressMarkers: true,
-      polylineOptions: { strokeColor: '#2563eb', strokeWeight: 5 }
+      polylineOptions: { strokeColor: '#5B7FFF', strokeWeight: 5 }
     }));
   }, [routesLibrary, map]);
 
@@ -287,13 +287,13 @@ export default function DriverDashboard() {
 
             {startPoint && (
               <AdvancedMarker position={startPoint} title="Start">
-                 <Pin background={'#94a3b8'} glyphColor={'#fff'} borderColor={'#fff'} scale={0.8} />
+                 <Pin background={'#666'} glyphColor={'#fff'} borderColor={'#888'} scale={0.8} />
               </AdvancedMarker>
             )}
 
             {currentPos && (
               <AdvancedMarker position={currentPos} title="Ich">
-                 <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                 <div className="w-4 h-4 rounded-full border-2 shadow-lg animate-pulse" style={{ background: 'var(--app-blue)', borderColor: 'white' }}></div>
               </AdvancedMarker>
             )}
 
@@ -304,8 +304,8 @@ export default function DriverDashboard() {
                   position={{ lat: p.pickup_lat, lng: p.pickup_lon }}
                   title={p.passenger_name}
                 >
-                  <div className="bg-blue-600 p-1.5 rounded-full border-2 border-white shadow-md">
-                    <User size={16} className="text-white" />
+                  <div className="p-1.5 rounded-full border-2 shadow-md" style={{ background: 'var(--app-blue)', borderColor: 'white' }}>
+                    <User size={16} color="white" />
                   </div>
                 </AdvancedMarker>
               )
@@ -354,7 +354,8 @@ export default function DriverDashboard() {
                     </Button>
                   </a>
                   <a href={`tel:${p.passenger_phone}`}>
-                    <Button size="icon" variant="outline" className="text-green-600 border-green-200 hover:bg-green-50 rounded-full h-10 w-10">
+                    <Button size="icon" variant="outline" className="rounded-full h-10 w-10"
+                      style={{ color: 'var(--app-emerald)', borderColor: 'var(--app-emerald)', background: 'var(--app-emerald-dim)' }}>
                       <Phone size={18} />
                     </Button>
                   </a>
@@ -437,15 +438,16 @@ export default function DriverDashboard() {
 
       {/* UNDO TOAST */}
       {undoVisible && (
-        <div className="fixed bottom-8 left-4 right-4 bg-slate-900 text-white rounded-2xl p-4 z-50 flex items-center justify-between shadow-2xl">
+        <div className="fixed bottom-8 left-4 right-4 rounded-2xl p-4 z-50 flex items-center justify-between shadow-2xl" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
           <div>
-            <p className="text-sm font-bold">Fahrt wird beendet...</p>
-            <p className="text-xs text-slate-400">Rückgängig möglich ({undoCountdown}s)</p>
+            <p className="text-sm font-bold" style={{ color: 'var(--app-text)' }}>Fahrt wird beendet...</p>
+            <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Rückgängig möglich ({undoCountdown}s)</p>
           </div>
           <Button
             size="sm"
             variant="outline"
-            className="border-white/30 text-white hover:bg-white/10 hover:text-white shrink-0 gap-1"
+            className="shrink-0 gap-1"
+            style={{ borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
             onClick={handleUndo}
           >
             <RotateCcw size={14} /> Rückgängig

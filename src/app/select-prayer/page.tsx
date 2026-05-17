@@ -35,15 +35,16 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
       <p className="text-sm font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--app-text2)' }}>Freie Plätze ({availableSeats})</p>
-      <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
-        <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
+      <div className="p-4 rounded-[2.5rem] shadow-2xl w-48 relative" style={{ background: 'var(--app-surface1)', border: '4px solid var(--app-border)' }}>
+        <div className="h-10 rounded-t-xl opacity-60 mb-4 mx-2" style={{ background: 'var(--app-blue-dim)', borderBottom: '4px solid var(--app-border)' }}></div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
           <div className="flex flex-col items-center">
-            <div className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center shadow-inner relative overflow-hidden ${gender === 'female' ? 'bg-pink-900 border-pink-700' : 'bg-slate-600 border-slate-500'}`}>
+            <div className="w-12 h-12 rounded-lg border-2 flex items-center justify-center shadow-inner relative overflow-hidden"
+              style={{ background: gender === 'female' ? 'rgba(240,98,146,0.15)' : 'var(--app-surface2)', borderColor: gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)' }}>
                <Image src={driverImage} alt="Fahrer" fill className="object-contain p-1" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                <span className="absolute -z-10 text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
             </div>
-            <span className="text-[10px] font-bold mt-1 text-slate-400">DU</span>
+            <span className="text-[10px] font-bold mt-1" style={{ color: 'var(--app-text3)' }}>DU</span>
           </div>
           {[0,1,2].map(i => (
             <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[i] ? '✔' : '❌'}</button>
@@ -209,7 +210,7 @@ function SelectPrayerContent() {
 
       {!loading && (
           <div className="fixed bottom-0 left-0 right-0 p-6 flex justify-center z-10" style={{ background: 'var(--app-surface2)', borderTop: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}>
-            <Button className="w-full max-w-md h-12 text-lg rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-lg" disabled={!selectedId || creatingRide} onClick={handleNext}>
+            <Button className="w-full max-w-md h-12 text-lg rounded-xl shadow-lg" style={{ background: 'var(--app-text)', color: 'var(--app-bg)' }} disabled={!selectedId || creatingRide} onClick={handleNext}>
               {creatingRide ? <><Loader2 className="animate-spin mr-2"/> Starten...</> : role === 'driver' ? `Fahrt mit ${seats} Plätzen starten ➜` : 'Fahrer suchen ➜'}
             </Button>
           </div>
