@@ -69,7 +69,8 @@ export default function BottomNav() {
       <button
         key={tab.id}
         onClick={() => handleTabPress(tab.id, tab.href)}
-        className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-all duration-150 active:scale-95"
+        className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-opacity duration-100 active:opacity-60"
+        style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
         aria-label={tab.label}
       >
         <span
@@ -100,13 +101,14 @@ export default function BottomNav() {
     <>
       {/* ── Bottom Navigation Bar ─────────────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch"
+        className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch select-none"
         style={{
           background: 'color-mix(in srgb, var(--app-surface1) 94%, transparent)',
           borderTop: '1px solid var(--app-border)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           paddingBottom: 'env(safe-area-inset-bottom)',
+          overflow: 'visible',
         }}
       >
         {/* Left tabs */}
@@ -117,8 +119,10 @@ export default function BottomNav() {
           <button
             onClick={() => router.push('/')}
             aria-label="Start"
-            className="flex items-center justify-center transition-all duration-150 active:scale-90"
+            className="flex items-center justify-center transition-opacity duration-100 active:opacity-60"
             style={{
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
               width: 52,
               height: 52,
               borderRadius: '50%',
@@ -187,7 +191,8 @@ export default function BottomNav() {
                     setShowFahrtSheet(false);
                     router.push('/select-prayer?role=driver');
                   }}
-                  className="rounded-2xl p-5 text-left transition-all active:scale-95 hover:brightness-105"
+                  className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   style={{
                     background: 'var(--app-gold-dim)',
                     border: '1px solid var(--app-gold)',
@@ -213,7 +218,8 @@ export default function BottomNav() {
                     setShowFahrtSheet(false);
                     router.push('/select-prayer?role=passenger');
                   }}
-                  className="rounded-2xl p-5 text-left transition-all active:scale-95 hover:brightness-105"
+                  className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   style={{
                     background: 'var(--app-blue-dim)',
                     border: '1px solid var(--app-blue)',
@@ -236,7 +242,8 @@ export default function BottomNav() {
 
               <button
                 onClick={() => setShowFahrtSheet(false)}
-                className="w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
+                className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity active:opacity-60"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 style={{
                   background: 'var(--app-surface1)',
                   border: '1px solid var(--app-border)',
