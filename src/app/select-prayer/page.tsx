@@ -33,7 +33,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
   const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
-      <p className="text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">Freie Plätze ({availableSeats})</p>
+      <p className="text-sm font-bold mb-2 uppercase tracking-wider" style={{ color: 'var(--app-text2)' }}>Freie Plätze ({availableSeats})</p>
       <div className="bg-slate-800 p-4 rounded-[2.5rem] shadow-2xl border-4 border-slate-700 w-48 relative">
         <div className="h-10 bg-gradient-to-b from-blue-200 to-blue-400 rounded-t-xl opacity-50 mb-4 border-b-4 border-slate-900 mx-2"></div>
         <div className="grid grid-cols-2 gap-x-6 gap-y-4 px-2">
@@ -42,7 +42,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
                <Image src={driverImage} alt="Fahrer" fill className="object-contain p-1" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                <span className="absolute -z-10 text-2xl">{gender === 'female' ? '🧕' : '🧔'}</span>
             </div>
-            <span className="text-[10px] text-slate-400 font-bold mt-1">DU</span>
+            <span className="text-[10px] font-bold mt-1 text-slate-400">DU</span>
           </div>
           {[0,1,2].map(i => (
             <button key={i} onClick={() => toggleSeat(i)} className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[i] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[i] ? '✔' : '❌'}</button>
@@ -50,7 +50,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
           <div className="col-span-2 flex justify-center -mt-2"><button onClick={() => toggleSeat(3)} className={`w-10 h-10 rounded-lg border-2 flex items-center justify-center transition-all shadow-md active:scale-95 ${seats[3] ? 'bg-green-500 border-green-400 text-white' : 'bg-red-500 border-red-400 text-white opacity-90'}`}>{seats[3] ? '✔' : '❌'}</button></div>
         </div>
       </div>
-      <p className="text-xs text-slate-400 mt-2">Tippe auf einen Sitz, um ihn zu blockieren.</p>
+      <p className="text-xs mt-2" style={{ color: 'var(--app-text3)' }}>Tippe auf einen Sitz, um ihn zu blockieren.</p>
     </div>
   );
 }
