@@ -22,6 +22,7 @@ export default function HomePage() {
   const [activeDriverRide, setActiveDriverRide] = useState<any>(null);
   const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [quickLinks, setQuickLinks] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -48,17 +49,20 @@ export default function HomePage() {
           { data: driverRide },
           { data: myBooking },
           { data: events },
+          { data: linksData },
         ] = await Promise.all([
           supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
           supabase.from('rides').select('id, prayer_id, prayer_time').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
           supabase.from('bookings').select('ride_id, rides!inner(id, status, ride_date, prayer_id, prayer_time)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
           supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
+          supabase.from('quick_links').select('id,title,url,emoji,sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
         ]);
 
         if (mounted && profileData) setProfile(profileData);
         if (mounted && driverRide) setActiveDriverRide(driverRide);
         if (mounted && myBooking) setActivePassengerRide({ rideId: myBooking.ride_id, ...((myBooking as any).rides || {}) });
         if (mounted && events) setUpcomingEvents(events);
+        if (mounted && linksData) setQuickLinks(linksData);
 
         // Notification permission check
         if (mounted && typeof window !== 'undefined' && 'Notification' in window) {
@@ -216,10 +220,14 @@ export default function HomePage() {
             style={{ color: 'var(--app-gold)' }}>
             Salam, {firstName}
           </p>
-          <h1 className="text-2xl font-extrabold mt-0.5"
-            style={{ color: 'var(--app-text)', letterSpacing: '-0.02em' }}>
-            Wie fährst du heute?
-          </h1>
+          <p className="text-2xl leading-snug font-bold"
+            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-gold)', textShadow: '0 0 18px var(--app-gold-glow)' }}>
+            حَيَّ عَلَىٰ ٱلصَّلَاةِ
+          </p>
+          <p className="text-base leading-snug"
+            style={{ fontFamily: 'var(--font-amiri)', color: 'var(--app-text2)' }}>
+            حَيَّ عَلَىٰ ٱلْفَلَاحِ
+          </p>
         </div>
         <button
           onClick={() => router.push('/profile')}
@@ -231,18 +239,11 @@ export default function HomePage() {
       </div>
 
       {/* ── Jubiläum ── */}
-      <div className="stagger-2 flex items-center justify-center gap-3 py-2">
-        <div className="h-px flex-1" style={{ background: 'var(--app-border)' }} />
-        <div className="relative w-14 h-14 shrink-0">
-          <Image
-            src="/jubilaeum.png"
-            alt="100 Jahre Jubiläum"
-            fill
-            className="object-contain"
-            style={{ filter: 'drop-shadow(0 0 10px var(--app-gold-glow))' }}
-          />
+      <div className="stagger-2 flex flex-col items-center py-2">
+        <div className="relative w-36 h-36"
+          style={{ filter: 'drop-shadow(0 0 18px var(--app-gold-glow))' }}>
+          <Image src="/jubilaeum.png" alt="100 Jahre Jubiläum" fill className="object-contain" />
         </div>
-        <div className="h-px flex-1" style={{ background: 'var(--app-border)' }} />
       </div>
 
       {/* ── Nächstes Gebet ── */}
@@ -444,6 +445,29 @@ export default function HomePage() {
           </p>
         )}
       </div>
+
+      {/* ── Quick Links ── */}
+      {quickLinks.length > 0 && (
+        <div className="stagger-5 space-y-2">
+          {quickLinks.map((link) => (
+            <a
+              key={link.id}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="app-card flex items-center gap-4 p-4 active:opacity-60 transition-opacity"
+              style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
+            >
+              <span className="text-3xl shrink-0">{link.emoji || '🔗'}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>{link.title}</p>
+                <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--app-text3)' }}>{link.url}</p>
+              </div>
+              <ArrowRight size={16} style={{ color: 'var(--app-text3)', flexShrink: 0 }} />
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* ── Karte ── */}
       <div className="stagger-6 h-[200px] rounded-2xl overflow-hidden"
