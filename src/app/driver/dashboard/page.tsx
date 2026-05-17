@@ -85,6 +85,10 @@ export default function DriverDashboard() {
   const previousCountRef = useRef(0);
   const isFirstLoadRef = useRef(true);
 
+  // Live-Passenger-Ref für GPS-Closure + bereits benachrichtigte Passagiere
+  const passengersRef = useRef<any[]>([]);
+  const notifiedApproachRef = useRef<Set<string>>(new Set());
+
   // Cleanup undo interval on unmount
   useEffect(() => {
     return () => {
@@ -134,6 +138,7 @@ export default function DriverDashboard() {
 
       if (data) {
         setPassengers(data);
+        passengersRef.current = data;
 
         // Check: Neue Buchung oder Stornierung?
         const currentCount = data.length;
@@ -253,10 +258,33 @@ export default function DriverDashboard() {
           .update({ current_lat: lat, current_lon: lng })
           .eq('id', rideId);
 
-        // Geofencing Check
+        // Geofencing: Moschee erreicht
         const distance = getDistanceInMeters(lat, lng, MOSQUE_LOCATION.lat, MOSQUE_LOCATION.lng);
         if (distance < 150) {
-           handleEndRide(true);
+          handleEndRide(true);
+        }
+
+        // Proximity push: 500 m zur Abholstelle → einmalige Benachrichtigung pro Passagier
+        const { data: { session } } = await supabase.auth.getSession();
+        for (const p of passengersRef.current) {
+          if (!p.pickup_lat || !p.pickup_lon) continue;
+          if (notifiedApproachRef.current.has(p.passenger_id)) continue;
+          const dist = getDistanceInMeters(lat, lng, p.pickup_lat, p.pickup_lon);
+          if (dist <= 500) {
+            notifiedApproachRef.current.add(p.passenger_id);
+            fetch('/api/notify-approaching', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token ?? ''}`,
+              },
+              body: JSON.stringify({
+                ride_id: rideId,
+                passenger_id: p.passenger_id,
+                driver_name: p.driver_name ?? '',
+              }),
+            }).catch(() => {});
+          }
         }
       },
       (err) => {
