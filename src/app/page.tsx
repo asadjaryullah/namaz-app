@@ -454,9 +454,27 @@ export default function HomePage() {
       </div>
 
       {/* ── Quick Links ── */}
-      {quickLinks.length > 0 && (
-        <div className="stagger-5 space-y-2">
-          {quickLinks.map((link) => {
+      <div className="stagger-5 space-y-2">
+        {/* Fester Link: This Week With Huzoor */}
+        <a
+          href="https://www.youtube.com/results?search_query=this+week+with+huzoor"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="app-card flex items-center gap-4 p-4 active:opacity-60 transition-opacity"
+          style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
+        >
+          <span className="shrink-0 flex items-center justify-center rounded-xl" style={{ width: 44, height: 36, background: '#FF0000' }}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>This Week With Huzoor</p>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--app-text3)' }}>YouTube · MTA International</p>
+          </div>
+          <ArrowRight size={16} style={{ color: 'var(--app-text3)', flexShrink: 0 }} />
+        </a>
+
+        {/* Dynamische Links aus DB */}
+        {quickLinks.map((link) => {
             const isYoutube = /youtube\.com|youtu\.be/i.test(link.url);
             return (
               <a
@@ -484,8 +502,7 @@ export default function HomePage() {
               </a>
             );
           })}
-        </div>
-      )}
+      </div>
 
       {/* ── Karte ── */}
       <div className="stagger-6 h-[200px] rounded-2xl overflow-hidden"
