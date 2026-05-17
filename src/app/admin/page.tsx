@@ -9,6 +9,7 @@ import {
   Loader2, Save, ArrowLeft, ShieldAlert, Download, CalendarPlus,
   Trash2, Check, X, MapPin, BellRing, ChevronDown,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -49,7 +50,7 @@ export default function AdminPage() {
     const run = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!ADMIN_EMAIL || !user || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
-        alert("Zugriff verweigert! Du bist nicht als Admin erkannt.");
+        toast.error("Zugriff verweigert! Du bist nicht als Admin erkannt.");
         router.push('/');
         return;
       }
@@ -77,20 +78,34 @@ export default function AdminPage() {
   };
 
   const approveUser = async (id: string, name: string) => {
-    if (!confirm(`${name} freischalten?`)) return;
-    const { error } = await supabase.from('profiles').update({ is_approved: true }).eq('id', id);
-    if (error) alert("Fehler: " + error.message);
-    else fetchPendingUsers();
+    toast(`${name} freischalten?`, {
+      action: {
+        label: "Freischalten ✅",
+        onClick: async () => {
+          const { error } = await supabase.from('profiles').update({ is_approved: true }).eq('id', id);
+          if (error) toast.error("Fehler: " + error.message);
+          else { toast.success(`${name} wurde freigeschaltet!`); fetchPendingUsers(); }
+        },
+      },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
   };
 
   const deleteUser = async (id: string) => {
-    if (!confirm("User ablehnen/löschen?")) return;
-    await supabase.from('profiles').delete().eq('id', id);
-    fetchPendingUsers();
+    toast("User ablehnen/löschen?", {
+      action: {
+        label: "Löschen ❌",
+        onClick: async () => {
+          await supabase.from('profiles').delete().eq('id', id);
+          fetchPendingUsers();
+        },
+      },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
   };
 
   const handleAddEvent = async () => {
-    if (!newEventTitle || !newEventStart) { alert("Bitte Titel und Startdatum angeben"); return; }
+    if (!newEventTitle || !newEventStart) { toast.error("Bitte Titel und Startdatum angeben."); return; }
     setSaving(true);
     try {
       let endIso: string;
@@ -108,19 +123,26 @@ export default function AdminPage() {
         event_date: new Date(newEventStart).toISOString(),
         event_end_date: endIso,
       });
-      if (error) { alert("Fehler: " + error.message); return; }
+      if (error) { toast.error("Fehler: " + error.message); return; }
       setNewEventTitle(""); setNewEventLocation(""); setNewEventStart(""); setNewEventEnd(""); setNewEventOrg("jamaat");
       await fetchEvents();
-      alert("Termin hinzugefügt ✅");
+      toast.success("Termin hinzugefügt!");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteEvent = async (id: string) => {
-    if (!confirm("Termin löschen?")) return;
-    await supabase.from('mosque_events').delete().eq('id', id);
-    setEvents(events.filter(e => e.id !== id));
+    toast("Termin löschen?", {
+      action: {
+        label: "Löschen ❌",
+        onClick: async () => {
+          await supabase.from('mosque_events').delete().eq('id', id);
+          setEvents(events.filter(e => e.id !== id));
+        },
+      },
+      cancel: { label: "Abbrechen", onClick: () => {} },
+    });
   };
 
   const handleTimeChange = (id: string, newTime: string) => {
@@ -131,12 +153,12 @@ export default function AdminPage() {
     setSaving(true);
     const { error } = await supabase.from('prayer_times').upsert(prayers);
     setSaving(false);
-    if (error) alert("Fehler: " + error.message);
-    else alert("Zeiten gespeichert ✅");
+    if (error) toast.error("Fehler: " + error.message);
+    else toast.success("Gebetszeiten gespeichert!");
   };
 
   const handleSendPush = async () => {
-    if (!pushTitle || !pushMessage) return alert("Bitte Titel und Text angeben.");
+    if (!pushTitle || !pushMessage) { toast.error("Bitte Titel und Text angeben."); return; }
     setSendingPush(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -149,10 +171,10 @@ export default function AdminPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json?.error || "Request failed");
-      alert("Gesendet ✅");
+      toast.success("Push-Nachricht gesendet!");
       setPushTitle(""); setPushMessage("");
     } catch (e: any) {
-      alert("Fehler beim Senden: " + (e?.message || "unbekannt"));
+      toast.error("Fehler beim Senden: " + (e?.message || "unbekannt"));
     } finally {
       setSendingPush(false);
     }
@@ -180,7 +202,7 @@ export default function AdminPage() {
 
   const downloadCsv = async (tableName: string) => {
     const { data } = await supabase.from(tableName).select('*');
-    if (!data || data.length === 0) { alert("Keine Daten."); return; }
+    if (!data || data.length === 0) { toast.info("Keine Daten zum Exportieren."); return; }
     const headers = Object.keys(data[0]);
     const csvRows = [headers.join(',')];
     for (const row of data) {

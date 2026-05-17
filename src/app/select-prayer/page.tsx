@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, Loader2, Settings, CheckCircle2 } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -86,7 +87,7 @@ function SelectPrayerContent() {
             setUserGender(profile.gender || 'male');
             // Check Freigabe
             if (role === 'driver' && profile.is_approved === false) {
-                 alert("Dein Konto ist noch nicht freigeschaltet.");
+                 toast.error("Dein Konto ist noch nicht freigeschaltet.");
                  router.push('/');
                  return;
             }
@@ -111,7 +112,7 @@ function SelectPrayerContent() {
 
     if (role === 'driver') {
       setCreatingRide(true);
-      if (!navigator.geolocation) { alert("GPS fehlt."); setCreatingRide(false); return; }
+      if (!navigator.geolocation) { toast.error("GPS nicht verfügbar."); setCreatingRide(false); return; }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
@@ -137,10 +138,10 @@ function SelectPrayerContent() {
           });
 
           setCreatingRide(false);
-          if (error) alert("Fehler: " + error.message);
-          else router.push('/driver/dashboard'); 
+          if (error) toast.error("Fehler: " + error.message);
+          else router.push('/driver/dashboard');
         },
-        (err) => { setCreatingRide(false); alert("GPS benötigt."); }
+        () => { setCreatingRide(false); toast.error("GPS-Zugriff wird benötigt."); }
       );
     } else {
       router.push(`/passenger/list?prayer=${selectedPrayer.id}&time=${selectedPrayer.time}`);
@@ -219,7 +220,7 @@ function SelectPrayerContent() {
 
 export default function SelectPrayerPage() {
   return (
-    <main className="min-h-screen flex flex-col" style={{ background: 'var(--app-bg)' }}>
+    <main className="min-h-screen flex flex-col pb-24" style={{ background: 'var(--app-bg)' }}>
       <div className="p-6 flex flex-col items-center">
         <Suspense fallback={<div>Lade...</div>}>
           <SelectPrayerContent />

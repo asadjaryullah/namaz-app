@@ -48,6 +48,9 @@ export default function PushManager() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 
+    // Register SW unconditionally so offline caching works for all users
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+
     // Auf Auth-Session warten, dann erst subscriben
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session?.access_token) return;
