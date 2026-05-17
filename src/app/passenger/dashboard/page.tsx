@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Phone, XCircle, Loader2, MessageCircle, ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
@@ -46,6 +47,7 @@ function PassengerDashboardContent() {
   const [ride, setRide] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [myPos, setMyPos] = useState<{lat: number, lng: number} | null>(null);
+  const gpsErrorShownRef = useRef(false);
 
   useEffect(() => {
     if (!rideId) return;
@@ -87,7 +89,10 @@ function PassengerDashboardContent() {
             .eq('passenger_id', user.id);
         },
         (err) => {
-          if (err.code !== err.TIMEOUT) console.error('GPS Fehler:', err);
+          if (err.code !== err.TIMEOUT && !gpsErrorShownRef.current) {
+            gpsErrorShownRef.current = true;
+            toast.error("GPS nicht verfügbar. Bitte GPS aktivieren.");
+          }
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
       );
