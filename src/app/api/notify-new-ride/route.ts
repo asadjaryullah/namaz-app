@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendPushToAll } from "@/lib/webpush";
+import { sendPushToGender } from "@/lib/webpush";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,16 +23,30 @@ export async function POST(req: Request) {
     const { data: userData, error: userErr } = await supabase.auth.getUser(token);
     if (userErr || !userData?.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-    const { prayer_id, driver_name, seats } = await req.json().catch(() => ({}));
+    const { prayer_id, driver_name, seats, driver_gender } = await req.json().catch(() => ({}));
+    const gender = driver_gender || "male";
     const prayerLabel = PRAYER_LABEL[prayer_id] || prayer_id || "Gebet";
     const name = (driver_name || "Ein Fahrer").trim();
     const seatText = seats && seats > 1 ? `${seats} freie Plätze` : "1 freier Platz";
 
-    await sendPushToAll({
-      title: `🚗 Fahrt zum ${prayerLabel}-Gebet`,
-      body: `${name} bietet eine Fahrt an — ${seatText}. Jetzt buchen!`,
-      url: "/",
-    });
+    // Include the main admin (identified by ADMIN_EMAIL) regardless of gender filter
+    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase().trim();
+    let adminUserIds: string[] = [];
+    if (adminEmail) {
+      const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const adminUser = users?.find((u) => u.email?.toLowerCase() === adminEmail);
+      if (adminUser) adminUserIds.push(adminUser.id);
+    }
+
+    await sendPushToGender(
+      gender,
+      {
+        title: `🚗 Fahrt zum ${prayerLabel}-Gebet`,
+        body: `${name} bietet eine Fahrt an — ${seatText}. Jetzt buchen!`,
+        url: "/",
+      },
+      adminUserIds
+    );
 
     return NextResponse.json({ success: true });
   } catch (e: any) {

@@ -225,7 +225,7 @@ function SelectPrayerContent() {
                 fetch('/api/notify-new-ride', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                  body: JSON.stringify({ prayer_id: selectedPrayer.id, driver_name: profile?.full_name, seats }),
+                  body: JSON.stringify({ prayer_id: selectedPrayer.id, driver_name: profile?.full_name, seats, driver_gender: profile?.gender || 'male' }),
                 }).catch(() => {});
               }
             });
