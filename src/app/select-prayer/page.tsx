@@ -223,7 +223,7 @@ export default function SelectPrayerPage() {
   return (
     <main className="min-h-screen flex flex-col pb-24" style={{ background: 'var(--app-bg)' }}>
       <div className="p-6 flex flex-col items-center">
-        <Suspense fallback={<div>Lade...</div>}>
+        <Suspense fallback={<div className="py-20 flex justify-center"><Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--app-text3)' }} /></div>}>
           <SelectPrayerContent />
         </Suspense>
       </div>

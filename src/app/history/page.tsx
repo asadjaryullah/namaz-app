@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   ChevronLeft, ChevronRight, Loader2, ArrowLeft, TrendingUp,
-  Car, User, Footprints, Check, RotateCcw, MapPin
+  Car, User, Footprints, Check, RotateCcw, MapPin,
+  BookOpen, CalendarDays, BarChart2, Smartphone, Globe
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -297,17 +298,21 @@ function HistoryContent() {
     <div className="w-full max-w-md space-y-6">
       {/* TABS */}
       <div className="flex gap-1 mb-4">
-        {([['zikr', '📿', 'Zikr'], ['events', '📅', 'Termine'], ['calendar', '📊', 'Statistik']] as const).map(([tab, icon, label]) => (
+        {([
+          { id: 'zikr', Icon: BookOpen, label: 'Zikr' },
+          { id: 'events', Icon: CalendarDays, label: 'Termine' },
+          { id: 'calendar', Icon: BarChart2, label: 'Statistik' },
+        ] as const).map(({ id, Icon, label }) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-0.5"
-            style={activeTab === tab
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className="flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-1"
+            style={activeTab === id
               ? { background: 'var(--app-text)', color: 'var(--app-bg)' }
               : { background: 'var(--app-surface2)', color: 'var(--app-text2)', border: '1px solid var(--app-border)' }
             }
           >
-            <span className="text-base">{icon}</span>
+            <Icon size={17} />
             <span className="text-[10px] uppercase tracking-wide">{label}</span>
           </button>
         ))}
@@ -493,7 +498,7 @@ function HistoryContent() {
                     style={{ background: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
                     onClick={() => openCalendarApple('/api/calendar-events')}
                   >
-                    <span className="text-base">🍎</span> Apple
+                    <Smartphone size={15} /> Apple
                   </Button>
                   <Button
                     variant="outline"
@@ -501,7 +506,7 @@ function HistoryContent() {
                     style={{ background: 'var(--app-card)', borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
                     onClick={() => openCalendarGoogle('/api/calendar-events')}
                   >
-                    <span className="text-base">📅</span> Google
+                    <Globe size={15} /> Google
                   </Button>
                 </div>
               </div>

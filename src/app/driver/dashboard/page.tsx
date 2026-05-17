@@ -79,6 +79,7 @@ export default function DriverDashboard() {
   const undoCancelledRef = useRef(false);
 
   const rideEndedRef = useRef(false);
+  const gpsErrorShownRef = useRef(false);
 
   // Refs für Notification-Logik
   const previousCountRef = useRef(0);
@@ -254,8 +255,10 @@ export default function DriverDashboard() {
         }
       },
       (err) => {
-        // Timeout ist normal bei kurzem GPS-Verlust – kein Fehler loggen
-        if (err.code !== err.TIMEOUT) console.error('GPS Fehler:', err);
+        if (err.code !== err.TIMEOUT && !gpsErrorShownRef.current) {
+          gpsErrorShownRef.current = true;
+          toast.error("GPS nicht verfügbar. Bitte GPS aktivieren.");
+        }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
     );
@@ -348,17 +351,29 @@ export default function DriverDashboard() {
                 </div>
 
                 <div className="flex gap-2">
-                  <a href={getWhatsAppLink(p.passenger_phone, p.passenger_name)} target="_blank" rel="noopener noreferrer">
-                    <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-sm text-white">
+                  {p.passenger_phone ? (
+                    <a href={getWhatsAppLink(p.passenger_phone, p.passenger_name)} target="_blank" rel="noopener noreferrer">
+                      <Button size="icon" className="bg-green-500 hover:bg-green-600 rounded-full h-10 w-10 shadow-sm text-white">
+                        <MessageCircle size={18} />
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button size="icon" disabled className="rounded-full h-10 w-10" style={{ background: 'var(--app-surface2)', color: 'var(--app-text3)', opacity: 0.4 }}>
                       <MessageCircle size={18} />
                     </Button>
-                  </a>
-                  <a href={`tel:${p.passenger_phone}`}>
-                    <Button size="icon" variant="outline" className="rounded-full h-10 w-10"
-                      style={{ color: 'var(--app-emerald)', borderColor: 'var(--app-emerald)', background: 'var(--app-emerald-dim)' }}>
+                  )}
+                  {p.passenger_phone ? (
+                    <a href={`tel:${p.passenger_phone}`}>
+                      <Button size="icon" variant="outline" className="rounded-full h-10 w-10"
+                        style={{ color: 'var(--app-emerald)', borderColor: 'var(--app-emerald)', background: 'var(--app-emerald-dim)' }}>
+                        <Phone size={18} />
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button size="icon" disabled className="rounded-full h-10 w-10" style={{ background: 'var(--app-surface2)', color: 'var(--app-text3)', opacity: 0.4 }}>
                       <Phone size={18} />
                     </Button>
-                  </a>
+                  )}
                 </div>
               </div>
             ))}
