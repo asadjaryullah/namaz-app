@@ -154,7 +154,7 @@ function PassengerListContent() {
   };
 
   return (
-    <div className="min-h-screen p-6 flex flex-col items-center" style={{ background: 'var(--app-bg)' }}>
+    <div className="min-h-screen p-6 pb-16 flex flex-col items-center" style={{ background: 'var(--app-bg)', paddingBottom: 'max(4rem, env(safe-area-inset-bottom))' }}>
 
       <div className="w-full max-w-md flex items-center mb-6">
         <Button variant="ghost" size="icon" onClick={() => router.back()}>
