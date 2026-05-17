@@ -192,11 +192,7 @@ export default function BottomNav() {
                     router.push('/select-prayer?role=driver');
                   }}
                   className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  style={{
-                    background: 'var(--app-gold-dim)',
-                    border: '1px solid var(--app-gold)',
-                  }}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
@@ -219,11 +215,7 @@ export default function BottomNav() {
                     router.push('/select-prayer?role=passenger');
                   }}
                   className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  style={{
-                    background: 'var(--app-blue-dim)',
-                    border: '1px solid var(--app-blue)',
-                  }}
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }}
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
@@ -243,12 +235,7 @@ export default function BottomNav() {
               <button
                 onClick={() => setShowFahrtSheet(false)}
                 className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity active:opacity-60"
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                style={{
-                  background: 'var(--app-surface1)',
-                  border: '1px solid var(--app-border)',
-                  color: 'var(--app-text3)',
-                }}
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-surface1)', border: '1px solid var(--app-border)', color: 'var(--app-text3)' }}
               >
                 Abbrechen
               </button>

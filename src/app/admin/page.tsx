@@ -58,6 +58,11 @@ export default function AdminPage() {
   const [editForm, setEditForm] = useState({ fullName: '', phone: '', memberId: '', gender: 'male', isApproved: false });
   const [editSaving, setEditSaving] = useState(false);
 
+  // Edit event state
+  const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [editEventForm, setEditEventForm] = useState({ title: '', location: '', org: 'jamaat' as Org, start: '', end: '' });
+  const [editEventSaving, setEditEventSaving] = useState(false);
+
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [sendingPush, setSendingPush] = useState(false);
@@ -182,6 +187,47 @@ export default function AdminPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toDatetimeLocal = (isoStr: string) => {
+    if (!isoStr) return '';
+    const d = new Date(isoStr);
+    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const openEditEvent = (e: any) => {
+    setEditEventForm({
+      title: e.title || '',
+      location: e.location || '',
+      org: (e.org as Org) || 'jamaat',
+      start: toDatetimeLocal(e.event_date),
+      end: toDatetimeLocal(e.event_end_date),
+    });
+    setEditingEvent(e);
+  };
+
+  const handleUpdateEvent = async () => {
+    if (!editingEvent || !editEventForm.title || !editEventForm.start) {
+      toast.error("Bitte Titel und Startdatum angeben.");
+      return;
+    }
+    setEditEventSaving(true);
+    const endIso = editEventForm.end
+      ? new Date(editEventForm.end).toISOString()
+      : (() => { const d = new Date(editEventForm.start); d.setHours(d.getHours() + 2); return d.toISOString(); })();
+    const { error } = await supabase.from('mosque_events').update({
+      title: editEventForm.title.trim(),
+      location: (editEventForm.location.trim() || 'Bashier Moschee'),
+      org: editEventForm.org,
+      event_date: new Date(editEventForm.start).toISOString(),
+      event_end_date: endIso,
+    }).eq('id', editingEvent.id);
+    setEditEventSaving(false);
+    if (error) { toast.error("Fehler: " + error.message); return; }
+    toast.success("Termin gespeichert!");
+    setEditingEvent(null);
+    await fetchEvents();
   };
 
   const handleDeleteEvent = async (id: string) => {
@@ -534,9 +580,16 @@ export default function AdminPage() {
                       {new Date(e.event_date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
-                  <button onClick={() => handleDeleteEvent(e.id)} className="shrink-0 mt-0.5 transition-colors hover:opacity-80" style={{ color: 'var(--app-text3)' }}>
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                    <button onClick={() => openEditEvent(e)} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                      style={{ background: 'var(--app-surface2)', color: 'var(--app-text2)', border: '1px solid var(--app-border)' }}>
+                      <Edit3 size={13} />
+                    </button>
+                    <button onClick={() => handleDeleteEvent(e.id)} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:opacity-80"
+                      style={{ background: 'rgba(240,98,146,0.08)', color: 'var(--app-rose)' }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               );
 
@@ -770,6 +823,90 @@ export default function AdminPage() {
               </button>
 
               <button onClick={() => setEditingProfile(null)} className="w-full py-3 rounded-xl text-sm font-semibold"
+                style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text3)' }}>
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── EDIT EVENT BOTTOM SHEET ── */}
+      {editingEvent && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end"
+          style={{ background: 'rgba(0,0,0,0.55)' }}
+          onClick={() => setEditingEvent(null)}
+        >
+          <div
+            className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto"
+            style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-4 pb-2">
+              <div className="w-10 h-1 rounded-full" style={{ background: 'var(--app-border)' }} />
+            </div>
+
+            <div className="px-6 pb-2 space-y-4">
+              <div>
+                <h3 className="text-base font-extrabold" style={{ color: 'var(--app-text)' }}>Termin bearbeiten</h3>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--app-text3)' }}>{editingEvent.title}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Titel</label>
+                <Input value={editEventForm.title} onChange={e => setEditEventForm(f => ({ ...f, title: e.target.value }))} placeholder="Titel" />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ort</label>
+                <div className="relative">
+                  <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--app-text3)' }} />
+                  <Input className="pl-9" value={editEventForm.location} onChange={e => setEditEventForm(f => ({ ...f, location: e.target.value }))} placeholder="Bashier Moschee" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Gruppe</label>
+                <select
+                  value={editEventForm.org}
+                  onChange={e => setEditEventForm(f => ({ ...f, org: e.target.value as Org }))}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text)' }}
+                >
+                  <option value="jamaat">Jamaat</option>
+                  <option value="ansar">Ansar</option>
+                  <option value="khuddam">Khuddam</option>
+                  <option value="atfal">Atfal</option>
+                  <option value="lajna">Lajna</option>
+                  <option value="nasirat">Nasirat</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Start</label>
+                  <Input type="datetime-local" value={editEventForm.start} onChange={e => setEditEventForm(f => ({ ...f, start: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende</label>
+                  <Input type="datetime-local" value={editEventForm.end} onChange={e => setEditEventForm(f => ({ ...f, end: e.target.value }))} />
+                </div>
+              </div>
+
+              <button className="btn-gold w-full" onClick={handleUpdateEvent} disabled={editEventSaving}>
+                {editEventSaving ? <Loader2 className="animate-spin mr-2 h-4 w-4 inline" /> : <Save size={15} className="mr-2 inline" />}
+                Speichern
+              </button>
+
+              <button
+                onClick={() => { handleDeleteEvent(editingEvent.id); setEditingEvent(null); }}
+                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'rgba(240,98,146,0.08)', border: '1px solid rgba(240,98,146,0.25)', color: 'var(--app-rose)' }}
+              >
+                <Trash2 size={15} /> Termin löschen
+              </button>
+
+              <button onClick={() => setEditingEvent(null)} className="w-full py-3 rounded-xl text-sm font-semibold"
                 style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text3)' }}>
                 Abbrechen
               </button>
