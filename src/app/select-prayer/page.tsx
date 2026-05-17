@@ -35,14 +35,15 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
 
   const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
 
-  const SeatBtn = ({ index }: { index: number }) => {
+  const SeatBtn = ({ index, w = 60, h = 68 }: { index: number; w?: number; h?: number }) => {
     const free = seats[index];
     return (
       <button
         onClick={() => toggleSeat(index)}
-        className="flex flex-col items-center justify-center rounded-2xl border-2 gap-1 select-none transition-opacity active:opacity-60"
+        className="flex flex-col items-center justify-center gap-1 select-none transition-opacity active:opacity-60"
         style={{
-          width: 64, height: 72,
+          width: w, height: h, borderRadius: 14,
+          border: '2px solid',
           touchAction: 'manipulation',
           WebkitTapHighlightColor: 'transparent',
           background: free ? 'rgba(34,211,138,0.12)' : 'rgba(240,98,146,0.09)',
@@ -50,10 +51,10 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
         }}
       >
         {free
-          ? <UserRound size={22} strokeWidth={1.8} style={{ color: 'var(--app-emerald)' }} />
-          : <X size={20} strokeWidth={2.5} style={{ color: 'var(--app-rose)' }} />
+          ? <UserRound size={w > 56 ? 22 : 18} strokeWidth={1.8} style={{ color: 'var(--app-emerald)' }} />
+          : <X size={w > 56 ? 20 : 16} strokeWidth={2.5} style={{ color: 'var(--app-rose)' }} />
         }
-        <span className="text-[9px] font-bold uppercase" style={{ color: free ? 'var(--app-emerald)' : 'var(--app-rose)' }}>
+        <span className="text-[8px] font-bold uppercase" style={{ color: free ? 'var(--app-emerald)' : 'var(--app-rose)' }}>
           {free ? 'Frei' : 'Belegt'}
         </span>
       </button>
@@ -71,39 +72,62 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
         </span>
       </div>
 
-      {/* Sitzplan-Karte */}
-      <div className="rounded-3xl p-4 shadow-lg" style={{ background: 'var(--app-surface1)', border: '2px solid var(--app-border)' }}>
+      {/* Auto-Karosserie — sehr rund, Pill-Form */}
+      <div style={{
+        width: 234,
+        background: 'var(--app-surface1)',
+        border: '3px solid var(--app-border)',
+        borderRadius: 54,
+        padding: '14px 16px',
+        boxShadow: '0 8px 28px rgba(0,0,0,0.10)',
+      }}>
+        {/* Windschutzscheibe */}
+        <div style={{
+          height: 30, borderRadius: '32px 32px 6px 6px',
+          margin: '0 8px 14px',
+          opacity: 0.55,
+          background: 'var(--app-blue-dim)',
+          border: '1.5px solid var(--app-border)',
+        }} />
 
-        {/* Vorderreihe */}
-        <p className="text-[9px] font-black uppercase tracking-widest mb-2 text-center" style={{ color: 'var(--app-text3)' }}>Vorne</p>
-        <div className="flex gap-3 justify-center mb-4">
-          {/* Fahrersitz */}
+        {/* Vordere Reihe */}
+        <div className="flex justify-between items-center" style={{ marginBottom: 10, padding: '0 4px' }}>
           <div className="flex flex-col items-center gap-1">
-            <div className="rounded-2xl border-2 flex items-center justify-center relative overflow-hidden"
-              style={{ width: 64, height: 72, background: gender === 'female' ? 'rgba(240,98,146,0.12)' : 'var(--app-surface2)', borderColor: gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)' }}>
-              <Image src={driverImage} alt="Fahrer" fill className="object-contain p-2" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+            <div style={{
+              width: 60, height: 68, borderRadius: 14,
+              border: '2px solid',
+              borderColor: gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)',
+              background: gender === 'female' ? 'rgba(240,98,146,0.12)' : 'var(--app-surface2)',
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <Image src={driverImage} alt="Fahrer" fill className="object-contain p-2"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }} />
             </div>
             <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Du</span>
           </div>
-          {/* Beifahrer */}
           <div className="flex flex-col items-center gap-1">
             <SeatBtn index={0} />
-            <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Vorne</span>
           </div>
         </div>
 
-        {/* Trennlinie */}
-        <div className="h-px mb-4 mx-2 opacity-30" style={{ background: 'var(--app-border)' }} />
+        {/* Mittelkonsole */}
+        <div style={{ height: 4, borderRadius: 99, margin: '0 22px 10px', background: 'var(--app-border)', opacity: 0.3 }} />
 
-        {/* Hintenreihe */}
-        <p className="text-[9px] font-black uppercase tracking-widest mb-2 text-center" style={{ color: 'var(--app-text3)' }}>Hinten</p>
-        <div className="flex gap-3 justify-center">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <SeatBtn index={i} />
-            </div>
-          ))}
+        {/* Hintere Reihe — 3 Sitze */}
+        <div className="flex justify-between items-center" style={{ padding: '0 2px', marginBottom: 12 }}>
+          <SeatBtn index={1} w={54} h={62} />
+          <SeatBtn index={2} w={54} h={62} />
+          <SeatBtn index={3} w={54} h={62} />
         </div>
+
+        {/* Heckscheibe */}
+        <div style={{
+          height: 24, borderRadius: '6px 6px 32px 32px',
+          margin: '2px 8px 0',
+          opacity: 0.4,
+          background: 'var(--app-blue-dim)',
+          border: '1.5px solid var(--app-border)',
+        }} />
       </div>
 
       <p className="text-xs mt-3 text-center" style={{ color: 'var(--app-text3)' }}>Tippe auf einen Sitz um ihn zu blockieren</p>
@@ -137,10 +161,10 @@ function SelectPrayerContent() {
       if (user) {
         if (user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) setIsAdmin(true);
 
-        const { data: profile } = await supabase.from('profiles').select('gender, is_approved').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('gender, is_approved, is_teiladmin').eq('id', user.id).single();
         if (profile) {
             setUserGender(profile.gender || 'male');
-            // Check Freigabe
+            if (profile.is_teiladmin) setIsAdmin(true);
             if (role === 'driver' && profile.is_approved === false) {
                  toast.error("Dein Konto ist noch nicht freigeschaltet.");
                  router.push('/');
