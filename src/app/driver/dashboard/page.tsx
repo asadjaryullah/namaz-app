@@ -347,6 +347,14 @@ export default function DriverDashboard() {
                     <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
                        {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'} warten
                     </p>
+                    {currentPos && p.pickup_lat && p.pickup_lon && (() => {
+                      const dist = Math.round(getDistanceInMeters(currentPos.lat, currentPos.lng, p.pickup_lat, p.pickup_lon));
+                      return (
+                        <p className="text-xs font-bold mt-0.5" style={{ color: dist < 300 ? 'var(--app-emerald)' : 'var(--app-text3)' }}>
+                          📍 {dist < 1000 ? `${dist} m` : `${(dist / 1000).toFixed(1)} km`} entfernt
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
 

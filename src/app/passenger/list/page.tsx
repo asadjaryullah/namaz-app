@@ -4,8 +4,10 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
-import { User, ChevronLeft, MapPin, Loader2, Users } from "lucide-react";
+import { User, ChevronLeft, MapPin, Loader2, Users, CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import { toast } from "sonner";
+
+type BookingSuccess = { driverName: string; driverPhone: string; rideId: string };
 
 function PassengerListContent() {
   const router = useRouter();
@@ -16,6 +18,7 @@ function PassengerListContent() {
   const [rides, setRides] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingRideId, setBookingRideId] = useState<string | null>(null);
+  const [bookingSuccess, setBookingSuccess] = useState<BookingSuccess | null>(null);
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
@@ -140,7 +143,13 @@ function PassengerListContent() {
           const result = await response.json();
           if (!response.ok) throw new Error(result.error);
 
-          router.push(`/passenger/dashboard?rideId=${rideId}`);
+          const bookedRide = rides.find(r => r.id === rideId);
+          setBookingSuccess({
+            driverName: bookedRide?.driver_name || "Fahrer",
+            driverPhone: bookedRide?.driver_phone || "",
+            rideId,
+          });
+          setBookingRideId(null);
         } catch (err: any) {
           toast.error("Fehler bei der Buchung: " + err.message);
           setBookingRideId(null);
@@ -151,6 +160,11 @@ function PassengerListContent() {
         toast.error("GPS-Zugriff wird benötigt.");
       }
     );
+  };
+
+  const waLink = (phone: string) => {
+    const n = phone.replace(/[^0-9]/g, '').replace(/^0/, '49');
+    return `https://wa.me/${n}?text=${encodeURIComponent("Salam Alaikum, ich fahre gleich bei dir mit! 🚕")}`;
   };
 
   return (
@@ -233,6 +247,67 @@ function PassengerListContent() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Buchungsbestätigung Bottom Sheet */}
+      {bookingSuccess && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.55)' }}>
+          <div
+            className="w-full rounded-t-3xl p-6 space-y-4 animate-in slide-in-from-bottom-4 duration-300"
+            style={{ background: 'var(--app-surface2)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+          >
+            <div className="w-10 h-1 rounded-full mx-auto" style={{ background: 'var(--app-border)' }} />
+
+            <div className="flex justify-center">
+              <div className="p-4 rounded-full" style={{ background: 'var(--app-emerald-dim)' }}>
+                <CheckCircle2 className="h-10 w-10" style={{ color: 'var(--app-emerald)' }} />
+              </div>
+            </div>
+
+            <div className="text-center">
+              <h2 className="text-xl font-bold" style={{ color: 'var(--app-emerald)' }}>Buchung erfolgreich!</h2>
+              <p className="text-sm mt-1" style={{ color: 'var(--app-text2)' }}>Dein Standort wurde an den Fahrer übermittelt.</p>
+            </div>
+
+            <div className="p-4 rounded-2xl flex items-center gap-4" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+              <div className="p-3 rounded-full" style={{ background: 'var(--app-surface2)' }}>
+                <User className="h-6 w-6" style={{ color: 'var(--app-text2)' }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Dein Fahrer</p>
+                <p className="font-bold text-lg truncate" style={{ color: 'var(--app-text)' }}>{bookingSuccess.driverName}</p>
+                {bookingSuccess.driverPhone && (
+                  <p className="text-sm" style={{ color: 'var(--app-text2)' }}>{bookingSuccess.driverPhone}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              {bookingSuccess.driverPhone ? (
+                <>
+                  <a href={waLink(bookingSuccess.driverPhone)} target="_blank" rel="noopener noreferrer" className="flex-1">
+                    <Button className="w-full h-12 rounded-xl bg-green-500 hover:bg-green-600 text-white">
+                      <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
+                    </Button>
+                  </a>
+                  <a href={`tel:${bookingSuccess.driverPhone}`} className="shrink-0">
+                    <Button variant="outline" className="h-12 w-12 rounded-xl p-0"
+                      style={{ borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}>
+                      <Phone className="h-5 w-5" />
+                    </Button>
+                  </a>
+                </>
+              ) : <div className="flex-1" />}
+              <Button
+                className="flex-1 h-12 rounded-xl"
+                style={{ background: 'var(--app-text)', color: 'var(--app-bg)' }}
+                onClick={() => router.push(`/passenger/dashboard?rideId=${bookingSuccess.rideId}`)}
+              >
+                Weiter ➜
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
