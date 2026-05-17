@@ -29,7 +29,8 @@ type Profile = {
   gender: string | null;
   member_id: string | null;
   is_approved: boolean | null;
-  is_teiladmin: boolean | null;
+  can_edit_events: boolean | null;
+  can_edit_times: boolean | null;
 };
 
 export default function AdminPage() {
@@ -49,7 +50,8 @@ export default function AdminPage() {
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isTeilAdmin, setIsTeilAdmin] = useState(false);
+  const [canEditEvents, setCanEditEvents] = useState(false);
+  const [canEditTimes, setCanEditTimes] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
   const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'events' | 'system'>('users');
   const [usersSubTab, setUsersSubTab] = useState<'pending' | 'all'>('pending');
@@ -57,7 +59,7 @@ export default function AdminPage() {
 
   // Edit profile state
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
-  const [editForm, setEditForm] = useState({ fullName: '', phone: '', memberId: '', gender: 'male', isApproved: false, isTeilAdmin: false });
+  const [editForm, setEditForm] = useState({ fullName: '', phone: '', memberId: '', gender: 'male', isApproved: false, canEditEvents: false, canEditTimes: false });
   const [editSaving, setEditSaving] = useState(false);
 
   // Edit event state
@@ -79,14 +81,15 @@ export default function AdminPage() {
 
       const isMainAdmin = ADMIN_EMAIL && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
       if (!isMainAdmin) {
-        const { data: pf } = await supabase.from('profiles').select('is_teiladmin').eq('id', user.id).single();
-        if (!pf?.is_teiladmin) {
+        const { data: pf } = await supabase.from('profiles').select('can_edit_events,can_edit_times').eq('id', user.id).single();
+        if (!pf?.can_edit_events && !pf?.can_edit_times) {
           toast.error("Zugriff verweigert!");
           router.push('/');
           return;
         }
-        setIsTeilAdmin(true);
-        setActiveAdminTab('events');
+        setCanEditEvents(!!pf?.can_edit_events);
+        setCanEditTimes(!!pf?.can_edit_times);
+        setActiveAdminTab(pf?.can_edit_events ? 'events' : 'system');
       }
       setIsAuthorized(true);
 
@@ -109,12 +112,12 @@ export default function AdminPage() {
   };
 
   const fetchPendingUsers = async () => {
-    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,is_teiladmin').eq('is_approved', false).order('full_name', { ascending: true });
+    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,can_edit_events,can_edit_times').eq('is_approved', false).order('full_name', { ascending: true });
     if (data) setPendingUsers(data);
   };
 
   const fetchAllProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,is_teiladmin').order('full_name', { ascending: true });
+    const { data } = await supabase.from('profiles').select('id,full_name,phone,gender,member_id,is_approved,can_edit_events,can_edit_times').order('full_name', { ascending: true });
     if (data) setAllProfiles(data);
   };
 
@@ -153,7 +156,8 @@ export default function AdminPage() {
       memberId: profile.member_id || '',
       gender: profile.gender || 'male',
       isApproved: profile.is_approved ?? false,
-      isTeilAdmin: profile.is_teiladmin ?? false,
+      canEditEvents: profile.can_edit_events ?? false,
+      canEditTimes: profile.can_edit_times ?? false,
     });
     setEditingProfile(profile);
   };
@@ -167,7 +171,8 @@ export default function AdminPage() {
       member_id: editForm.memberId,
       gender: editForm.gender,
       is_approved: editForm.isApproved,
-      is_teiladmin: editForm.isTeilAdmin,
+      can_edit_events: editForm.canEditEvents,
+      can_edit_times: editForm.canEditTimes,
     }).eq('id', editingProfile.id);
     setEditSaving(false);
     if (error) { toast.error("Fehler: " + error.message); return; }
@@ -360,12 +365,12 @@ export default function AdminPage() {
           onClick={() => router.push('/')}>
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-bold" style={{ color: 'var(--app-text)' }}>{isTeilAdmin ? 'Teiladmin' : 'Admin-Bereich'}</h1>
+        <h1 className="text-base font-bold" style={{ color: 'var(--app-text)' }}>{(canEditEvents || canEditTimes) ? 'Teiladmin' : 'Admin-Bereich'}</h1>
         <span className="text-[10px] font-black px-2 py-0.5 rounded flex items-center gap-1"
-          style={isTeilAdmin
+          style={(canEditEvents || canEditTimes)
             ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)', color: 'var(--app-blue)' }
             : { background: 'rgba(240,98,146,0.12)', border: '1px solid rgba(240,98,146,0.3)', color: 'var(--app-rose)' }}>
-          <ShieldAlert size={10} /> {isTeilAdmin ? 'TEILADMIN' : 'ADMIN'}
+          <ShieldAlert size={10} /> {(canEditEvents || canEditTimes) ? 'TEILADMIN' : 'ADMIN'}
         </span>
       </div>
 
@@ -374,9 +379,9 @@ export default function AdminPage() {
         {/* TABS */}
         <div className="flex gap-1.5">
           {([
-            ...(!isTeilAdmin ? [{ id: 'users' as const, Icon: Users, label: 'Anmeldungen', badge: pendingUsers.length }] : []),
-            { id: 'events' as const, Icon: CalendarDays, label: 'Termine', badge: 0 },
-            { id: 'system' as const, Icon: Settings, label: isTeilAdmin ? 'Gebetszeiten' : 'System', badge: 0 },
+            ...(!canEditEvents && !canEditTimes ? [{ id: 'users' as const, Icon: Users, label: 'Anmeldungen', badge: pendingUsers.length }] : []),
+            ...(canEditEvents || !canEditEvents && !canEditTimes ? [{ id: 'events' as const, Icon: CalendarDays, label: 'Termine', badge: 0 }] : []),
+            ...(canEditTimes || !canEditEvents && !canEditTimes ? [{ id: 'system' as const, Icon: Settings, label: (canEditEvents || canEditTimes) ? 'Gebetszeiten' : 'System', badge: 0 }] : []),
           ]).map(({ id, Icon, label, badge }) => (
             <button
               key={id}
@@ -670,7 +675,7 @@ export default function AdminPage() {
             </div>
 
             {/* Push — nur Hauptadmin */}
-            {!isTeilAdmin && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+            {!canEditEvents && !canEditTimes && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <BellRing size={12} /> Push Nachricht
               </p>
@@ -683,7 +688,7 @@ export default function AdminPage() {
             </div>}
 
             {/* Cron — nur Hauptadmin */}
-            {!isTeilAdmin &&
+            {!canEditEvents && !canEditTimes &&
             <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <BellRing size={12} /> Cron / Push Diagnose
@@ -714,7 +719,7 @@ export default function AdminPage() {
             </div>}
 
             {/* Export — nur Hauptadmin */}
-            {!isTeilAdmin && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+            {!canEditEvents && !canEditTimes && <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-text3)' }}>
                 <Download size={12} /> Export (CSV)
               </p>
@@ -801,25 +806,34 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Teiladmin Toggle */}
-              <button
-                onClick={() => setEditForm(f => ({ ...f, isTeilAdmin: !f.isTeilAdmin }))}
-                className="w-full flex items-center justify-between p-4 rounded-2xl transition-all"
-                style={editForm.isTeilAdmin
-                  ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
-                  : { background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
-              >
-                <div className="flex items-center gap-3">
-                  <ShieldAlert size={18} style={{ color: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-text3)' }} />
-                  <div className="text-left">
-                    <p className="font-bold text-sm" style={{ color: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-text2)' }}>Teiladmin</p>
-                    <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Termine + Gebetszeiten bearbeiten</p>
-                  </div>
-                </div>
-                <div className="w-12 h-6 rounded-full transition-all relative" style={{ background: editForm.isTeilAdmin ? 'var(--app-blue)' : 'var(--app-border)' }}>
-                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: editForm.isTeilAdmin ? 'calc(100% - 1.375rem)' : '2px' }} />
-                </div>
-              </button>
+              {/* Teiladmin Berechtigungen */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Teiladmin-Rechte</label>
+                {[
+                  { key: 'canEditEvents' as const, label: 'Termine bearbeiten', desc: 'Kann Termine anlegen & bearbeiten', icon: CalendarDays },
+                  { key: 'canEditTimes' as const, label: 'Gebetszeiten bearbeiten', desc: 'Kann Gebetszeiten ändern', icon: Settings },
+                ].map(({ key, label, desc, icon: Icon }) => (
+                  <button
+                    key={key}
+                    onClick={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl transition-all"
+                    style={editForm[key]
+                      ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
+                      : { background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon size={16} style={{ color: editForm[key] ? 'var(--app-blue)' : 'var(--app-text3)' }} />
+                      <div className="text-left">
+                        <p className="font-bold text-sm" style={{ color: editForm[key] ? 'var(--app-blue)' : 'var(--app-text2)' }}>{label}</p>
+                        <p className="text-xs" style={{ color: 'var(--app-text3)' }}>{desc}</p>
+                      </div>
+                    </div>
+                    <div className="w-10 h-5 rounded-full transition-all relative shrink-0" style={{ background: editForm[key] ? 'var(--app-blue)' : 'var(--app-border)' }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: editForm[key] ? 'calc(100% - 1.125rem)' : '2px' }} />
+                    </div>
+                  </button>
+                ))}
+              </div>
 
               {/* Freigeschaltet Toggle */}
               <button

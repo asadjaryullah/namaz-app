@@ -161,10 +161,10 @@ function SelectPrayerContent() {
       if (user) {
         if (user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) setIsAdmin(true);
 
-        const { data: profile } = await supabase.from('profiles').select('gender, is_approved, is_teiladmin').eq('id', user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('gender, is_approved, can_edit_events, can_edit_times').eq('id', user.id).single();
         if (profile) {
             setUserGender(profile.gender || 'male');
-            if (profile.is_teiladmin) setIsAdmin(true);
+            if (profile.can_edit_events || profile.can_edit_times) setIsAdmin(true);
             if (role === 'driver' && profile.is_approved === false) {
                  toast.error("Dein Konto ist noch nicht freigeschaltet.");
                  router.push('/');
