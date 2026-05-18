@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/schedule-notifications?secret=asad0260_2026", "schedule": "0 3 * * *" }
+    { "path": "/api/schedule-notifications?secret=asad0260_2026", "schedule": "0 3 * * *" },
+    { "path": "/api/schedule-notifications?secret=asad0260_2026&type=evening", "schedule": "0 19 * * *" }
   ]
 }

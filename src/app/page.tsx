@@ -25,6 +25,10 @@ export default function HomePage() {
   const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
+  const [nextPrayer, setNextPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
+  const [commitmentCount, setCommitmentCount] = useState(0);
+  const [isCommitted, setIsCommitted] = useState(false);
+  const [togglingCommit, setTogglingCommit] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -52,12 +56,14 @@ export default function HomePage() {
           { data: myBooking },
           { data: events },
           { data: linksData },
+          { data: prayerTimesData },
         ] = await Promise.all([
           supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
           supabase.from('rides').select('id, prayer_id, prayer_time').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
           supabase.from('bookings').select('ride_id, rides!inner(id, status, ride_date, prayer_id, prayer_time)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
           supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
           supabase.from('quick_links').select('id,title,url,emoji,sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
+          supabase.from('prayer_times').select('id,name,time,sort_order').order('sort_order', { ascending: true }),
         ]);
 
         if (mounted && profileData) setProfile(profileData);
@@ -65,6 +71,19 @@ export default function HomePage() {
         if (mounted && myBooking) setActivePassengerRide({ rideId: myBooking.ride_id, ...((myBooking as any).rides || {}) });
         if (mounted && events) setUpcomingEvents(events);
         if (mounted && linksData) setQuickLinks(linksData);
+
+        if (mounted && prayerTimesData?.length) {
+          const nowHHMM = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
+          const next = prayerTimesData.find(p => p.time > nowHHMM) || prayerTimesData[0];
+          setNextPrayer(next);
+          try {
+            const [{ count }, { data: mine }] = await Promise.all([
+              supabase.from('prayer_commitments').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('prayer_date', today),
+              supabase.from('prayer_commitments').select('id').eq('user_id', session.user.id).eq('prayer_id', next.id).eq('prayer_date', today).maybeSingle(),
+            ]);
+            if (mounted) { setCommitmentCount(count ?? 0); setIsCommitted(!!mine); }
+          } catch (_) {}
+        }
 
         // Onboarding: show once for new users
         if (mounted && !localStorage.getItem('onboarding_v1')) {
@@ -101,6 +120,25 @@ export default function HomePage() {
       subscription.unsubscribe();
     };
   }, [router]);
+
+  const handleToggleCommitment = async () => {
+    if (!nextPrayer || !user || togglingCommit) return;
+    setTogglingCommit(true);
+    const date = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
+    try {
+      if (isCommitted) {
+        await supabase.from('prayer_commitments').delete()
+          .eq('user_id', user.id).eq('prayer_id', nextPrayer.id).eq('prayer_date', date);
+        setIsCommitted(false);
+        setCommitmentCount(c => Math.max(0, c - 1));
+      } else {
+        await supabase.from('prayer_commitments').insert({ user_id: user.id, prayer_id: nextPrayer.id, prayer_date: date });
+        setIsCommitted(true);
+        setCommitmentCount(c => c + 1);
+      }
+    } catch (_) {}
+    setTogglingCommit(false);
+  };
 
   /* ── LADESCREEN ── */
   if (loading) {
@@ -262,6 +300,43 @@ export default function HomePage() {
 
       {/* ── Nächstes Gebet ── */}
       <div className="stagger-2"><NextPrayerBanner /></div>
+
+      {/* ── Commitment Card ── */}
+      {nextPrayer && isApproved && (
+        <div className="stagger-2 rounded-2xl p-4 flex items-center justify-between gap-3"
+          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--app-text3)' }}>
+              Zum Gebet
+            </p>
+            <p className="text-base font-extrabold leading-tight" style={{ color: 'var(--app-text)' }}>
+              {nextPrayer.name} · {nextPrayer.time}
+            </p>
+            {commitmentCount > 0 ? (
+              <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--app-emerald)' }}>
+                ✓ {commitmentCount} {commitmentCount === 1 ? 'Person kommt' : 'Personen kommen'}
+              </p>
+            ) : (
+              <p className="text-xs mt-0.5" style={{ color: 'var(--app-text3)' }}>Noch niemand zugesagt</p>
+            )}
+          </div>
+          <button
+            onClick={handleToggleCommitment}
+            disabled={togglingCommit}
+            className="shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all active:opacity-70"
+            style={{
+              background: isCommitted ? 'var(--app-emerald)' : 'transparent',
+              color: isCommitted ? '#fff' : 'var(--app-emerald)',
+              border: '2px solid var(--app-emerald)',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              minWidth: 100,
+            }}
+          >
+            {togglingCommit ? '...' : isCommitted ? 'Ich komme ✓' : 'Ich komme'}
+          </button>
+        </div>
+      )}
 
       {/* ── Benachrichtigungen aktivieren ── */}
       {notifPerm !== 'granted' && (

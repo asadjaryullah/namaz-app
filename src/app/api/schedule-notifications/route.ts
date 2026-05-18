@@ -58,6 +58,13 @@ export async function GET(req: Request) {
     }
 
     let sent = 0;
+
+    const type = url.searchParams.get("type");
+    if (type === "evening") {
+      sent += await handleEveningReminder(today, logs, debug);
+      return NextResponse.json({ success: true, sent, logs });
+    }
+
     sent += await handlePrayerPushes(today, nowHHMM, logs, debug);
     sent += await handleFixed(today, nowHHMM, ZIKR_TIMES, "zikr", logs, debug);
 
@@ -177,6 +184,32 @@ function isWithinWindow(nowHHMM: string, targetHHMM: string, backMin: number, ah
   if (diff > 12 * 60) diff -= 24 * 60;
   if (diff < -12 * 60) diff += 24 * 60;
   return diff >= -backMin && diff <= aheadMin;
+}
+
+async function handleEveningReminder(today: string, logs: string[], debug: boolean) {
+  const { data: fajr } = await getSupabase()
+    .from("prayer_times")
+    .select("name,time")
+    .eq("id", "fajr")
+    .single();
+
+  if (!fajr) { logs.push("⚠️ kein Fajr in prayer_times"); return 0; }
+
+  const key = `evening:fajr:${today}`;
+  const ok = await sendOnce(
+    key,
+    () => sendPushToAll(
+      {
+        title: "Morgen früh ist Fajr 🌙",
+        body: `Fajr um ${fajr.time} Uhr — Wer kommt morgen mit zur Moschee?`,
+        url: "https://ride2salah.vercel.app",
+      },
+      logs
+    ),
+    logs,
+    debug
+  );
+  return ok ? 1 : 0;
 }
 
 function getBerlinWeekday(date: Date, timeZone: string) {
