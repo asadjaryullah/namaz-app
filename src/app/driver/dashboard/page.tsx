@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { Card } from "@/components/ui/card";
-import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw } from "lucide-react";
+import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -70,6 +70,7 @@ export default function DriverDashboard() {
   const [passengers, setPassengers] = useState<any[]>([]);
   const [rideId, setRideId] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
+  const [ridePrayerName, setRidePrayerName] = useState('');
 
   // Dialog & Undo
   const [confirmType, setConfirmType] = useState<'end' | 'cancel' | null>(null);
@@ -117,6 +118,10 @@ export default function DriverDashboard() {
       if (ride) {
         setRideId(ride.id);
         if (ride.start_lat) setStartPoint({ lat: ride.start_lat, lng: ride.start_lon });
+        if (ride.prayer_id) {
+          const { data: prayer } = await supabase.from('prayer_times').select('name').eq('id', ride.prayer_id).single();
+          if (prayer) setRidePrayerName(prayer.name);
+        }
       } else {
         router.push('/');
       }
@@ -421,20 +426,37 @@ export default function DriverDashboard() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3">
-          <Button
-            variant="outline"
-            className="w-full h-12 text-lg rounded-xl"
-            style={{ borderColor: 'var(--app-blue)', color: 'var(--app-blue)', background: 'var(--app-blue-dim)' }}
-            onClick={() => {
-               const origin = `${startPoint?.lat},${startPoint?.lng}`;
-               const destination = `${MOSQUE_LOCATION.lat},${MOSQUE_LOCATION.lng}`;
-               const waypoints = passengers.map(p => `${p.pickup_lat},${p.pickup_lon}`).join('|');
-               window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`, '_blank');
-            }}
-          >
-            <Navigation className="mr-2" size={20} /> Navigation starten
-          </Button>
+        <div className="flex flex-col gap-3">
+          {/* Utility buttons: side by side */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl text-sm"
+              style={{ borderColor: 'var(--app-blue)', color: 'var(--app-blue)', background: 'var(--app-blue-dim)' }}
+              onClick={() => {
+                 const origin = `${startPoint?.lat},${startPoint?.lng}`;
+                 const destination = `${MOSQUE_LOCATION.lat},${MOSQUE_LOCATION.lng}`;
+                 const waypoints = passengers.map(p => `${p.pickup_lat},${p.pickup_lon}`).join('|');
+                 window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&waypoints=${waypoints}&travelmode=driving`, '_blank');
+              }}
+            >
+              <Navigation className="mr-1.5" size={17} /> Navigation
+            </Button>
+
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl text-sm"
+              style={{ borderColor: '#25D366', color: '#25D366', background: 'rgba(37,211,102,0.08)' }}
+              onClick={() => {
+                const prayer = ridePrayerName || 'Gebet';
+                const freeSeats = passengers.length > 0 ? '' : ' Noch Plätze frei!';
+                const msg = encodeURIComponent(`🚗 Ich fahre gleich zum ${prayer}!\n${freeSeats}\nJetzt mitbuchen: https://ride2salah.vercel.app`);
+                window.open(`https://wa.me/?text=${msg}`, '_blank');
+              }}
+            >
+              <Share2 className="mr-1.5" size={17} /> WhatsApp
+            </Button>
+          </div>
 
           <Button
             className="w-full h-12 text-lg rounded-xl"
