@@ -459,20 +459,6 @@ export default function DriverDashboard() {
           </div>
 
           <Button
-            variant="outline"
-            className="w-full h-11 rounded-xl text-sm"
-            style={{ borderColor: '#25D366', color: '#25D366', background: 'rgba(37,211,102,0.08)' }}
-            onClick={() => {
-              const prayer = ridePrayerName || 'Gebet';
-              const seats = passengers.length > 0 ? '' : ' Noch Plätze frei!';
-              const msg = encodeURIComponent(`🚗 Ich fahre gleich zum ${prayer}!\n${seats}\nJetzt mitbuchen: https://ride2salah.vercel.app`);
-              window.open(`https://wa.me/?text=${msg}`, '_blank');
-            }}
-          >
-            <Share2 className="mr-2" size={18} /> Fahrt in WhatsApp teilen
-          </Button>
-
-          <Button
             className="w-full h-12 text-lg rounded-xl"
             style={{ background: 'var(--app-text)', color: 'var(--app-bg)' }}
             onClick={() => handleEndRide(false)}
