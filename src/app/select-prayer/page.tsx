@@ -327,9 +327,8 @@ function SelectPrayerContent() {
               </div>
               <button
                 onClick={() => {
-                  const msg = `🚗 Ich fahre gleich zum ${shareSheet.prayerName}!\n\nNoch ${shareSheet.seats} freie ${shareSheet.seats === 1 ? 'Platz' : 'Plätze'}. Jetzt buchen: https://ride2salah.vercel.app`;
-                  navigator.clipboard.writeText(msg).catch(() => {});
-                  window.open('https://chat.whatsapp.com/D0SB28SCIhgAMde9XeXmiM?mode=gi_t', '_blank');
+                  const msg = `🚗 Ich fahre gleich zum ${shareSheet.prayerName}!\n\nNoch ${shareSheet.seats} freie ${shareSheet.seats === 1 ? 'Platz' : 'Plätze'}. Jetzt mitbuchen: https://ride2salah.vercel.app`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
                 className="w-full rounded-2xl py-3.5 text-[15px] font-extrabold flex items-center justify-center gap-2.5 active:opacity-70 transition-opacity"
                 style={{ background: '#25D366', color: '#fff', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}

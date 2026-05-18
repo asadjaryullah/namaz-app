@@ -535,28 +535,46 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ── Quick Links ── */}
-      <div className="stagger-5 space-y-2">
-        {/* Fester Link: This Week With Huzoor */}
+      {/* ── Featured 2-col grid ── */}
+      <div className="stagger-5 grid grid-cols-2 gap-3">
+        {/* This Week With Huzoor */}
         <a
           href="https://www.youtube.com/results?search_query=this+week+with+huzoor"
           target="_blank"
           rel="noopener noreferrer"
-          className="app-card flex items-center gap-4 p-4 active:opacity-60 transition-opacity"
+          className="app-card p-4 flex flex-col items-start gap-3 active:opacity-60 transition-opacity"
           style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', textDecoration: 'none' }}
         >
-          <span className="shrink-0 flex items-center justify-center rounded-xl" style={{ width: 44, height: 36, background: '#FF0000' }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#FF0000' }}>
             <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M8 5v14l11-7z"/></svg>
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm" style={{ color: 'var(--app-text)' }}>This Week With Huzoor</p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'var(--app-text3)' }}>YouTube · MTA International</p>
           </div>
-          <ArrowRight size={16} style={{ color: 'var(--app-text3)', flexShrink: 0 }} />
+          <div>
+            <p className="font-extrabold text-[13px] leading-snug" style={{ color: 'var(--app-text)' }}>This Week With Huzoor</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--app-text3)' }}>YouTube · MTA</p>
+          </div>
         </a>
 
-        {/* Dynamische Links aus DB */}
-        {quickLinks.map((link) => {
+        {/* Namaz Lernen */}
+        <div
+          onClick={() => router.push('/learn')}
+          className="app-card p-4 flex flex-col items-start gap-3 cursor-pointer active:opacity-80 transition-opacity"
+          style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(201,162,60,0.2)', border: '1px solid var(--app-gold)' }}>
+            <GraduationCap size={22} style={{ color: 'var(--app-gold)' }} />
+          </div>
+          <div>
+            <p className="font-extrabold text-[13px] leading-snug" style={{ color: 'var(--app-gold)' }}>Namaz Lernen</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--app-text2)' }}>Thana & Al-Fatiha</p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Dynamic Quick Links ── */}
+      {quickLinks.length > 0 && (
+        <div className="stagger-5 space-y-2">
+          {quickLinks.map((link) => {
             const isYoutube = /youtube\.com|youtu\.be/i.test(link.url);
             return (
               <a
@@ -569,9 +587,7 @@ export default function HomePage() {
               >
                 {isYoutube ? (
                   <span className="shrink-0 flex items-center justify-center rounded-xl" style={{ width: 44, height: 36, background: '#FF0000' }}>
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="white">
-                      <path d="M8 5v14l11-7z"/>
-                    </svg>
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M8 5v14l11-7z"/></svg>
                   </span>
                 ) : (
                   <span className="text-3xl shrink-0">{link.emoji || '🔗'}</span>
@@ -584,24 +600,8 @@ export default function HomePage() {
               </a>
             );
           })}
-      </div>
-
-      {/* ── Namaz Lernen ── */}
-      <div
-        onClick={() => router.push('/learn')}
-        className="stagger-5 rounded-2xl p-4 cursor-pointer flex items-center gap-4 hover:scale-[1.01] transition-transform active:opacity-80"
-        style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-      >
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(201,162,60,0.2)', border: '1px solid var(--app-gold)' }}>
-          <GraduationCap size={24} style={{ color: 'var(--app-gold)' }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-extrabold text-[15px]" style={{ color: 'var(--app-gold)' }}>Namaz Lernen</p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Thana & Al-Fatiha — Wort für Wort</p>
-        </div>
-        <ArrowRight size={16} style={{ color: 'var(--app-gold)', flexShrink: 0 }} />
-      </div>
+      )}
 
       {/* ── Karte ── */}
       <div className="stagger-6 h-[200px] rounded-2xl overflow-hidden"
