@@ -450,8 +450,10 @@ export default function DriverDashboard() {
               onClick={() => {
                 const prayer = ridePrayerName || 'Gebet';
                 const freeSeats = passengers.length > 0 ? '' : ' Noch Plätze frei!';
-                const msg = encodeURIComponent(`🚗 Ich fahre gleich zum ${prayer}!\n${freeSeats}\nJetzt mitbuchen: https://ride2salah.vercel.app`);
-                window.open(`https://wa.me/?text=${msg}`, '_blank');
+                const msg = `🚗 Ich fahre gleich zum ${prayer}!${freeSeats}\nJetzt mitbuchen: https://ride2salah.vercel.app`;
+                navigator.clipboard.writeText(msg).catch(() => {});
+                toast.success('Nachricht kopiert — einfach im Gruppenchat einfügen!');
+                window.open('https://chat.whatsapp.com/D0SB28SCIhgAMde9XeXmiM?mode=gi_t', '_blank');
               }}
             >
               <Share2 className="mr-1.5" size={17} /> WhatsApp
