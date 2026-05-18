@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendPushToAll } from '@/lib/webpush';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -82,6 +83,19 @@ export async function POST(request: Request) {
       prayer_id,
       prayer_date: date,
     });
+
+    // Push to all when someone commits
+    const [{ data: profile }, { data: prayer }] = await Promise.all([
+      supabase.from('profiles').select('full_name').eq('id', userData.user.id).single(),
+      supabase.from('prayer_times').select('name').eq('id', prayer_id).single(),
+    ]);
+    const firstName = profile?.full_name?.split(' ')[0] || 'Jemand';
+    const prayerName = prayer?.name || prayer_id;
+    sendPushToAll({
+      title: `${firstName} kommt zum ${prayerName} 🕌`,
+      body: 'Jetzt auch zusagen!',
+      url: 'https://ride2salah.vercel.app',
+    }, []).catch(() => {});
   }
 
   const { count } = await supabase

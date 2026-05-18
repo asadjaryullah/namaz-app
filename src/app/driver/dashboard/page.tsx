@@ -449,11 +449,9 @@ export default function DriverDashboard() {
               style={{ borderColor: '#25D366', color: '#25D366', background: 'rgba(37,211,102,0.08)' }}
               onClick={() => {
                 const prayer = ridePrayerName || 'Gebet';
-                const freeSeats = passengers.length > 0 ? '' : ' Noch Plätze frei!';
+                const freeSeats = passengers.length > 0 ? '' : '\nNoch Plätze frei!';
                 const msg = `🚗 Ich fahre gleich zum ${prayer}!${freeSeats}\nJetzt mitbuchen: https://ride2salah.vercel.app`;
-                navigator.clipboard.writeText(msg).catch(() => {});
-                toast.success('Nachricht kopiert — einfach im Gruppenchat einfügen!');
-                window.open('https://chat.whatsapp.com/D0SB28SCIhgAMde9XeXmiM?mode=gi_t', '_blank');
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
               }}
             >
               <Share2 className="mr-1.5" size={17} /> WhatsApp
