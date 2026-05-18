@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell } from "lucide-react";
+import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell, GraduationCap } from "lucide-react";
 import MapComponent from '@/components/MapComponent';
 import ZikrWidget from '@/components/ZikrWidget';
 import NextPrayerBanner from '@/components/NextPrayerBanner';
@@ -18,6 +18,8 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [notifPerm, setNotifPerm] = useState<string>('granted'); // default: nicht anzeigen
   const [profile, setProfile] = useState<any>(null);
+  const [onboardingSlide, setOnboardingSlide] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const [activeDriverRide, setActiveDriverRide] = useState<any>(null);
   const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
@@ -63,6 +65,11 @@ export default function HomePage() {
         if (mounted && myBooking) setActivePassengerRide({ rideId: myBooking.ride_id, ...((myBooking as any).rides || {}) });
         if (mounted && events) setUpcomingEvents(events);
         if (mounted && linksData) setQuickLinks(linksData);
+
+        // Onboarding: show once for new users
+        if (mounted && !localStorage.getItem('onboarding_v1')) {
+          setShowOnboarding(true);
+        }
 
         // Notification permission check
         if (mounted && typeof window !== 'undefined' && 'Notification' in window) {
@@ -504,6 +511,23 @@ export default function HomePage() {
           })}
       </div>
 
+      {/* ── Namaz Lernen ── */}
+      <div
+        onClick={() => router.push('/learn')}
+        className="stagger-5 rounded-2xl p-4 cursor-pointer flex items-center gap-4 hover:scale-[1.01] transition-transform active:opacity-80"
+        style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+      >
+        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(201,162,60,0.2)', border: '1px solid var(--app-gold)' }}>
+          <GraduationCap size={24} style={{ color: 'var(--app-gold)' }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-extrabold text-[15px]" style={{ color: 'var(--app-gold)' }}>Namaz Lernen</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Thana & Al-Fatiha — Wort für Wort</p>
+        </div>
+        <ArrowRight size={16} style={{ color: 'var(--app-gold)', flexShrink: 0 }} />
+      </div>
+
       {/* ── Karte ── */}
       <div className="stagger-6 h-[200px] rounded-2xl overflow-hidden"
         style={{ border: '1px solid var(--app-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}>
@@ -520,6 +544,72 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
+      {/* ── Onboarding Overlay ── */}
+      {showOnboarding && (() => {
+        const slides = [
+          {
+            icon: '🕌',
+            title: 'Willkommen bei Ride 2 Salah',
+            text: 'Die App der Bashier Moschee für Gemeinschaftsfahrten zum Gebet.',
+          },
+          {
+            icon: '🚗',
+            title: 'Als Fahrer',
+            text: 'Biete freie Plätze an. Mitbrüder oder -schwestern sehen dich und können mitfahren — du siehst ihren Standort auf der Karte.',
+          },
+          {
+            icon: '🙋',
+            title: 'Als Mitfahrer',
+            text: 'Finde eine Fahrt und buche sie mit einem Tipp. Dein Standort wird geteilt damit der Fahrer dich abholen kann.',
+          },
+        ];
+        const slide = slides[onboardingSlide];
+        const isLast = onboardingSlide === slides.length - 1;
+        return (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.80)' }}>
+            <div className="w-full max-w-xs rounded-3xl p-7 flex flex-col items-center text-center gap-5 animate-in zoom-in fade-in duration-300"
+              style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+              <div className="text-5xl">{slide.icon}</div>
+              <div>
+                <h2 className="text-xl font-extrabold" style={{ color: 'var(--app-text)' }}>{slide.title}</h2>
+                <p className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--app-text2)' }}>{slide.text}</p>
+              </div>
+              {/* Dots */}
+              <div className="flex gap-2">
+                {slides.map((_, i) => (
+                  <div key={i} className="rounded-full transition-all"
+                    style={{ width: i === onboardingSlide ? 20 : 8, height: 8, background: i === onboardingSlide ? 'var(--app-gold)' : 'var(--app-border)' }} />
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  if (isLast) {
+                    localStorage.setItem('onboarding_v1', '1');
+                    setShowOnboarding(false);
+                  } else {
+                    setOnboardingSlide(s => s + 1);
+                  }
+                }}
+                className="w-full rounded-2xl py-3.5 text-base font-extrabold active:opacity-70 transition-opacity"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-gold)', color: '#fff' }}
+              >
+                {isLast ? 'Los geht\'s →' : 'Weiter →'}
+              </button>
+              {!isLast && (
+                <button
+                  onClick={() => { localStorage.setItem('onboarding_v1', '1'); setShowOnboarding(false); }}
+                  className="text-xs active:opacity-60"
+                  style={{ color: 'var(--app-text3)', touchAction: 'manipulation' }}
+                >
+                  Überspringen
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }

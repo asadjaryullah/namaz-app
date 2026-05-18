@@ -158,6 +158,12 @@ function HistoryContent() {
   };
 
   useEffect(() => {
+    // Load cached zikr counts immediately so taps feel instant on reload
+    try {
+      const cached = localStorage.getItem(`zikr_${new Date().toLocaleDateString('en-CA')}`);
+      if (cached) setZikrData(JSON.parse(cached));
+    } catch {}
+
     const fetchHistory = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -183,6 +189,7 @@ function HistoryContent() {
       if (zikrLog) {
         setZikrData(zikrLog);
         setTodayLogId(zikrLog.id);
+        try { localStorage.setItem(`zikr_${today}`, JSON.stringify(zikrLog)); } catch {}
       } else {
         const { data: newLog } = await supabase.from('zikr_logs').insert({ user_id: user.id, log_date: today }).select().single();
         if (newLog) { setTodayLogId(newLog.id); setZikrData(newLog); }
@@ -212,6 +219,12 @@ function HistoryContent() {
     fetchHistory();
   }, []);
 
+  const zikrDateKey = `zikr_${new Date().toLocaleDateString('en-CA')}`;
+
+  const saveLocal = (data: any) => {
+    try { localStorage.setItem(zikrDateKey, JSON.stringify(data)); } catch {}
+  };
+
   const saveToDb = (newData: any) => {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     saveTimeoutRef.current = setTimeout(async () => {
@@ -225,6 +238,7 @@ function HistoryContent() {
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
     const newData = { ...zikrData, [key]: v + 1 };
     setZikrData(newData);
+    saveLocal(newData);
     saveToDb(newData);
   };
 
@@ -236,6 +250,7 @@ function HistoryContent() {
         onClick: () => {
           const newData = { ...zikrData, [key]: 0 };
           setZikrData(newData);
+          saveLocal(newData);
           saveToDb(newData);
         },
       },

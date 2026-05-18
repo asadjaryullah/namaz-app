@@ -85,6 +85,10 @@ export default function DriverDashboard() {
   const previousCountRef = useRef(0);
   const isFirstLoadRef = useRef(true);
 
+  // Live-Passenger-Ref für GPS-Closure + bereits benachrichtigte Passagiere
+  const passengersRef = useRef<any[]>([]);
+  const notifiedApproachRef = useRef<Set<string>>(new Set());
+
   // Cleanup undo interval on unmount
   useEffect(() => {
     return () => {
@@ -134,6 +138,7 @@ export default function DriverDashboard() {
 
       if (data) {
         setPassengers(data);
+        passengersRef.current = data;
 
         // Check: Neue Buchung oder Stornierung?
         const currentCount = data.length;
@@ -171,15 +176,20 @@ export default function DriverDashboard() {
     rideEndedRef.current = true;
     setLoadingEnd(true);
 
-    const { error } = await supabase
-      .from('rides')
-      .update({ status: 'completed' })
-      .eq('id', rideId);
-
-    if (!error) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/complete-ride', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ ride_id: rideId }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Fehler');
       router.push('/arrival');
-    } else {
-      toast.error("Fehler: " + error.message);
+    } catch (err: any) {
+      toast.error("Fehler: " + err.message);
       setLoadingEnd(false);
       rideEndedRef.current = false;
     }
@@ -248,10 +258,33 @@ export default function DriverDashboard() {
           .update({ current_lat: lat, current_lon: lng })
           .eq('id', rideId);
 
-        // Geofencing Check
+        // Geofencing: Moschee erreicht
         const distance = getDistanceInMeters(lat, lng, MOSQUE_LOCATION.lat, MOSQUE_LOCATION.lng);
         if (distance < 150) {
-           handleEndRide(true);
+          handleEndRide(true);
+        }
+
+        // Proximity push: 500 m zur Abholstelle → einmalige Benachrichtigung pro Passagier
+        const { data: { session } } = await supabase.auth.getSession();
+        for (const p of passengersRef.current) {
+          if (!p.pickup_lat || !p.pickup_lon) continue;
+          if (notifiedApproachRef.current.has(p.passenger_id)) continue;
+          const dist = getDistanceInMeters(lat, lng, p.pickup_lat, p.pickup_lon);
+          if (dist <= 500) {
+            notifiedApproachRef.current.add(p.passenger_id);
+            fetch('/api/notify-approaching', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token ?? ''}`,
+              },
+              body: JSON.stringify({
+                ride_id: rideId,
+                passenger_id: p.passenger_id,
+                driver_name: p.driver_name ?? '',
+              }),
+            }).catch(() => {});
+          }
         }
       },
       (err) => {
@@ -347,6 +380,14 @@ export default function DriverDashboard() {
                     <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
                        {p.seats_booked > 1 ? `${p.seats_booked} Personen` : '1 Person'} warten
                     </p>
+                    {currentPos && p.pickup_lat && p.pickup_lon && (() => {
+                      const dist = Math.round(getDistanceInMeters(currentPos.lat, currentPos.lng, p.pickup_lat, p.pickup_lon));
+                      return (
+                        <p className="text-xs font-bold mt-0.5" style={{ color: dist < 300 ? 'var(--app-emerald)' : 'var(--app-text3)' }}>
+                          📍 {dist < 1000 ? `${dist} m` : `${(dist / 1000).toFixed(1)} km`} entfernt
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -432,7 +473,11 @@ export default function DriverDashboard() {
                 : 'Die Fahrt und alle Buchungen werden gelöscht.'}
             </p>
             <Button
-              className={`w-full h-12 rounded-xl ${confirmType === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-slate-900 hover:bg-slate-800'}`}
+              className="w-full h-12 rounded-xl"
+              style={confirmType === 'cancel'
+                ? { background: '#dc2626', color: '#fff' }
+                : { background: 'var(--app-text)', color: 'var(--app-bg)' }
+              }
               onClick={() => {
                 if (confirmType === 'end') {
                   setConfirmType(null);
