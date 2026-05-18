@@ -124,17 +124,20 @@ export default function HomePage() {
   const handleToggleCommitment = async () => {
     if (!nextPrayer || !user || togglingCommit) return;
     setTogglingCommit(true);
-    const date = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Berlin' });
     try {
-      if (isCommitted) {
-        await supabase.from('prayer_commitments').delete()
-          .eq('user_id', user.id).eq('prayer_id', nextPrayer.id).eq('prayer_date', date);
-        setIsCommitted(false);
-        setCommitmentCount(c => Math.max(0, c - 1));
-      } else {
-        await supabase.from('prayer_commitments').insert({ user_id: user.id, prayer_id: nextPrayer.id, prayer_date: date });
-        setIsCommitted(true);
-        setCommitmentCount(c => c + 1);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/commit-attendance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ prayer_id: nextPrayer.id }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsCommitted(data.committed);
+        setCommitmentCount(data.count);
       }
     } catch (_) {}
     setTogglingCommit(false);
