@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Amiri, Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
+import { ViewTransitions } from 'next-view-transitions';
 import "./globals.css";
 
 import { Toaster } from "sonner";
@@ -61,6 +62,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
+    <ViewTransitions>
     <html lang="de" suppressHydrationWarning>
       <head>
         {/* Dark mode init — runs before hydration to prevent flash */}
@@ -108,5 +110,6 @@ export default function RootLayout({
         </AuthProvider>
       </body>
     </html>
+    </ViewTransitions>
   );
 }

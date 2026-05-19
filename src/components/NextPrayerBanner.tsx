@@ -66,11 +66,11 @@ export default function NextPrayerBanner() {
 
   return (
     <div className="w-full rounded-2xl p-4 relative overflow-hidden"
-      style={{ transition: 'background-color 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out' }}
       style={{
         background: isClose ? 'var(--app-emerald-dim)' : 'var(--app-surface2)',
         border: `1px solid ${isClose ? 'var(--app-emerald)' : 'var(--app-border)'}`,
         boxShadow: isClose ? '0 4px 24px rgba(34,211,138,0.15)' : 'none',
+        transition: 'background-color 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out',
       }}>
       {isClose && (
         <div className="animate-pulse-ring absolute pointer-events-none"
@@ -93,7 +93,7 @@ export default function NextPrayerBanner() {
             <p className="text-sm mt-1" style={{ color: 'var(--app-text2)' }}>{next.time} Uhr</p>
           </div>
           <div className="text-right">
-            <p className="font-mono-app text-4xl font-bold leading-none tabular-nums"
+            <p key={countdown} className="font-mono-app text-4xl font-bold leading-none tabular-nums animate-count-in"
               style={{ color: isClose ? 'var(--app-emerald)' : 'var(--app-gold)', letterSpacing: '-0.02em' }}>
               {countdown}
             </p>

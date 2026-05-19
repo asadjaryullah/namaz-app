@@ -374,8 +374,8 @@ export default function DriverDashboard() {
           </p>
         ) : (
           <div className="space-y-3 mb-8">
-            {passengers.map((p) => (
-              <div key={p.id} className="flex justify-between items-center p-3 rounded-xl animate-in slide-in-from-right duration-300" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+            {passengers.map((p, i) => (
+              <div key={p.id} className="flex justify-between items-center p-3 rounded-xl animate-in slide-in-from-right duration-300" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', animationDelay: `${i * 60}ms`, animationFillMode: 'both' }}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full shadow-sm" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
                     <MapPin size={18} style={{ color: 'var(--app-blue)' }}/>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Home, Car, CalendarDays, UserRound, Navigation, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +21,9 @@ export default function BottomNav() {
   const [showFahrtSheet, setShowFahrtSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [sheetOffset, setSheetOffset] = useState(0);
+  const dragStartY = useRef(0);
+  const dragStartTime = useRef(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -172,7 +175,7 @@ export default function BottomNav() {
         <div
           className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150"
           style={{ background: 'rgba(0,0,0,0.55)' }}
-          onClick={() => setShowFahrtSheet(false)}
+          onClick={() => { setShowFahrtSheet(false); setSheetOffset(0); }}
         >
           <div
             className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 ease-out"
@@ -180,11 +183,36 @@ export default function BottomNav() {
               background: 'var(--app-surface2)',
               border: '1px solid var(--app-border)',
               paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+              transform: `translateY(${sheetOffset}px)`,
+              transition: sheetOffset === 0 ? 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
             }}
             onClick={e => e.stopPropagation()}
           >
             {/* Drag handle */}
-            <div className="flex justify-center pt-4 pb-5">
+            <div
+              className="flex justify-center pt-4 pb-5 cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                dragStartY.current = e.clientY;
+                dragStartTime.current = Date.now();
+              }}
+              onPointerMove={(e) => {
+                const dy = e.clientY - dragStartY.current;
+                if (dy > 0) setSheetOffset(dy);
+              }}
+              onPointerUp={(e) => {
+                const dy = e.clientY - dragStartY.current;
+                const dt = Date.now() - dragStartTime.current;
+                const velocity = dy / dt;
+                if (velocity > 0.4 || dy > 100) {
+                  setShowFahrtSheet(false);
+                  setSheetOffset(0);
+                } else {
+                  setSheetOffset(0);
+                }
+              }}
+            >
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--app-border)' }} />
             </div>
 

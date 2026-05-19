@@ -29,6 +29,7 @@ export default function HomePage() {
   const [commitmentCount, setCommitmentCount] = useState(0);
   const [isCommitted, setIsCommitted] = useState(false);
   const [togglingCommit, setTogglingCommit] = useState(false);
+  const [popCommit, setPopCommit] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -138,6 +139,8 @@ export default function HomePage() {
         const data = await res.json();
         setIsCommitted(data.committed);
         setCommitmentCount(data.count);
+        setPopCommit(true);
+        setTimeout(() => setPopCommit(false), 350);
       }
     } catch (_) {}
     setTogglingCommit(false);
@@ -326,7 +329,7 @@ export default function HomePage() {
           <button
             onClick={handleToggleCommitment}
             disabled={togglingCommit}
-            className="shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors active:scale-[0.95]"
+            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors active:scale-[0.95] ${popCommit ? 'animate-pop' : ''}`}
             style={{
               background: isCommitted ? 'var(--app-emerald)' : 'transparent',
               color: isCommitted ? '#fff' : 'var(--app-emerald)',

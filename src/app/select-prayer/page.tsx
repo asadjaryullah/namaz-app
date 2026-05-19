@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -150,6 +150,9 @@ function SelectPrayerContent() {
   const [bookedPrayerIds, setBookedPrayerIds] = useState<string[]>([]);
   const [userGender, setUserGender] = useState('male');
   const [shareSheet, setShareSheet] = useState<{ prayerName: string; seats: number } | null>(null);
+  const [shareSheetOffset, setShareSheetOffset] = useState(0);
+  const shareSheetDragStartY = useRef(0);
+  const shareSheetDragStartTime = useRef(0);
 
   useEffect(() => {
     const init = async () => {
@@ -267,12 +270,12 @@ function SelectPrayerContent() {
               <Card
                 key={prayer.id}
                 onClick={() => !isDisabled && setSelectedId(prayer.id)}
-                className={`p-3 flex items-center gap-3 border-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98] transition-transform'}`}
-                style={{ transition: isDisabled ? undefined : 'background-color 0.15s ease-out, border-color 0.15s ease-out, transform 0.12s ease-out' }}
+                className={`p-3 flex items-center gap-3 border-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}`}
                 style={{
                   borderColor: isSelected ? 'var(--app-text)' : 'transparent',
                   background: isSelected ? 'var(--app-surface2)' : 'var(--app-card)',
                   outline: isSelected ? '1px solid var(--app-text)' : 'none',
+                  transition: isDisabled ? undefined : 'background-color 0.15s ease-out, border-color 0.15s ease-out, transform 0.12s ease-out',
                 }}
               >
                 <div className="p-2 rounded-full" style={{ background: isSelected ? 'var(--app-text)' : 'var(--app-surface2)', color: isSelected ? 'var(--app-bg)' : 'var(--app-text2)' }}>
@@ -310,12 +313,42 @@ function SelectPrayerContent() {
 
       {/* ── WhatsApp Share Sheet ── */}
       {shareSheet && (
-        <div className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150" style={{ background: 'rgba(0,0,0,0.55)' }}>
+        <div className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150" style={{ background: 'rgba(0,0,0,0.55)' }} onClick={() => { setShareSheet(null); setShareSheetOffset(0); }}>
           <div
             className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 ease-out"
-            style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+            style={{
+              background: 'var(--app-surface2)',
+              border: '1px solid var(--app-border)',
+              paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
+              transform: `translateY(${shareSheetOffset}px)`,
+              transition: shareSheetOffset === 0 ? 'transform 0.35s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
+            }}
+            onClick={e => e.stopPropagation()}
           >
-            <div className="flex justify-center pt-4 pb-2">
+            <div
+              className="flex justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing"
+              style={{ touchAction: 'none' }}
+              onPointerDown={(e) => {
+                e.currentTarget.setPointerCapture(e.pointerId);
+                shareSheetDragStartY.current = e.clientY;
+                shareSheetDragStartTime.current = Date.now();
+              }}
+              onPointerMove={(e) => {
+                const dy = e.clientY - shareSheetDragStartY.current;
+                if (dy > 0) setShareSheetOffset(dy);
+              }}
+              onPointerUp={(e) => {
+                const dy = e.clientY - shareSheetDragStartY.current;
+                const dt = Date.now() - shareSheetDragStartTime.current;
+                const velocity = dy / dt;
+                if (velocity > 0.4 || dy > 100) {
+                  setShareSheet(null);
+                  setShareSheetOffset(0);
+                } else {
+                  setShareSheetOffset(0);
+                }
+              }}
+            >
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--app-border)' }} />
             </div>
             <div className="px-6 pb-2 flex flex-col items-center gap-4">
@@ -340,7 +373,7 @@ function SelectPrayerContent() {
                 In WhatsApp Gruppe teilen
               </button>
               <button
-                onClick={() => { setShareSheet(null); router.push('/driver/dashboard'); }}
+                onClick={() => { setShareSheet(null); setShareSheetOffset(0); router.push('/driver/dashboard'); }}
                 className="w-full rounded-xl py-3 text-sm font-semibold active:scale-[0.98] transition-transform"
                 style={{ background: 'var(--app-surface1)', border: '1px solid var(--app-border)', color: 'var(--app-text3)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
               >
