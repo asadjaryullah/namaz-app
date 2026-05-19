@@ -219,7 +219,7 @@ export default function LearnPage() {
         </div>
         <button
           onClick={() => setMode(mode === 'manage' ? 'learn' : 'manage')}
-          className="w-10 h-10 rounded-xl flex items-center justify-center active:opacity-60 transition-opacity"
+          className="w-10 h-10 rounded-xl flex items-center justify-center active:scale-[0.93] transition-transform"
           style={{
             background: mode === 'manage' ? 'var(--app-text)' : 'var(--app-surface2)',
             border: '1px solid var(--app-border)',
@@ -241,7 +241,7 @@ export default function LearnPage() {
                 <button
                   key={sec}
                   onClick={() => setSection(sec)}
-                  className="rounded-2xl px-4 py-2.5 text-left shrink-0 transition-all active:opacity-70"
+                  className="rounded-2xl px-4 py-2.5 text-left shrink-0 transition-colors active:scale-[0.96]"
                   style={{
                     touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                     background: section === sec ? 'var(--app-text)' : 'var(--app-card)',
@@ -268,7 +268,7 @@ export default function LearnPage() {
               <button
                 key={id}
                 onClick={() => setMode(id)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all active:opacity-70"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-colors active:scale-[0.96]"
                 style={{
                   touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                   background: mode === id ? 'var(--app-card)' : 'transparent',
@@ -399,7 +399,7 @@ export default function LearnPage() {
                   <p className="text-xs font-bold" style={{ color: 'var(--app-emerald)' }}>{Math.round((learnedCount / sectionWords.length) * 100)}%</p>
                 </div>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(34,211,138,0.2)' }}>
-                  <div className="h-full rounded-full transition-all duration-500"
+                  <div className="h-full rounded-full duration-300 ease-out" style={{ transition: 'width 0.3s ease-out' }}
                     style={{ width: `${(learnedCount / sectionWords.length) * 100}%`, background: 'var(--app-emerald)' }} />
                 </div>
               </div>
@@ -416,7 +416,7 @@ export default function LearnPage() {
               Mindestens 2 Wörter für Quiz benötigt.
             </p>
           ) : quizDone ? (
-            <div className="flex flex-col items-center text-center gap-5 py-6 animate-in fade-in zoom-in duration-400">
+            <div className="flex flex-col items-center text-center gap-5 py-6 animate-in fade-in zoom-in duration-300">
               <div className="p-5 rounded-full" style={{ background: quizScore.correct === quizScore.total ? 'var(--app-emerald-dim)' : 'var(--app-gold-dim)' }}>
                 <Trophy size={48} style={{ color: quizScore.correct === quizScore.total ? 'var(--app-emerald)' : 'var(--app-gold)' }} />
               </div>
@@ -443,8 +443,8 @@ export default function LearnPage() {
                 <p className="text-xs font-bold" style={{ color: 'var(--app-emerald)' }}>✓ {quizScore.correct} richtig</p>
               </div>
               <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--app-surface2)' }}>
-                <div className="h-full rounded-full transition-all"
-                  style={{ width: `${(quizIndex / quizWords.length) * 100}%`, background: 'var(--app-gold)' }} />
+                <div className="h-full rounded-full"
+                  style={{ width: `${(quizIndex / quizWords.length) * 100}%`, background: 'var(--app-gold)', transition: 'width 0.25s ease-out' }} />
               </div>
 
               {/* Question: Arabic word → pick German meaning */}
@@ -472,7 +472,7 @@ export default function LearnPage() {
                   }
                   return (
                     <button key={i} onClick={() => handleAnswer(opt)} disabled={selected !== null}
-                      className="w-full rounded-2xl p-4 text-left transition-all active:opacity-70"
+                      className="w-full rounded-2xl p-4 text-left transition-colors active:scale-[0.98]"
                       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: bg, border: `1px solid ${border}`, color }}>
                       <p className="text-sm font-semibold">{opt}</p>
                     </button>
