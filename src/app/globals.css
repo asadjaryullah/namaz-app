@@ -202,12 +202,12 @@
 .animate-pulse-ring  { animation: pulse-ring 1.4s cubic-bezier(0.4,0,0.6,1) infinite; }
 .animate-glow-pulse  { animation: glow-pulse 2.5s ease-in-out infinite; }
 
-.stagger-1 { animation: slide-up 0.5s ease both 0.05s; }
-.stagger-2 { animation: slide-up 0.5s ease both 0.12s; }
-.stagger-3 { animation: slide-up 0.5s ease both 0.20s; }
-.stagger-4 { animation: slide-up 0.5s ease both 0.28s; }
-.stagger-5 { animation: slide-up 0.5s ease both 0.36s; }
-.stagger-6 { animation: slide-up 0.5s ease both 0.44s; }
+.stagger-1 { animation: slide-up 0.28s ease-out both 0s; }
+.stagger-2 { animation: slide-up 0.28s ease-out both 0.04s; }
+.stagger-3 { animation: slide-up 0.28s ease-out both 0.08s; }
+.stagger-4 { animation: slide-up 0.28s ease-out both 0.12s; }
+.stagger-5 { animation: slide-up 0.28s ease-out both 0.16s; }
+.stagger-6 { animation: slide-up 0.28s ease-out both 0.20s; }
 
 /* ═══════════════════════════════════════════
    APP PRIMITIVE KLASSEN
@@ -221,10 +221,9 @@
   background: linear-gradient(135deg, var(--app-gold), color-mix(in srgb, var(--app-gold) 70%, #fff));
   color: #0a0808;
   box-shadow: 0 4px 24px var(--app-gold-glow);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
-.btn-gold:hover { transform: translateY(-1px); box-shadow: 0 8px 32px var(--app-gold-glow); }
-.btn-gold:active { transform: scale(0.98); }
+.btn-gold:active { transform: scale(0.97); }
 
 /* Emerald Button */
 .btn-emerald {
@@ -234,31 +233,35 @@
   background: linear-gradient(135deg, var(--app-emerald), color-mix(in srgb, var(--app-emerald) 80%, #000));
   color: #042b1a;
   box-shadow: 0 4px 20px rgba(34,211,138,0.25);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
-.btn-emerald:hover { transform: translateY(-1px); }
-.btn-emerald:active { transform: scale(0.98); }
+.btn-emerald:active { transform: scale(0.97); }
 
 /* Surface Card */
 .app-card {
   background: var(--app-surface2);
   border: 1px solid var(--app-border);
   border-radius: 18px;
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.25s;
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
 }
-.app-card-hover:hover {
-  border-color: var(--app-gold);
-  box-shadow: 0 8px 32px var(--app-gold-glow);
-  transform: translateY(-2px);
-}
-.app-card-hover-emerald:hover {
-  border-color: var(--app-emerald);
-  box-shadow: 0 4px 24px var(--app-emerald-dim);
-}
-.app-card-hover-blue:hover {
-  border-color: var(--app-blue);
-  box-shadow: 0 8px 32px var(--app-blue-dim);
-  transform: translateY(-2px);
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 8px 32px var(--app-gold-glow); }
+  .btn-emerald:hover { transform: translateY(-1px); }
+  .app-card-hover:hover {
+    border-color: var(--app-gold);
+    box-shadow: 0 8px 32px var(--app-gold-glow);
+    transform: translateY(-2px);
+  }
+  .app-card-hover-emerald:hover {
+    border-color: var(--app-emerald);
+    box-shadow: 0 4px 24px var(--app-emerald-dim);
+  }
+  .app-card-hover-blue:hover {
+    border-color: var(--app-blue);
+    box-shadow: 0 8px 32px var(--app-blue-dim);
+    transform: translateY(-2px);
+  }
 }
 
 /* Input Focus Gold */
@@ -284,4 +287,20 @@
   border-radius: 50%;
   background: radial-gradient(circle, var(--app-emerald-dim) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════
+   REDUCED MOTION
+═══════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-1, .stagger-2, .stagger-3,
+  .stagger-4, .stagger-5, .stagger-6 {
+    animation: fade-in 0.15s ease both;
+  }
+  .animate-float  { animation: none; transform: none; }
+  .animate-pulse-ring { animation: none; }
+  .animate-glow-pulse { animation: none; opacity: 0.7; }
+  .btn-gold, .btn-emerald, .app-card {
+    transition: opacity 0.15s ease;
+  }
 }

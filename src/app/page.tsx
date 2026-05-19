@@ -269,7 +269,7 @@ export default function HomePage() {
         </p>
         <button
           onClick={() => router.push('/profile')}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg hover:scale-110 transition-transform"
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg active:scale-[0.93] transition-transform"
           style={{ background: 'linear-gradient(135deg, var(--app-gold-dim), var(--app-card))', border: '1px solid var(--app-gold)' }}
         >
           {emoji}
@@ -326,7 +326,7 @@ export default function HomePage() {
           <button
             onClick={handleToggleCommitment}
             disabled={togglingCommit}
-            className="shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-all active:opacity-70"
+            className="shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors active:scale-[0.95]"
             style={{
               background: isCommitted ? 'var(--app-emerald)' : 'transparent',
               color: isCommitted ? '#fff' : 'var(--app-emerald)',
@@ -415,7 +415,7 @@ export default function HomePage() {
       {/* ── Aktive Fahrten ── */}
       {activeDriverRide && (
         <div onClick={() => router.push('/driver/dashboard')}
-          className="stagger-3 rounded-2xl cursor-pointer hover:scale-[1.01] transition-transform overflow-hidden"
+          className="stagger-3 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform overflow-hidden"
           style={{ background: 'var(--app-gold-dim)', border: '2px solid var(--app-gold)', boxShadow: '0 0 32px var(--app-gold-glow)' }}>
           <div className="px-4 pt-3 pb-1 flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
@@ -444,7 +444,7 @@ export default function HomePage() {
 
       {activePassengerRide && (
         <div onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide.rideId}`)}
-          className="stagger-3 rounded-2xl cursor-pointer hover:scale-[1.01] transition-transform overflow-hidden"
+          className="stagger-3 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform overflow-hidden"
           style={{ background: 'var(--app-emerald-dim)', border: '2px solid var(--app-emerald)', boxShadow: '0 0 32px rgba(34,211,138,0.2)' }}>
           <div className="px-4 pt-3 pb-1 flex items-center gap-2">
             <span className="relative flex h-2.5 w-2.5">

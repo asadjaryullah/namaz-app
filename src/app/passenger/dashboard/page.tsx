@@ -132,9 +132,9 @@ function PassengerDashboardContent() {
 
   if (ride.status === 'completed') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-500"
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-300"
         style={{ background: 'var(--app-emerald-dim)' }}>
-        <div className="p-6 rounded-full shadow-xl mb-6 animate-bounce" style={{ background: 'var(--app-surface2)' }}>
+        <div className="p-6 rounded-full shadow-xl mb-6" style={{ background: 'var(--app-surface2)' }}>
           <span className="text-4xl">🕌</span>
         </div>
         <h1 className="text-2xl font-bold" style={{ color: 'var(--app-emerald)' }}>Alhamdulillah!</h1>
@@ -256,8 +256,8 @@ function PassengerDashboardContent() {
 
       {/* CONFIRM DIALOG */}
       {showCancelDialog && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setShowCancelDialog(false)}>
-          <div className="w-full rounded-t-3xl p-6 space-y-3" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end animate-in fade-in duration-150" onClick={() => setShowCancelDialog(false)}>
+          <div className="w-full rounded-t-3xl p-6 space-y-3 animate-in slide-in-from-bottom-4 duration-300 ease-out" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'var(--app-border)' }}></div>
             <h3 className="text-lg font-bold text-center" style={{ color: 'var(--app-text)' }}>Buchung stornieren?</h3>
             <p className="text-sm text-center pb-2" style={{ color: 'var(--app-text2)' }}>

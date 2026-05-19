@@ -84,12 +84,12 @@ export default function BottomNav() {
       <button
         key={tab.id}
         onClick={() => handleTabPress(tab.id, tab.href)}
-        className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 transition-opacity duration-100 active:opacity-60"
+        className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 active:scale-[0.92] transition-transform duration-100"
         style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
         aria-label={tab.label}
       >
         <span
-          className="flex items-center justify-center rounded-xl transition-all duration-200"
+          className="flex items-center justify-center rounded-xl transition-colors duration-150"
           style={{
             width: 44,
             height: 30,
@@ -134,7 +134,7 @@ export default function BottomNav() {
           <button
             onClick={() => router.push('/')}
             aria-label="Start"
-            className="flex items-center justify-center transition-opacity duration-100 active:opacity-60"
+            className="flex items-center justify-center active:scale-[0.90] transition-transform duration-100"
             style={{
               touchAction: 'manipulation',
               WebkitTapHighlightColor: 'transparent',
@@ -170,12 +170,12 @@ export default function BottomNav() {
       {/* ── Fahrt Bottom Sheet ────────────────────────────────────────────── */}
       {showFahrtSheet && (
         <div
-          className="fixed inset-0 z-[60] flex items-end"
+          className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150"
           style={{ background: 'rgba(0,0,0,0.55)' }}
           onClick={() => setShowFahrtSheet(false)}
         >
           <div
-            className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
+            className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 ease-out"
             style={{
               background: 'var(--app-surface2)',
               border: '1px solid var(--app-border)',
@@ -206,7 +206,7 @@ export default function BottomNav() {
                     setShowFahrtSheet(false);
                     router.push('/select-prayer?role=driver');
                   }}
-                  className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
+                  className="rounded-2xl p-5 text-left active:scale-[0.96] transition-transform"
                   style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}
                 >
                   <div
@@ -229,7 +229,7 @@ export default function BottomNav() {
                     setShowFahrtSheet(false);
                     router.push('/select-prayer?role=passenger');
                   }}
-                  className="rounded-2xl p-5 text-left transition-opacity active:opacity-60"
+                  className="rounded-2xl p-5 text-left active:scale-[0.96] transition-transform"
                   style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }}
                 >
                   <div
@@ -249,7 +249,7 @@ export default function BottomNav() {
 
               <button
                 onClick={() => setShowFahrtSheet(false)}
-                className="w-full py-3 rounded-xl text-sm font-semibold transition-opacity active:opacity-60"
+                className="w-full py-3 rounded-xl text-sm font-semibold active:scale-[0.98] transition-transform"
                 style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: 'var(--app-surface1)', border: '1px solid var(--app-border)', color: 'var(--app-text3)' }}
               >
                 Abbrechen
