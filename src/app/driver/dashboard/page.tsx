@@ -483,8 +483,8 @@ export default function DriverDashboard() {
 
       {/* CONFIRM DIALOG (Bottom Sheet) */}
       {confirmType && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={() => setConfirmType(null)}>
-          <div className="w-full rounded-t-3xl p-6 space-y-3" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end animate-in fade-in duration-150" onClick={() => setConfirmType(null)}>
+          <div className="w-full rounded-t-3xl p-6 space-y-3 animate-in slide-in-from-bottom-4 duration-300 ease-out" style={{ background: 'var(--app-surface2)' }} onClick={(e) => e.stopPropagation()}>
             <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'var(--app-border)' }}></div>
             <h3 className="text-lg font-bold text-center" style={{ color: 'var(--app-text)' }}>
               {confirmType === 'end' ? 'Fahrt beenden?' : 'Fahrt absagen?'}
@@ -520,20 +520,32 @@ export default function DriverDashboard() {
 
       {/* UNDO TOAST */}
       {undoVisible && (
-        <div className="fixed bottom-8 left-4 right-4 rounded-2xl p-4 z-50 flex items-center justify-between shadow-2xl" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
-          <div>
-            <p className="text-sm font-bold" style={{ color: 'var(--app-text)' }}>Fahrt wird beendet...</p>
-            <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Rückgängig möglich ({undoCountdown}s)</p>
+        <div className="fixed bottom-8 left-4 right-4 rounded-2xl p-4 z-50 shadow-2xl animate-in slide-in-from-bottom-2 duration-200 ease-out" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-sm font-bold" style={{ color: 'var(--app-text)' }}>Fahrt wird beendet...</p>
+              <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Rückgängig in {undoCountdown}s</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1"
+              style={{ borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
+              onClick={handleUndo}
+            >
+              <RotateCcw size={14} /> Rückgängig
+            </Button>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1"
-            style={{ borderColor: 'var(--app-border)', color: 'var(--app-text2)' }}
-            onClick={handleUndo}
-          >
-            <RotateCcw size={14} /> Rückgängig
-          </Button>
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--app-surface1)' }}>
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${(undoCountdown / 5) * 100}%`,
+                background: 'var(--app-rose)',
+                transition: 'width 1s linear',
+              }}
+            />
+          </div>
         </div>
       )}
     </div>

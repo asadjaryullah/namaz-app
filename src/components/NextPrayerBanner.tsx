@@ -65,7 +65,8 @@ export default function NextPrayerBanner() {
   const icon = PRAYER_ICONS[next.name] || '🕌';
 
   return (
-    <div className="w-full rounded-2xl p-4 relative overflow-hidden transition-all duration-500"
+    <div className="w-full rounded-2xl p-4 relative overflow-hidden"
+      style={{ transition: 'background-color 0.3s ease-out, border-color 0.3s ease-out, box-shadow 0.3s ease-out' }}
       style={{
         background: isClose ? 'var(--app-emerald-dim)' : 'var(--app-surface2)',
         border: `1px solid ${isClose ? 'var(--app-emerald)' : 'var(--app-border)'}`,

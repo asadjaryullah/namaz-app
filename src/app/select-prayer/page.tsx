@@ -40,7 +40,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
     return (
       <button
         onClick={() => toggleSeat(index)}
-        className="flex flex-col items-center justify-center gap-1 select-none transition-opacity active:opacity-60"
+        className="flex flex-col items-center justify-center gap-1 select-none active:scale-[0.92] transition-transform"
         style={{
           width: w, height: h, borderRadius: 14,
           border: '2px solid',
@@ -267,7 +267,8 @@ function SelectPrayerContent() {
               <Card
                 key={prayer.id}
                 onClick={() => !isDisabled && setSelectedId(prayer.id)}
-                className={`p-3 flex items-center gap-3 transition-all border-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                className={`p-3 flex items-center gap-3 border-2 ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98] transition-transform'}`}
+                style={{ transition: isDisabled ? undefined : 'background-color 0.15s ease-out, border-color 0.15s ease-out, transform 0.12s ease-out' }}
                 style={{
                   borderColor: isSelected ? 'var(--app-text)' : 'transparent',
                   background: isSelected ? 'var(--app-surface2)' : 'var(--app-card)',
@@ -309,9 +310,9 @@ function SelectPrayerContent() {
 
       {/* ── WhatsApp Share Sheet ── */}
       {shareSheet && (
-        <div className="fixed inset-0 z-[60] flex items-end" style={{ background: 'rgba(0,0,0,0.55)' }}>
+        <div className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150" style={{ background: 'rgba(0,0,0,0.55)' }}>
           <div
-            className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
+            className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 ease-out"
             style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
           >
             <div className="flex justify-center pt-4 pb-2">
@@ -330,7 +331,7 @@ function SelectPrayerContent() {
                   const msg = `🚗 Ich fahre gleich zum ${shareSheet.prayerName}!\n\nNoch ${shareSheet.seats} freie ${shareSheet.seats === 1 ? 'Platz' : 'Plätze'}. Jetzt mitbuchen: https://ride2salah.vercel.app`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
-                className="w-full rounded-2xl py-3.5 text-[15px] font-extrabold flex items-center justify-center gap-2.5 active:opacity-70 transition-opacity"
+                className="w-full rounded-2xl py-3.5 text-[15px] font-extrabold flex items-center justify-center gap-2.5 active:scale-[0.97] transition-transform"
                 style={{ background: '#25D366', color: '#fff', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
@@ -340,7 +341,7 @@ function SelectPrayerContent() {
               </button>
               <button
                 onClick={() => { setShareSheet(null); router.push('/driver/dashboard'); }}
-                className="w-full rounded-xl py-3 text-sm font-semibold active:opacity-60 transition-opacity"
+                className="w-full rounded-xl py-3 text-sm font-semibold active:scale-[0.98] transition-transform"
                 style={{ background: 'var(--app-surface1)', border: '1px solid var(--app-border)', color: 'var(--app-text3)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
               >
                 Überspringen →

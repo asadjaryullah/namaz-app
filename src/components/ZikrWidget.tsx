@@ -36,18 +36,11 @@ export default function ZikrWidget({ userId }: { userId: string }) {
   return (
     <div
       onClick={() => router.push('/history?tab=zikr')}
-      className="w-full rounded-[18px] p-4 cursor-pointer transition-all"
+      className="w-full rounded-[18px] p-4 cursor-pointer app-card-hover-emerald active:scale-[0.98]"
       style={{
         background: 'var(--app-surface2)',
         border: '1px solid var(--app-border)',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-emerald)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 0 20px var(--app-emerald-dim)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = 'var(--app-border)';
-        (e.currentTarget as HTMLElement).style.boxShadow = 'none';
+        transition: 'border-color 0.2s ease-out, box-shadow 0.2s ease-out, transform 0.15s ease-out',
       }}
     >
       <div className="flex items-center justify-between mb-3">

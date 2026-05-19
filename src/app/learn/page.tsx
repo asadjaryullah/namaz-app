@@ -557,9 +557,9 @@ export default function LearnPage() {
 
       {/* ── Add Word Sheet ── */}
       {showAddForm && (
-        <div className="fixed inset-0 z-[60] flex items-end" style={{ background: 'rgba(0,0,0,0.55)' }}
+        <div className="fixed inset-0 z-[60] flex items-end animate-in fade-in duration-150" style={{ background: 'rgba(0,0,0,0.55)' }}
           onClick={() => setShowAddForm(false)}>
-          <div className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300"
+          <div className="w-full rounded-t-3xl animate-in slide-in-from-bottom-4 duration-300 ease-out"
             style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
             onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 pt-5 pb-4">
