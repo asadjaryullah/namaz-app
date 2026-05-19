@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Check, GraduationCap, BookOpen, Trophy, RefreshCw, Settings, Plus, Trash2, X } from 'lucide-react';
@@ -87,12 +87,18 @@ export default function LearnPage() {
   // Learn mode
   const [cardIndex, setCardIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
+
+  // Swipe tracking
+  const swipeStartX = useRef(0);
+  const swipeStartTime = useRef(0);
 
   // Quiz mode
   const [quizWords, setQuizWords] = useState<NamazWord[]>([]);
   const [quizIndex, setQuizIndex] = useState(0);
   const [quizOptions, setQuizOptions] = useState<string[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [shakingOption, setShakingOption] = useState<string | null>(null);
   const [quizScore, setQuizScore] = useState({ correct: 0, total: 0 });
   const [quizDone, setQuizDone] = useState(false);
 
@@ -121,7 +127,26 @@ export default function LearnPage() {
   const markLearned = () => {
     if (!currentCard) return;
     const prev = progress[currentCard.id] ?? { learned: false, correct: 0, wrong: 0 };
-    saveProgress({ ...progress, [currentCard.id]: { ...prev, learned: true } });
+    const updated = { ...progress, [currentCard.id]: { ...prev, learned: true } };
+    saveProgress(updated);
+    const allDone = sectionWords.every(w => (updated[w.id]?.learned || w.id === currentCard.id));
+    if (allDone && !celebrating) {
+      setCelebrating(true);
+      setTimeout(() => setCelebrating(false), 900);
+    }
+  };
+
+  const handleCardSwipe = (e: React.PointerEvent) => {
+    const dx = e.clientX - swipeStartX.current;
+    const dt = Date.now() - swipeStartTime.current;
+    const velocity = Math.abs(dx) / dt;
+    if (Math.abs(dx) < 12 && dt < 300) {
+      setRevealed(v => !v);
+    } else if ((dx < -40 || velocity > 0.3) && dx < 0 && cardIndex < sectionWords.length - 1) {
+      setCardIndex(i => i + 1); setRevealed(false);
+    } else if ((dx > 40 || velocity > 0.3) && dx > 0 && cardIndex > 0) {
+      setCardIndex(i => i - 1); setRevealed(false);
+    }
   };
 
   useEffect(() => { setCardIndex(0); setRevealed(false); }, [section]);
@@ -153,6 +178,10 @@ export default function LearnPage() {
     setSelected(option);
     const word = quizWords[quizIndex];
     const isCorrect = option === word.german;
+    if (!isCorrect) {
+      setShakingOption(option);
+      setTimeout(() => setShakingOption(null), 400);
+    }
     setQuizScore(s => ({ correct: s.correct + (isCorrect ? 1 : 0), total: s.total + 1 }));
     const prev = progress[word.id] ?? { learned: false, correct: 0, wrong: 0 };
     saveProgress({ ...progress, [word.id]: {
@@ -302,8 +331,13 @@ export default function LearnPage() {
             ))}
           </div>
 
-          {/* Card */}
-          <div className="rounded-3xl overflow-hidden shadow-lg" style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+          {/* Card with 3D flip + swipe */}
+          <div
+            className={`rounded-3xl overflow-hidden shadow-lg select-none ${celebrating ? 'animate-section-celebrate' : ''}`}
+            style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', touchAction: 'pan-y', userSelect: 'none' }}
+            onPointerDown={e => { swipeStartX.current = e.clientX; swipeStartTime.current = Date.now(); }}
+            onPointerUp={handleCardSwipe}
+          >
             <div className="px-5 pt-5 pb-3 flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full"
                 style={{ background: 'var(--app-gold-dim)', color: 'var(--app-gold)' }}>
@@ -314,52 +348,53 @@ export default function LearnPage() {
               </span>
             </div>
 
-            {/* Arabic word */}
-            <div className="px-5 pb-5 pt-2 text-center" style={{ borderBottom: '1px solid var(--app-border)' }}>
-              <p
-                className="leading-loose"
-                style={{
-                  fontFamily: 'var(--font-amiri)',
-                  fontSize: '3rem',
-                  direction: 'rtl',
-                  color: 'var(--app-text)',
-                  lineHeight: 1.9,
-                }}
-              >
-                {currentCard.arabic}
-              </p>
-              {currentCard.transliteration && (
-                <p className="text-xs mt-2 italic" style={{ color: 'var(--app-text3)', fontFamily: 'serif', letterSpacing: '0.02em' }}>
-                  {currentCard.transliteration}
-                </p>
-              )}
-            </div>
-
-            {/* Reveal */}
-            {!revealed ? (
-              <button
-                onClick={() => setRevealed(true)}
-                className="w-full py-5 text-sm font-bold flex items-center justify-center gap-2 active:opacity-60 transition-opacity"
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', color: 'var(--app-gold)' }}
-              >
-                Übersetzung anzeigen ↓
-              </button>
-            ) : (
-              <div className="px-5 py-5 space-y-3 animate-in fade-in duration-300">
-                <div className="p-3 rounded-2xl" style={{ background: 'var(--app-surface2)' }}>
-                  <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--app-text3)' }}>Deutsch</p>
-                  <p className="text-lg font-bold" style={{ color: 'var(--app-text)' }}>{currentCard.german}</p>
-                </div>
-                {currentCard.urdu && (
-                  <div className="p-3 rounded-2xl" style={{ background: 'var(--app-surface2)' }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--app-text3)' }}>اردو</p>
-                    <p className="text-lg leading-loose text-right" style={{ direction: 'rtl', color: 'var(--app-text)', fontFamily: 'var(--font-amiri)' }}>
-                      {currentCard.urdu}
+            {/* Flip zone */}
+            <div style={{ perspective: '900px' }}>
+              <div style={{
+                transformStyle: 'preserve-3d',
+                transition: 'transform 0.45s cubic-bezier(0.23, 1, 0.32, 1)',
+                transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                display: 'grid',
+              }}>
+                {/* Front face */}
+                <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', gridArea: '1/1' }}>
+                  <div className="px-5 pb-4 pt-2 text-center">
+                    <p className="leading-loose" style={{ fontFamily: 'var(--font-amiri)', fontSize: '3rem', direction: 'rtl', color: 'var(--app-text)', lineHeight: 1.9 }}>
+                      {currentCard.arabic}
                     </p>
+                    {currentCard.transliteration && (
+                      <p className="text-xs mt-1 italic" style={{ color: 'var(--app-text3)', fontFamily: 'serif', letterSpacing: '0.02em' }}>
+                        {currentCard.transliteration}
+                      </p>
+                    )}
                   </div>
-                )}
+                  <div className="py-4 text-center text-xs font-bold" style={{ color: 'var(--app-gold)', borderTop: '1px solid var(--app-border)' }}>
+                    Tippen · Wischen zum Blättern
+                  </div>
+                </div>
+
+                {/* Back face */}
+                <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', gridArea: '1/1' }}>
+                  <div className="px-5 py-5 space-y-3">
+                    <p className="text-center text-2xl opacity-40 mb-1" style={{ fontFamily: 'var(--font-amiri)', direction: 'rtl', color: 'var(--app-text)' }}>
+                      {currentCard.arabic}
+                    </p>
+                    <div className="p-3 rounded-2xl" style={{ background: 'var(--app-surface2)' }}>
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--app-text3)' }}>Deutsch</p>
+                      <p className="text-lg font-bold" style={{ color: 'var(--app-text)' }}>{currentCard.german}</p>
+                    </div>
+                    {currentCard.urdu && (
+                      <div className="p-3 rounded-2xl" style={{ background: 'var(--app-surface2)' }}>
+                        <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--app-text3)' }}>اردو</p>
+                        <p className="text-lg leading-loose text-right" style={{ direction: 'rtl', color: 'var(--app-text)', fontFamily: 'var(--font-amiri)' }}>
+                          {currentCard.urdu}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Nav + mark */}
@@ -399,8 +434,8 @@ export default function LearnPage() {
                   <p className="text-xs font-bold" style={{ color: 'var(--app-emerald)' }}>{Math.round((learnedCount / sectionWords.length) * 100)}%</p>
                 </div>
                 <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(34,211,138,0.2)' }}>
-                  <div className="h-full rounded-full duration-300 ease-out" style={{ transition: 'width 0.3s ease-out' }}
-                    style={{ width: `${(learnedCount / sectionWords.length) * 100}%`, background: 'var(--app-emerald)' }} />
+                  <div className="h-full rounded-full"
+                    style={{ width: `${(learnedCount / sectionWords.length) * 100}%`, background: 'var(--app-emerald)', transition: 'width 0.3s ease-out' }} />
                 </div>
               </div>
             </div>
@@ -472,7 +507,7 @@ export default function LearnPage() {
                   }
                   return (
                     <button key={i} onClick={() => handleAnswer(opt)} disabled={selected !== null}
-                      className="w-full rounded-2xl p-4 text-left transition-colors active:scale-[0.98]"
+                      className={`w-full rounded-2xl p-4 text-left transition-colors active:scale-[0.98] ${shakingOption === opt ? 'animate-shake' : ''}`}
                       style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent', background: bg, border: `1px solid ${border}`, color }}>
                       <p className="text-sm font-semibold">{opt}</p>
                     </button>

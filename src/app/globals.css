@@ -289,6 +289,46 @@
   pointer-events: none;
 }
 
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+@keyframes pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.15); }
+  70%  { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+@keyframes count-fade-in {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes section-celebrate {
+  0%   { box-shadow: 0 0 0 0 var(--app-gold-glow); }
+  50%  { box-shadow: 0 0 28px 8px var(--app-gold-glow); }
+  100% { box-shadow: 0 0 0 0 var(--app-gold-glow); }
+}
+
+.animate-shake             { animation: shake 0.35s ease-out; }
+.animate-pop               { animation: pop 0.28s cubic-bezier(0.23, 1, 0.32, 1); }
+.animate-count-in          { animation: count-fade-in 0.18s ease-out; }
+.animate-section-celebrate { animation: section-celebrate 0.8s ease-out; }
+
+/* ═══════════════════════════════════════════
+   VIEW TRANSITIONS
+═══════════════════════════════════════════ */
+::view-transition-old(root) {
+  animation: 150ms ease-out both fade-out;
+}
+::view-transition-new(root) {
+  animation: 200ms ease-out both fade-in-view;
+}
+@keyframes fade-out      { to   { opacity: 0; } }
+@keyframes fade-in-view  { from { opacity: 0; } }
+
 /* ═══════════════════════════════════════════
    REDUCED MOTION
 ═══════════════════════════════════════════ */
@@ -300,7 +340,11 @@
   .animate-float  { animation: none; transform: none; }
   .animate-pulse-ring { animation: none; }
   .animate-glow-pulse { animation: none; opacity: 0.7; }
+  .animate-shake, .animate-pop { animation: none; }
   .btn-gold, .btn-emerald, .app-card {
     transition: opacity 0.15s ease;
+  }
+  ::view-transition-old(root), ::view-transition-new(root) {
+    animation: none;
   }
 }
