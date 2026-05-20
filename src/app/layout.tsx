@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Amiri, Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
+import { Amiri, Plus_Jakarta_Sans, DM_Mono, Noto_Nastaliq_Urdu } from "next/font/google";
 import { ViewTransitions } from 'next-view-transitions';
 import "./globals.css";
 
@@ -33,6 +33,13 @@ const dmMono = DM_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-dm-mono",
+  display: "swap",
+});
+
+const nastalique = Noto_Nastaliq_Urdu({
+  subsets: ["arabic"],
+  weight: ["400", "700"],
+  variable: "--font-nastalique",
   display: "swap",
 });
 
@@ -79,7 +86,7 @@ export default function RootLayout({
         `}} />
       </head>
       <body
-        className={`antialiased flex flex-col min-h-screen geo-pattern ${jakarta.variable} ${amiri.variable} ${dmMono.variable}`}
+        className={`antialiased flex flex-col min-h-screen geo-pattern ${jakarta.variable} ${amiri.variable} ${dmMono.variable} ${nastalique.variable}`}
         suppressHydrationWarning
       >
         <AuthProvider>

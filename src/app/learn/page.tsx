@@ -53,6 +53,93 @@ const DEFAULT_WORDS: NamazWord[] = [
   { id: 'f20', section: 'fatiha', sectionLabel: 'Al-Fatiha', wordNum: 20, arabic: 'عَلَيْهِمْ',      transliteration: "'alayhim",         german: 'auf ihnen',                   urdu: 'ان پر' },
   { id: 'f21', section: 'fatiha', sectionLabel: 'Al-Fatiha', wordNum: 21, arabic: 'الْمَغْضُوبِ',    transliteration: 'al-maghḍūbi',      german: 'die Zorn erregten',           urdu: 'جن پر غضب ہوا' },
   { id: 'f22', section: 'fatiha', sectionLabel: 'Al-Fatiha', wordNum: 22, arabic: 'الضَّالِّينَ',    transliteration: 'aḍ-ḍāllīna',      german: 'die Irregehenden',            urdu: 'گمراہوں کا' },
+
+  // Niyyat
+  { id: 'ny1', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 1, arabic: 'وَجَّهْتُ',           transliteration: 'wajjahtu',         german: 'Ich habe gewandt',            urdu: 'میں نے پھیرا' },
+  { id: 'ny2', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 2, arabic: 'وَجْهِيَ',            transliteration: 'wajhiya',          german: 'mein Gesicht',                urdu: 'اپنا رخ' },
+  { id: 'ny3', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 3, arabic: 'لِلَّذِيْ',           transliteration: 'lilladhī',         german: 'zu Demjenigen',               urdu: 'اس ذات کی طرف' },
+  { id: 'ny4', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 4, arabic: 'فَطَرَ',              transliteration: 'faṭara',           german: 'der erschuf',                 urdu: 'جس نے پیدا کیا' },
+  { id: 'ny5', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 5, arabic: 'السَّمٰوٰتِ',         transliteration: 'as-samāwāti',      german: 'die Himmel',                  urdu: 'آسمانوں کو' },
+  { id: 'ny6', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 6, arabic: 'وَالْأَرْضَ',         transliteration: 'wal-arḍa',         german: 'und die Erde',                urdu: 'اور زمین کو' },
+  { id: 'ny7', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 7, arabic: 'حَنِيفًا',            transliteration: 'ḥanīfan',          german: 'an Gottes Einheit glaubend',  urdu: 'موحد ہوتے ہوئے' },
+  { id: 'ny8', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 8, arabic: 'وَّمَا أَنَا',        transliteration: 'wa mā ana',        german: 'und ich bin nicht',           urdu: 'اور نہیں ہوں میں' },
+  { id: 'ny9', section: 'niyyat', sectionLabel: 'Niyyat', wordNum: 9, arabic: 'مِنَ الْمُشْرِكِيْنَ', transliteration: 'minal-mushrikīn',  german: 'einer der Götzendiener',      urdu: 'مشرکوں میں سے' },
+
+  // Ta'awwuz
+  { id: 'tw1', section: 'tawwuz', sectionLabel: "Ta'awwuz", wordNum: 1, arabic: 'أَعُوذُ بِاللّٰهِ',   transliteration: "a'ūdhu billāhi",   german: 'Ich suche Zuflucht bei Allah', urdu: 'میں پناہ مانگتا ہوں اللہ کی' },
+  { id: 'tw2', section: 'tawwuz', sectionLabel: "Ta'awwuz", wordNum: 2, arabic: 'مِنَ الشَّيْطٰنِ',    transliteration: 'mina sh-shayṭāni', german: 'vor Satan',                   urdu: 'شیطان سے' },
+  { id: 'tw3', section: 'tawwuz', sectionLabel: "Ta'awwuz", wordNum: 3, arabic: 'الرَّجِيمِ',          transliteration: 'ar-rajīmi',        german: 'dem Verfluchten',             urdu: 'دھتکارا ہوا' },
+
+  // Tasbih Ruku
+  { id: 'rk1', section: 'tasbih_ruku', sectionLabel: 'Tasbih Ruku', wordNum: 1, arabic: 'سُبْحَانَ',   transliteration: 'subḥāna',          german: 'Heilig ist',                  urdu: 'پاک ہے' },
+  { id: 'rk2', section: 'tasbih_ruku', sectionLabel: 'Tasbih Ruku', wordNum: 2, arabic: 'رَبِّيَ',    transliteration: 'rabbiya',          german: 'mein Herr',                   urdu: 'میرا رب' },
+  { id: 'rk3', section: 'tasbih_ruku', sectionLabel: 'Tasbih Ruku', wordNum: 3, arabic: 'الْعَظِيمِ', transliteration: "al-'aẓīmi",        german: 'der Größte',                  urdu: 'بڑی عظمت والا' },
+
+  // Tasbih Sujud
+  { id: 'sj1', section: 'tasbih_sujud', sectionLabel: 'Tasbih Sujud', wordNum: 1, arabic: 'سُبْحَانَ',  transliteration: 'subḥāna',          german: 'Heilig ist',                  urdu: 'پاک ہے' },
+  { id: 'sj2', section: 'tasbih_sujud', sectionLabel: 'Tasbih Sujud', wordNum: 2, arabic: 'رَبِّيَ',   transliteration: 'rabbiya',          german: 'mein Herr',                   urdu: 'میرا رب' },
+  { id: 'sj3', section: 'tasbih_sujud', sectionLabel: 'Tasbih Sujud', wordNum: 3, arabic: 'الْأَعْلىٰ', transliteration: "al-a'lā",          german: 'der Höchste',                 urdu: 'بڑی شان والا' },
+
+  // Tasmi
+  { id: 'ts1', section: 'tasmi', sectionLabel: 'Tasmi', wordNum: 1, arabic: 'سَمِعَ اللّٰهُ',         transliteration: "sami'a llāhu",     german: 'Allah hört',                  urdu: 'اللہ نے سنا' },
+  { id: 'ts2', section: 'tasmi', sectionLabel: 'Tasmi', wordNum: 2, arabic: 'لِمَنْ',                 transliteration: 'liman',            german: 'den, der',                    urdu: 'اس کی جس نے' },
+  { id: 'ts3', section: 'tasmi', sectionLabel: 'Tasmi', wordNum: 3, arabic: 'حَمِدَهُ',               transliteration: 'ḥamidahu',         german: 'Ihn preist',                  urdu: 'اس کی تعریف کی' },
+
+  // Tahmied
+  { id: 'th1', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 1, arabic: 'رَبَّنَا',           transliteration: 'rabbanā',          german: 'O unser Herr',                urdu: 'اے ہمارے رب' },
+  { id: 'th2', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 2, arabic: 'وَلَكَ',             transliteration: 'wa laka',          german: 'und für Dich',                urdu: 'تیرے لئے ہی' },
+  { id: 'th3', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 3, arabic: 'الْحَمْدُ',          transliteration: 'al-ḥamdu',         german: 'aller Preis',                 urdu: 'تعریف ہے' },
+  { id: 'th4', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 4, arabic: 'حَمْدًا',            transliteration: 'ḥamdan',           german: 'Preis',                       urdu: 'تعریف' },
+  { id: 'th5', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 5, arabic: 'كَثِيرًا',           transliteration: 'kathīran',         german: 'zahlreich',                   urdu: 'بہت زیادہ' },
+  { id: 'th6', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 6, arabic: 'طَيِّبًا',           transliteration: 'ṭayyiban',         german: 'Rein',                        urdu: 'پاکیزہ' },
+  { id: 'th7', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 7, arabic: 'مُّبَارَكًا',        transliteration: 'mubārakan',        german: 'volle Segnungen',             urdu: 'برکت ہو' },
+  { id: 'th8', section: 'tahmied', sectionLabel: 'Tahmied', wordNum: 8, arabic: 'فِيهِ',              transliteration: 'fīhi',             german: 'darin',                       urdu: 'جس میں' },
+
+  // Sajda Du'a
+  { id: 'sd1', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 1, arabic: 'رَبِّ',          transliteration: 'rabbi',            german: 'O mein Herr',                 urdu: 'اے اللہ' },
+  { id: 'sd2', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 2, arabic: 'اغْفِرْ لِيْ',   transliteration: "ighfir lī",        german: 'verzeih mir',                 urdu: 'مجھے بخش دے' },
+  { id: 'sd3', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 3, arabic: 'وَارْحَمْنِيْ',  transliteration: "warḥamnī",         german: 'und sei mir gnädig',          urdu: 'اور مجھ پر رحم فرما' },
+  { id: 'sd4', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 4, arabic: 'وَاجْبُرْنِيْ', transliteration: "wajburnī",         german: 'und bessere mich',            urdu: 'اور میری اصلاح فرما' },
+  { id: 'sd5', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 5, arabic: 'وَاعْفُ عَنِّيْ', transliteration: "wa'fu 'annī",     german: 'und bewahre mich',            urdu: 'اور مجھے عافیت عطا فرما' },
+  { id: 'sd6', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 6, arabic: 'وَارْزُقْنِيْ',  transliteration: "warzuqnī",         german: 'und versorge mich',           urdu: 'اور مجھے رزق دے' },
+  { id: 'sd7', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 7, arabic: 'وَارْفَعْنِيْ',  transliteration: "warfa'nī",         german: 'und erhöhe mich',             urdu: 'اور میرے درجات بلند کر' },
+  { id: 'sd8', section: 'sajda_dua', sectionLabel: "Sajda Du'a", wordNum: 8, arabic: 'وَاهْدِنِيْ',    transliteration: "wahdinī",          german: 'und führe mich',              urdu: 'اور مجھے ہدایت دے' },
+
+  // Al-Ichlaas
+  { id: 'ic1',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 1,  arabic: 'قُلْ',           transliteration: 'qul',              german: 'Sag',                         urdu: 'کہہ دو' },
+  { id: 'ic2',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 2,  arabic: 'هُوَ',           transliteration: 'huwa',             german: 'Er',                          urdu: 'وہ' },
+  { id: 'ic3',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 3,  arabic: 'اللّٰهُ',        transliteration: 'allāhu',           german: 'Allah',                       urdu: 'اللہ' },
+  { id: 'ic4',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 4,  arabic: 'أَحَدٌ',         transliteration: 'aḥad',             german: 'ist Einer',                   urdu: 'ایک ہے' },
+  { id: 'ic5',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 5,  arabic: 'اللَّهُ',        transliteration: 'allāhu',           german: 'Allah',                       urdu: 'اللہ' },
+  { id: 'ic6',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 6,  arabic: 'الصَّمَدُ',      transliteration: 'aṣ-ṣamad',         german: 'der Beständige',              urdu: 'بے نیاز ہے' },
+  { id: 'ic7',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 7,  arabic: 'لَمْ يَلِدْ',    transliteration: 'lam yalid',        german: 'Er hat nicht gezeugt',        urdu: 'اس نے نہیں جنا' },
+  { id: 'ic8',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 8,  arabic: 'وَلَمْ يُولَدْ', transliteration: 'wa lam yūlad',     german: 'und wurde nicht gezeugt',    urdu: 'اور نہ وہ جنا گیا' },
+  { id: 'ic9',  section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 9,  arabic: 'وَلَمْ يَكُنْ',  transliteration: 'wa lam yakun',     german: 'und es gibt nicht',           urdu: 'اور نہیں ہے' },
+  { id: 'ic10', section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 10, arabic: 'لَّهُ',          transliteration: 'lahu',             german: 'für Ihn',                     urdu: 'اس کے لیے' },
+  { id: 'ic11', section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 11, arabic: 'كُفُوًا',        transliteration: 'kufuwan',          german: 'ein Gleicher',                urdu: 'کوئی ہمسر' },
+  { id: 'ic12', section: 'ichlaas', sectionLabel: 'Al-Ichlaas', wordNum: 12, arabic: 'أَحَدٌ',         transliteration: 'aḥad',             german: 'irgendeiner',                 urdu: 'کوئی بھی' },
+
+  // Taschahud
+  { id: 'tsh1',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 1,  arabic: 'التَّحِيَّاتُ',     transliteration: 'at-taḥiyyātu',     german: 'Alle Ehrerbietungen',         urdu: 'تمام تعظیمیں' },
+  { id: 'tsh2',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 2,  arabic: 'لِلَّهِ',           transliteration: 'lillāhi',          german: 'gebühren Allah',              urdu: 'اللہ کے لیے' },
+  { id: 'tsh3',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 3,  arabic: 'وَالصَّلَوَاتُ',    transliteration: 'waṣ-ṣalawātu',     german: 'und Gebete',                  urdu: 'اور عبادتیں' },
+  { id: 'tsh4',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 4,  arabic: 'وَالطَّيِّبَاتُ',   transliteration: 'waṭ-ṭayyibātu',    german: 'und gute Taten',              urdu: 'اور پاکیزہ اعمال' },
+  { id: 'tsh5',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 5,  arabic: 'السَّلَامُ',        transliteration: 'as-salāmu',        german: 'Friede sei',                  urdu: 'سلام ہو' },
+  { id: 'tsh6',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 6,  arabic: 'عَلَيْكَ',          transliteration: "'alayka",          german: 'auf dir',                     urdu: 'آپ پر' },
+  { id: 'tsh7',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 7,  arabic: 'أَيُّهَا النَّبِيُّ', transliteration: "ayyuhā n-nabiyyu", german: 'O Prophet',                   urdu: 'اے نبی' },
+  { id: 'tsh8',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 8,  arabic: 'وَرَحْمَةُ اللّٰهِ', transliteration: "wa raḥmatu llāhi", german: 'und Allahs Gnade',            urdu: 'اور اللہ کی رحمت' },
+  { id: 'tsh9',  section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 9,  arabic: 'وَبَرَكَاتُهُ',      transliteration: "wa barakātuhu",    german: 'und Sein Segen',              urdu: 'اور برکتیں' },
+  { id: 'tsh10', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 10, arabic: 'السَّلَامُ عَلَيْنَا', transliteration: "as-salāmu 'alaynā", german: 'Friede sei auf uns',         urdu: 'سلام ہم پر' },
+  { id: 'tsh11', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 11, arabic: 'وَعَلَىٰ',           transliteration: "wa 'alā",          german: 'und auf',                     urdu: 'اور پر' },
+  { id: 'tsh12', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 12, arabic: 'عِبَادِ اللّٰهِ',    transliteration: "'ibādi llāhi",     german: 'Allahs Dienern',              urdu: 'اللہ کے بندوں' },
+  { id: 'tsh13', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 13, arabic: 'الصَّالِحِينَ',      transliteration: "aṣ-ṣāliḥīn",      german: 'den Rechtschaffenen',         urdu: 'نیک لوگوں' },
+  { id: 'tsh14', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 14, arabic: 'أَشْهَدُ',           transliteration: "ash-hadu",         german: 'Ich bezeuge',                 urdu: 'میں گواہی دیتا ہوں' },
+  { id: 'tsh15', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 15, arabic: 'أَنْ لَّا إِلٰهَ',   transliteration: "an lā ilāha",      german: 'dass kein Gott',              urdu: 'کہ کوئی معبود نہیں' },
+  { id: 'tsh16', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 16, arabic: 'إِلَّا اللّٰهُ',     transliteration: "illā llāhu",       german: 'außer Allah',                 urdu: 'سوائے اللہ کے' },
+  { id: 'tsh17', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 17, arabic: 'وَأَشْهَدُ',          transliteration: "wa ash-hadu",      german: 'und ich bezeuge',             urdu: 'اور میں گواہی دیتا ہوں' },
+  { id: 'tsh18', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 18, arabic: 'أَنَّ مُحَمَّدًا',   transliteration: "anna muḥammadan",  german: 'dass Muhammad',               urdu: 'کہ محمد ﷺ' },
+  { id: 'tsh19', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 19, arabic: 'عَبْدُهُ',            transliteration: "'abduhu",          german: 'Sein Diener',                 urdu: 'اس کے بندے' },
+  { id: 'tsh20', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 20, arabic: 'وَرَسُولُهُ',         transliteration: "wa rasūluhu",      german: 'und Sein Gesandter sind',     urdu: 'اور اس کے رسول ہیں' },
 ];
 
 const WORDS_KEY = 'namaz_words_v2';
@@ -386,7 +473,7 @@ export default function LearnPage() {
                     {currentCard.urdu && (
                       <div className="p-3 rounded-2xl" style={{ background: 'var(--app-surface2)' }}>
                         <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--app-text3)' }}>اردو</p>
-                        <p className="text-lg leading-loose text-right" style={{ direction: 'rtl', color: 'var(--app-text)', fontFamily: 'var(--font-amiri)' }}>
+                        <p className="text-xl leading-loose text-right font-urdu" style={{ direction: 'rtl', color: 'var(--app-text)' }}>
                           {currentCard.urdu}
                         </p>
                       </div>
@@ -669,8 +756,8 @@ export default function LearnPage() {
                   value={form.urdu}
                   onChange={e => setForm(f => ({ ...f, urdu: e.target.value }))}
                   placeholder="نام سے"
-                  className="w-full rounded-xl px-4 py-3 text-base text-right outline-none"
-                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text)', direction: 'rtl', fontFamily: 'var(--font-amiri)' }}
+                  className="w-full rounded-xl px-4 py-3 text-xl text-right outline-none font-urdu"
+                  style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text)', direction: 'rtl' }}
                 />
               </div>
 

@@ -160,10 +160,22 @@
 }
 
 /* ═══════════════════════════════════════════
+   JAMEEL NOORI NASTALIQUE — Urdu Nastalique
+═══════════════════════════════════════════ */
+@font-face {
+  font-family: 'Jameel Noori Nastaleeq';
+  src: url('https://cdn.jsdelivr.net/gh/nooruddinlari/JameelNooriNastaleeq/JameelNooriNastaleeq.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══════════════════════════════════════════
    FONT HELPERS
 ═══════════════════════════════════════════ */
-.font-arabic  { font-family: var(--font-amiri), serif; }
+.font-arabic   { font-family: var(--font-amiri), serif; }
 .font-mono-app { font-family: var(--font-dm-mono), 'DM Mono', monospace; }
+.font-urdu     { font-family: 'Jameel Noori Nastaleeq', var(--font-nastalique), 'Noto Nastaliq Urdu', serif; }
 
 /* ═══════════════════════════════════════════
    ANIMATIONEN
