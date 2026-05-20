@@ -142,8 +142,8 @@ const DEFAULT_WORDS: NamazWord[] = [
   { id: 'tsh20', section: 'taschahud', sectionLabel: 'Taschahud', wordNum: 20, arabic: 'وَرَسُولُهُ',         transliteration: "wa rasūluhu",      german: 'und Sein Gesandter sind',     urdu: 'اور اس کے رسول ہیں' },
 ];
 
-const WORDS_KEY = 'namaz_words_v2';
-const PROGRESS_KEY = 'namaz_learn_v2';
+const WORDS_KEY = 'namaz_words_v3';
+const PROGRESS_KEY = 'namaz_learn_v3';
 
 type ProgressMap = Record<string, { learned: boolean; correct: number; wrong: number }>;
 
