@@ -571,8 +571,8 @@ export default function HomePage() {
             <GraduationCap size={22} style={{ color: 'var(--app-gold)' }} />
           </div>
           <div>
-            <p className="font-extrabold text-[13px] leading-snug" style={{ color: 'var(--app-gold)' }}>Namaz Lernen</p>
-            <p className="text-[10px] mt-0.5" style={{ color: 'var(--app-text2)' }}>Thana & Al-Fatiha</p>
+            <p className="font-extrabold text-[13px] leading-snug" style={{ color: 'var(--app-gold)' }}>Namaz mit Übersetzung</p>
+            <p className="text-[10px] mt-0.5" style={{ color: 'var(--app-text2)' }}>Wort für Wort lernen</p>
           </div>
         </div>
       </div>
