@@ -148,6 +148,7 @@ function SelectPrayerContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   
   const [bookedPrayerIds, setBookedPrayerIds] = useState<string[]>([]);
+  const [waitingCounts, setWaitingCounts] = useState<Record<string, number>>({});
   const [userGender, setUserGender] = useState('male');
   const [shareSheet, setShareSheet] = useState<{ prayerName: string; seats: number } | null>(null);
   const [shareSheetOffset, setShareSheetOffset] = useState(0);
@@ -161,6 +162,19 @@ function SelectPrayerContent() {
 
       const { data: prayersData } = await supabase.from('prayer_times').select('*').order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
+
+      // Fetch waiting counts per prayer
+      if (prayersData) {
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+        const counts: Record<string, number> = {};
+        await Promise.all(prayersData.map(async (p) => {
+          const { count } = await supabase.from('ride_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('prayer_id', p.id).eq('request_date', today).eq('status', 'waiting');
+          if (count && count > 0) counts[p.id] = count;
+        }));
+        setWaitingCounts(counts);
+      }
 
       if (user) {
         if (user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) setIsAdmin(true);
@@ -284,6 +298,11 @@ function SelectPrayerContent() {
                 <div className="flex-1">
                   <h3 className="font-bold" style={{ color: 'var(--app-text)' }}>{prayer.name}</h3>
                   {isDisabled && <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: 'var(--app-emerald)' }}><CheckCircle2 size={10}/> BEREITS AKTIV</span>}
+                  {waitingCounts[prayer.id] > 0 && (
+                    <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: 'var(--app-blue)' }}>
+                      👥 {waitingCounts[prayer.id]} {waitingCounts[prayer.id] === 1 ? 'wartet' : 'warten'}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xl font-mono font-bold" style={{ color: 'var(--app-text2)' }}>{prayer.time}</div>
               </Card>

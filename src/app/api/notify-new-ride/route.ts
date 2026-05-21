@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { sendPushToGender } from "@/lib/webpush";
+import { sendPushToGender, sendPushToUser } from "@/lib/webpush";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -47,6 +47,20 @@ export async function POST(req: Request) {
       },
       adminUserIds
     );
+
+    // Notify waiting passengers personally
+    const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+    const { data: waitingReqs } = await supabase.from('ride_requests')
+      .select('user_id').eq('prayer_id', prayer_id).eq('request_date', todayStr).eq('status', 'waiting');
+    if (waitingReqs && waitingReqs.length > 0) {
+      for (const req of waitingReqs) {
+        await sendPushToUser(req.user_id, {
+          title: `🚗 Alhamdulillah! Fahrt zum ${prayerLabel}!`,
+          body: `${name} fährt — jetzt Platz sichern!`,
+          url: `/passenger/list?prayer=${prayer_id}`,
+        }, []);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (e: any) {

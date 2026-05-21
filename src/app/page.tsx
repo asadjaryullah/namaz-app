@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell, GraduationCap } from "lucide-react";
+import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell, GraduationCap, Users } from "lucide-react";
 import MapComponent from '@/components/MapComponent';
 import ZikrWidget from '@/components/ZikrWidget';
 import NextPrayerBanner from '@/components/NextPrayerBanner';
@@ -30,6 +30,14 @@ export default function HomePage() {
   const [isCommitted, setIsCommitted] = useState(false);
   const [togglingCommit, setTogglingCommit] = useState(false);
   const [popCommit, setPopCommit] = useState(false);
+
+  const [rideRequestCount, setRideRequestCount] = useState(0);
+  const [myRideRequest, setMyRideRequest] = useState<string | null>(null);
+  const [driverMaybeCount, setDriverMaybeCount] = useState(0);
+  const [myDriverMaybe, setMyDriverMaybe] = useState(false);
+  const [todayRiderCount, setTodayRiderCount] = useState(0);
+  const [togglingRequest, setTogglingRequest] = useState(false);
+  const [togglingMaybe, setTogglingMaybe] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -83,6 +91,30 @@ export default function HomePage() {
               supabase.from('prayer_commitments').select('id').eq('user_id', session.user.id).eq('prayer_id', next.id).eq('prayer_date', today).maybeSingle(),
             ]);
             if (mounted) { setCommitmentCount(count ?? 0); setIsCommitted(!!mine); }
+          } catch (_) {}
+
+          // Ride requests + driver maybe + daily tally
+          try {
+            const [
+              { count: reqCount },
+              { data: myReq },
+              { count: maybeCount },
+              { data: myMaybe },
+              { count: riderCount },
+            ] = await Promise.all([
+              supabase.from('ride_requests').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('request_date', today).eq('status', 'waiting'),
+              supabase.from('ride_requests').select('id').eq('user_id', session.user.id).eq('prayer_id', next.id).eq('request_date', today).eq('status', 'waiting').maybeSingle(),
+              supabase.from('driver_maybe').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('maybe_date', today),
+              supabase.from('driver_maybe').select('id').eq('driver_id', session.user.id).eq('prayer_id', next.id).eq('maybe_date', today).maybeSingle(),
+              supabase.from('bookings').select('*, rides!inner(ride_date)', { count: 'exact', head: true }).eq('status', 'accepted').eq('rides.ride_date', today),
+            ]);
+            if (mounted) {
+              setRideRequestCount(reqCount ?? 0);
+              setMyRideRequest(myReq?.id ?? null);
+              setDriverMaybeCount(maybeCount ?? 0);
+              setMyDriverMaybe(!!myMaybe);
+              setTodayRiderCount(riderCount ?? 0);
+            }
           } catch (_) {}
         }
 
@@ -144,6 +176,51 @@ export default function HomePage() {
       }
     } catch (_) {}
     setTogglingCommit(false);
+  };
+
+  const handleToggleRideRequest = async () => {
+    if (!nextPrayer || !user || togglingRequest) return;
+    setTogglingRequest(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+      if (myRideRequest) {
+        await fetch('/api/request-ride', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
+        });
+        setMyRideRequest(null);
+        setRideRequestCount(c => Math.max(0, c - 1));
+      } else {
+        const res = await fetch('/api/request-ride', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+          body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
+        });
+        const data = await res.json();
+        if (data.id) { setMyRideRequest(data.id); setRideRequestCount(data.count ?? rideRequestCount + 1); }
+      }
+    } catch (_) {}
+    setTogglingRequest(false);
+  };
+
+  const handleToggleDriverMaybe = async () => {
+    if (!nextPrayer || !user || togglingMaybe) return;
+    setTogglingMaybe(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+      const res = await fetch('/api/driver-maybe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ prayer_id: nextPrayer.id, maybe_date: today }),
+      });
+      const data = await res.json();
+      setMyDriverMaybe(data.maybe);
+      setDriverMaybeCount(data.count ?? 0);
+    } catch (_) {}
+    setTogglingMaybe(false);
   };
 
   /* ── LADESCREEN ── */
@@ -340,6 +417,77 @@ export default function HomePage() {
             }}
           >
             {togglingCommit ? '...' : isCommitted ? 'Ich komme ✓' : 'Ich komme'}
+          </button>
+        </div>
+      )}
+
+      {/* ── Mitfahrer-Warteliste ── */}
+      {nextPrayer && isApproved && !activeDriverRide && !activePassengerRide && (
+        <div className="stagger-2 rounded-2xl p-4 flex flex-col gap-3"
+          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>
+              Fahrt zum {nextPrayer.name}
+            </p>
+            {(rideRequestCount > 0 || driverMaybeCount > 0) && (
+              <div className="flex items-center gap-1.5">
+                {rideRequestCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: 'var(--app-blue-dim)', color: 'var(--app-blue)' }}>
+                    👥 {rideRequestCount} warten
+                  </span>
+                )}
+                {driverMaybeCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: 'var(--app-gold-dim)', color: 'var(--app-gold)' }}>
+                    🚗 {driverMaybeCount} vielleicht
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {rideRequestCount === 0 && driverMaybeCount === 0 && !myRideRequest && (
+            <p className="text-xs" style={{ color: 'var(--app-text3)' }}>
+              Noch niemand für diese Fahrt angemeldet — sei der Erste!
+            </p>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleToggleRideRequest}
+              disabled={togglingRequest}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors active:scale-[0.96]"
+              style={{
+                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                background: myRideRequest ? 'var(--app-blue-dim)' : 'var(--app-surface1)',
+                border: `1px solid ${myRideRequest ? 'var(--app-blue)' : 'var(--app-border)'}`,
+                color: myRideRequest ? 'var(--app-blue)' : 'var(--app-text2)',
+              }}
+            >
+              {togglingRequest ? '...' : myRideRequest ? '✓ Ich will mitfahren' : 'Ich will mitfahren'}
+            </button>
+            <button
+              onClick={handleToggleDriverMaybe}
+              disabled={togglingMaybe}
+              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors active:scale-[0.96]"
+              style={{
+                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                background: myDriverMaybe ? 'var(--app-gold-dim)' : 'var(--app-surface1)',
+                border: `1px solid ${myDriverMaybe ? 'var(--app-gold)' : 'var(--app-border)'}`,
+                color: myDriverMaybe ? 'var(--app-gold)' : 'var(--app-text2)',
+              }}
+            >
+              {togglingMaybe ? '...' : myDriverMaybe ? '✓ Ich fahre vielleicht' : 'Ich fahre vielleicht'}
+            </button>
+          </div>
+
+          <button
+            onClick={() => router.push('/select-prayer?role=driver')}
+            className="text-xs font-bold text-center active:opacity-70"
+            style={{ color: 'var(--app-gold)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+          >
+            Fahrt jetzt anbieten →
           </button>
         </div>
       )}
@@ -623,6 +771,17 @@ export default function HomePage() {
             style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}>
             <Settings size={16} /> Admin Bereich
           </button>
+        </div>
+      )}
+
+      {/* ── Tagesübersicht ── */}
+      {todayRiderCount > 0 && (
+        <div className="stagger-6 rounded-2xl p-4 text-center"
+          style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
+          <p className="text-sm font-extrabold" style={{ color: 'var(--app-emerald)' }}>
+            ✓ Heute: {todayRiderCount} {todayRiderCount === 1 ? 'Bruder' : 'Brüder'} gemeinsam zur Moschee
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Alhamdulillah!</p>
         </div>
       )}
 
