@@ -22,6 +22,18 @@ const ORG_LABEL: Record<Org, string> = {
   atfal: 'Atfal', lajna: 'Lajna', nasirat: 'Nasirat',
 };
 
+const EVENT_TEMPLATES: { title: string; location: string; org: Org }[] = [
+  { title: 'Jalsa Salana', location: 'Bashier Moschee', org: 'jamaat' },
+  { title: "Ijtema Khuddam", location: 'Bashier Moschee', org: 'khuddam' },
+  { title: 'Ijtema Ansar', location: 'Bashier Moschee', org: 'ansar' },
+  { title: 'Ijtema Atfal', location: 'Bashier Moschee', org: 'atfal' },
+  { title: 'Ijtema Lajna', location: 'Bashier Moschee', org: 'lajna' },
+  { title: 'Ijtema Nasirat', location: 'Bashier Moschee', org: 'nasirat' },
+  { title: "Jumu'ah", location: 'Bashier Moschee', org: 'jamaat' },
+  { title: 'Tarbiyyat Programm', location: 'Bashier Moschee', org: 'jamaat' },
+  { title: 'Waqf-e-Arzi', location: 'Bashier Moschee', org: 'jamaat' },
+];
+
 type Profile = {
   id: string;
   full_name: string | null;
@@ -44,9 +56,12 @@ export default function AdminPage() {
 
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventLocation, setNewEventLocation] = useState("");
-  const [newEventStart, setNewEventStart] = useState("");
-  const [newEventEnd, setNewEventEnd] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventTime, setNewEventTime] = useState("");
+  const [newEventEndDate, setNewEventEndDate] = useState("");
+  const [newEventEndTime, setNewEventEndTime] = useState("");
   const [newEventOrg, setNewEventOrg] = useState<Org>('jamaat');
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -64,7 +79,7 @@ export default function AdminPage() {
 
   // Edit event state
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
-  const [editEventForm, setEditEventForm] = useState({ title: '', location: '', org: 'jamaat' as Org, start: '', end: '' });
+  const [editEventForm, setEditEventForm] = useState({ title: '', location: '', org: 'jamaat' as Org, startDate: '', startTime: '', endDate: '', endTime: '', allDay: false });
   const [editEventSaving, setEditEventSaving] = useState(false);
 
   // Quick links state
@@ -123,7 +138,7 @@ export default function AdminPage() {
   }, []);
 
   const fetchEvents = async () => {
-    const { data } = await supabase.from('mosque_events').select('id,title,location,org,event_date,event_end_date').order('event_date', { ascending: true });
+    const { data } = await supabase.from('mosque_events').select('id,title,location,org,event_date,event_end_date,is_all_day').order('event_date', { ascending: true });
     if (data) setEvents(data);
   };
 
@@ -191,43 +206,61 @@ export default function AdminPage() {
   const handleUpdateProfile = async () => {
     if (!editingProfile) return;
     setEditSaving(true);
-    const { error } = await supabase.from('profiles').update({
-      full_name: editForm.fullName,
-      phone: editForm.phone,
-      member_id: editForm.memberId,
-      gender: editForm.gender,
-      is_approved: editForm.isApproved,
-      can_edit_events: editForm.canEditEvents,
-      can_edit_times: editForm.canEditTimes,
-    }).eq('id', editingProfile.id);
-    setEditSaving(false);
-    if (error) { toast.error("Fehler: " + error.message); return; }
-    toast.success("Profil gespeichert!");
-    setEditingProfile(null);
-    await Promise.all([fetchPendingUsers(), fetchAllProfiles()]);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch('/api/admin/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          userId: editingProfile.id,
+          updates: {
+            full_name: editForm.fullName,
+            phone: editForm.phone,
+            member_id: editForm.memberId,
+            gender: editForm.gender,
+            is_approved: editForm.isApproved,
+            can_edit_events: editForm.canEditEvents,
+            can_edit_times: editForm.canEditTimes,
+          },
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error("Fehler: " + (json.error || res.status)); return; }
+      toast.success("Profil gespeichert!");
+      setEditingProfile(null);
+      await Promise.all([fetchPendingUsers(), fetchAllProfiles()]);
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleAddEvent = async () => {
-    if (!newEventTitle || !newEventStart) { toast.error("Bitte Titel und Startdatum angeben."); return; }
+    if (!newEventTitle || !newEventDate) { toast.error("Bitte Titel und Datum angeben."); return; }
     setSaving(true);
     try {
+      const isAllDay = !newEventTime;
+      const startIso = new Date(newEventDate + 'T' + (newEventTime || '00:00')).toISOString();
       let endIso: string;
-      if (!newEventEnd) {
-        const d = new Date(newEventStart);
+      if (newEventEndDate || newEventEndTime) {
+        endIso = new Date((newEventEndDate || newEventDate) + 'T' + (newEventEndTime || newEventTime || '00:00')).toISOString();
+      } else if (!isAllDay) {
+        const d = new Date(startIso);
         d.setHours(d.getHours() + 2);
         endIso = d.toISOString();
       } else {
-        endIso = new Date(newEventEnd).toISOString();
+        endIso = startIso;
       }
       const { error } = await supabase.from('mosque_events').insert({
         title: newEventTitle.trim(),
         location: (newEventLocation || "Bashier Moschee").trim(),
         org: newEventOrg,
-        event_date: new Date(newEventStart).toISOString(),
+        event_date: startIso,
         event_end_date: endIso,
+        is_all_day: isAllDay,
       });
       if (error) { toast.error("Fehler: " + error.message); return; }
-      setNewEventTitle(""); setNewEventLocation(""); setNewEventStart(""); setNewEventEnd(""); setNewEventOrg("jamaat");
+      setNewEventTitle(""); setNewEventLocation(""); setNewEventDate(""); setNewEventTime(""); setNewEventEndDate(""); setNewEventEndTime(""); setNewEventOrg("jamaat");
       await fetchEvents();
       toast.success("Termin hinzugefügt!");
     } finally {
@@ -235,39 +268,57 @@ export default function AdminPage() {
     }
   };
 
-  const toDatetimeLocal = (isoStr: string) => {
-    if (!isoStr) return '';
-    const d = new Date(isoStr);
-    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const applyTemplate = (t: { title: string; location: string; org: Org }) => {
+    setNewEventTitle(t.title);
+    setNewEventLocation(t.location);
+    setNewEventOrg(t.org);
+    setShowTemplates(false);
   };
 
+  const padNum = (n: number) => (n < 10 ? '0' + n : '' + n);
+
   const openEditEvent = (e: any) => {
+    const start = new Date(e.event_date);
+    const end = e.event_end_date ? new Date(e.event_end_date) : null;
+    const allDay = e.is_all_day ?? false;
     setEditEventForm({
       title: e.title || '',
       location: e.location || '',
       org: (e.org as Org) || 'jamaat',
-      start: toDatetimeLocal(e.event_date),
-      end: toDatetimeLocal(e.event_end_date),
+      startDate: `${start.getFullYear()}-${padNum(start.getMonth() + 1)}-${padNum(start.getDate())}`,
+      startTime: allDay ? '' : `${padNum(start.getHours())}:${padNum(start.getMinutes())}`,
+      endDate: end ? `${end.getFullYear()}-${padNum(end.getMonth() + 1)}-${padNum(end.getDate())}` : '',
+      endTime: allDay || !end ? '' : `${padNum(end.getHours())}:${padNum(end.getMinutes())}`,
+      allDay,
     });
     setEditingEvent(e);
   };
 
   const handleUpdateEvent = async () => {
-    if (!editingEvent || !editEventForm.title || !editEventForm.start) {
-      toast.error("Bitte Titel und Startdatum angeben.");
+    if (!editingEvent || !editEventForm.title || !editEventForm.startDate) {
+      toast.error("Bitte Titel und Datum angeben.");
       return;
     }
     setEditEventSaving(true);
-    const endIso = editEventForm.end
-      ? new Date(editEventForm.end).toISOString()
-      : (() => { const d = new Date(editEventForm.start); d.setHours(d.getHours() + 2); return d.toISOString(); })();
+    const isAllDay = !editEventForm.startTime;
+    const startIso = new Date(editEventForm.startDate + 'T' + (editEventForm.startTime || '00:00')).toISOString();
+    let endIso: string;
+    if (editEventForm.endDate || editEventForm.endTime) {
+      endIso = new Date((editEventForm.endDate || editEventForm.startDate) + 'T' + (editEventForm.endTime || editEventForm.startTime || '00:00')).toISOString();
+    } else if (!isAllDay) {
+      const d = new Date(startIso);
+      d.setHours(d.getHours() + 2);
+      endIso = d.toISOString();
+    } else {
+      endIso = startIso;
+    }
     const { error } = await supabase.from('mosque_events').update({
       title: editEventForm.title.trim(),
       location: (editEventForm.location.trim() || 'Bashier Moschee'),
       org: editEventForm.org,
-      event_date: new Date(editEventForm.start).toISOString(),
+      event_date: startIso,
       event_end_date: endIso,
+      is_all_day: isAllDay,
     }).eq('id', editingEvent.id);
     setEditEventSaving(false);
     if (error) { toast.error("Fehler: " + error.message); return; }
@@ -626,6 +677,54 @@ export default function AdminPage() {
             <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Neuer Termin</p>
 
+              {/* Template picker */}
+              <button
+                onClick={() => setShowTemplates(v => !v)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
+                style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
+              >
+                <span>Vorlage verwenden</span>
+                <ChevronDown size={14} className={`transition-transform duration-200 ${showTemplates ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showTemplates && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {EVENT_TEMPLATES.map(t => (
+                      <button
+                        key={t.title}
+                        onClick={() => applyTemplate(t)}
+                        className="px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:opacity-80"
+                        style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', color: 'var(--app-gold)' }}
+                      >
+                        {t.title}
+                      </button>
+                    ))}
+                  </div>
+                  {events.filter(e => new Date(e.event_end_date || e.event_date) < new Date()).slice(0, 6).length > 0 && (
+                    <div>
+                      <p className="text-[10px] uppercase font-bold mb-1.5" style={{ color: 'var(--app-text3)' }}>Aus vergangenen Terminen</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {events
+                          .filter(e => new Date(e.event_end_date || e.event_date) < new Date())
+                          .slice(-6)
+                          .reverse()
+                          .map((e: any) => (
+                            <button
+                              key={e.id}
+                              onClick={() => applyTemplate({ title: e.title, location: e.location || 'Bashier Moschee', org: (e.org as Org) || 'jamaat' })}
+                              className="px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:opacity-80 truncate max-w-[10rem]"
+                              style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
+                            >
+                              {e.title}
+                            </button>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <Input placeholder="Titel (z.B. Ijtema / Jalsa)" value={newEventTitle} onChange={e => setNewEventTitle(e.target.value)} />
               <div className="relative">
                 <MapPin className="absolute left-3 top-2.5 h-4 w-4" style={{ color: 'var(--app-text3)' }} />
@@ -646,12 +745,22 @@ export default function AdminPage() {
               </select>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Start</label>
-                  <Input type="datetime-local" value={newEventStart} onChange={e => setNewEventStart(e.target.value)} />
+                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Datum</label>
+                  <Input type="date" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Ende</label>
-                  <Input type="datetime-local" value={newEventEnd} onChange={e => setNewEventEnd(e.target.value)} />
+                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Uhrzeit (optional)</label>
+                  <Input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} placeholder="–" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Ende-Datum (optional)</label>
+                  <Input type="date" value={newEventEndDate} onChange={e => setNewEventEndDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Ende-Uhrzeit (optional)</label>
+                  <Input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} placeholder="–" />
                 </div>
               </div>
               <Button className="w-full text-white" style={{ background: '#f97316' }} onClick={handleAddEvent} disabled={saving}>
@@ -683,7 +792,9 @@ export default function AdminPage() {
                       </p>
                     )}
                     <p className="text-[11px] mt-0.5" style={{ color: 'var(--app-text3)' }}>
-                      {new Date(e.event_date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {e.is_all_day
+                        ? new Date(e.event_date).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
+                        : new Date(e.event_date).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0 mt-0.5">
@@ -1101,12 +1212,22 @@ export default function AdminPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Start</label>
-                  <Input type="datetime-local" value={editEventForm.start} onChange={e => setEditEventForm(f => ({ ...f, start: e.target.value }))} />
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Datum</label>
+                  <Input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm(f => ({ ...f, startDate: e.target.value }))} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende</label>
-                  <Input type="datetime-local" value={editEventForm.end} onChange={e => setEditEventForm(f => ({ ...f, end: e.target.value }))} />
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Uhrzeit (optional)</label>
+                  <Input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f => ({ ...f, startTime: e.target.value }))} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende-Datum (opt.)</label>
+                  <Input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm(f => ({ ...f, endDate: e.target.value }))} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende-Uhrzeit (opt.)</label>
+                  <Input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f => ({ ...f, endTime: e.target.value }))} />
                 </div>
               </div>
 
