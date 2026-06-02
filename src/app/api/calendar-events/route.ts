@@ -31,34 +31,56 @@ export async function GET() {
 
     for (const e of events) {
       const start = new Date(e.event_date);
+      let eventBlock: string;
 
-      let end;
-      if (e.event_end_date) {
-        end = new Date(e.event_end_date);
+      if (e.is_all_day) {
+        const pad = (n: number) => n < 10 ? '0' + n : '' + n;
+        const dateStr = `${start.getFullYear()}${pad(start.getMonth() + 1)}${pad(start.getDate())}`;
+        const end = e.event_end_date ? new Date(e.event_end_date) : start;
+        const endD = new Date(end);
+        endD.setDate(endD.getDate() + 1);
+        const endStr = `${endD.getFullYear()}${pad(endD.getMonth() + 1)}${pad(endD.getDate())}`;
+        eventBlock = [
+          'BEGIN:VEVENT',
+          `UID:event-${e.id}@ride2salah.app`,
+          `DTSTAMP:${formatLocal(new Date())}`,
+          `DTSTART;VALUE=DATE:${dateStr}`,
+          `DTEND;VALUE=DATE:${endStr}`,
+          `SUMMARY:📅 ${e.title}`,
+          'LOCATION:Bashier Moschee Bensheim',
+          'DESCRIPTION:Veranstaltung der Gemeinde.',
+          'BEGIN:VALARM',
+          'TRIGGER;RELATED=START:-P1D',
+          'ACTION:DISPLAY',
+          'DESCRIPTION:Morgen ist Veranstaltung!',
+          'END:VALARM',
+          'END:VEVENT'
+        ].join('\r\n');
       } else {
-        end = new Date(start);
-        end.setHours(start.getHours() + 2);
+        let end;
+        if (e.event_end_date) {
+          end = new Date(e.event_end_date);
+        } else {
+          end = new Date(start);
+          end.setHours(start.getHours() + 2);
+        }
+        eventBlock = [
+          'BEGIN:VEVENT',
+          `UID:event-${e.id}@ride2salah.app`,
+          `DTSTAMP:${formatLocal(new Date())}`,
+          `DTSTART:${formatLocal(start)}`,
+          `DTEND:${formatLocal(end)}`,
+          `SUMMARY:📅 ${e.title}`,
+          'LOCATION:Bashier Moschee Bensheim',
+          'DESCRIPTION:Veranstaltung der Gemeinde.',
+          'BEGIN:VALARM',
+          'TRIGGER;RELATED=START:-P1D',
+          'ACTION:DISPLAY',
+          'DESCRIPTION:Morgen ist Veranstaltung!',
+          'END:VALARM',
+          'END:VEVENT'
+        ].join('\r\n');
       }
-
-      const startStr = formatLocal(start);
-      const endStr = formatLocal(end);
-
-      const eventBlock = [
-        'BEGIN:VEVENT',
-        `UID:event-${e.id}@ride2salah.app`,
-        `DTSTAMP:${formatLocal(new Date())}`,
-        `DTSTART:${startStr}`,
-        `DTEND:${endStr}`,
-        `SUMMARY:📅 ${e.title}`,
-        'LOCATION:Bashier Moschee Bensheim',
-        `DESCRIPTION:Veranstaltung der Gemeinde.`,
-        'BEGIN:VALARM',
-        'TRIGGER;RELATED=START:-P1D',
-        'ACTION:DISPLAY',
-        'DESCRIPTION:Morgen ist Veranstaltung!',
-        'END:VALARM',
-        'END:VEVENT'
-      ].join('\r\n');
 
       icsContent += '\r\n' + eventBlock;
     }

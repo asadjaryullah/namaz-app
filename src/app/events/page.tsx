@@ -43,11 +43,20 @@ export default function EventsPage() {
     fetchEvents();
   }, []);
 
-  const formatDateRange = (startStr: string, endStr?: string) => {
+  const formatDateRange = (startStr: string, endStr?: string, isAllDay?: boolean) => {
     const start = new Date(startStr);
     const sDate = start.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
-    const sTime = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 
+    if (isAllDay) {
+      if (endStr) {
+        const end = new Date(endStr);
+        if (start.toDateString() === end.toDateString()) return sDate;
+        return `${sDate} – ${end.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' })}`;
+      }
+      return sDate;
+    }
+
+    const sTime = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     if (endStr) {
       const end = new Date(endStr);
       if (start.toDateString() === end.toDateString()) {
@@ -56,7 +65,6 @@ export default function EventsPage() {
       const eDate = end.toLocaleDateString('de-DE', { day: '2-digit', month: 'short' });
       return `${sDate} - ${eDate}`;
     }
-
     return `${sDate}, ${sTime} Uhr`;
   };
 
@@ -105,7 +113,7 @@ export default function EventsPage() {
                   <div>
                     <h3 className="text-lg font-bold leading-tight" style={{ color: 'var(--app-text)' }}>{e.title}</h3>
                     <p className="text-xs font-bold mt-1 uppercase tracking-wide text-orange-500">
-                      {formatDateRange(e.event_date, e.event_end_date)}
+                      {formatDateRange(e.event_date, e.event_end_date, e.is_all_day)}
                     </p>
                   </div>
                 </div>
