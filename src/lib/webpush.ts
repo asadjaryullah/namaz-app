@@ -82,7 +82,8 @@ export async function sendPushToGender(
   gender: string,
   payload: PushPayload,
   extraUserIds: string[] = [],
-  logs: string[] = []
+  logs: string[] = [],
+  excludeUserIds: string[] = []
 ) {
   ensureVapid();
   const supabase = getSupabase();
@@ -95,7 +96,7 @@ export async function sendPushToGender(
   const userIds = [...new Set([
     ...(profiles?.map((p) => p.id) || []),
     ...extraUserIds,
-  ])];
+  ])].filter((id) => !excludeUserIds.includes(id));
 
   if (!userIds.length) {
     logs.push("⚠️ Keine passenden User gefunden");
