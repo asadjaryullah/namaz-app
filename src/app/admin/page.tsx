@@ -9,7 +9,7 @@ import {
   Loader2, Save, ArrowLeft, ShieldAlert, Download, CalendarPlus,
   Trash2, Check, X, MapPin, BellRing, ChevronDown,
   Users, CalendarDays, Settings, Search, Edit3, Phone, BadgeInfo,
-  UserRound, Lock, Unlock,
+  UserRound, Lock, Unlock, FileUp, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +53,17 @@ export default function AdminPage() {
   const [pendingUsers, setPendingUsers] = useState<Profile[]>([]);
   const [allProfiles, setAllProfiles] = useState<Profile[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+
+  // Termin-Import per Datei-Analyse
+  type ImportedEvent = {
+    title: string; location: string; org: Org;
+    date: string; time: string | null;
+    end_date: string | null; end_time: string | null;
+    selected: boolean;
+  };
+  const [importing, setImporting] = useState(false);
+  const [importedEvents, setImportedEvents] = useState<ImportedEvent[]>([]);
+  const [importSaving, setImportSaving] = useState(false);
 
   const [newEventTitle, setNewEventTitle] = useState("");
   const [newEventLocation, setNewEventLocation] = useState("");
@@ -265,6 +276,83 @@ export default function AdminPage() {
       toast.success("Termin hinzugefügt!");
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* ── Termin-Import: Datei hochladen → KI-Analyse → Vorschau → Übernehmen ── */
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    setImportedEvents([]);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { toast.error("Nicht eingeloggt."); return; }
+
+      let body: Record<string, string>;
+      if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+        // Vercel begrenzt den Request-Body auf 4,5 MB — Base64 vergrößert um ~33%
+        if (file.size > 3 * 1024 * 1024) { toast.error("Datei zu groß (max. 3 MB)."); return; }
+        const buf = await file.arrayBuffer();
+        let binary = '';
+        const bytes = new Uint8Array(buf);
+        for (let i = 0; i < bytes.length; i += 8192) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+        }
+        body = { media_type: file.type, data: btoa(binary) };
+      } else {
+        // Text/CSV o.ä. als Klartext senden
+        body = { text: await file.text() };
+      }
+
+      const res = await fetch('/api/admin/import-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || "Analyse fehlgeschlagen."); return; }
+      if (!data.events?.length) { toast.info("Keine Termine im Dokument gefunden."); return; }
+
+      setImportedEvents(data.events.map((e: any) => ({ ...e, selected: true })));
+      toast.success(`${data.events.length} ${data.events.length === 1 ? 'Termin' : 'Termine'} erkannt – bitte prüfen!`);
+    } catch {
+      toast.error("Analyse fehlgeschlagen. Bitte nochmal versuchen.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleSaveImportedEvents = async () => {
+    const toSave = importedEvents.filter(e => e.selected);
+    if (!toSave.length) { toast.error("Keine Termine ausgewählt."); return; }
+    setImportSaving(true);
+    try {
+      const rows = toSave.map(e => {
+        const isAllDay = !e.time;
+        const startIso = new Date(e.date + 'T' + (e.time || '00:00')).toISOString();
+        let endIso: string;
+        if (e.end_date || e.end_time) {
+          endIso = new Date((e.end_date || e.date) + 'T' + (e.end_time || e.time || '00:00')).toISOString();
+        } else if (!isAllDay) {
+          const d = new Date(startIso); d.setHours(d.getHours() + 2); endIso = d.toISOString();
+        } else {
+          endIso = startIso;
+        }
+        return {
+          title: e.title.trim(),
+          location: (e.location || 'Bashier Moschee').trim(),
+          org: e.org || 'jamaat',
+          event_date: startIso,
+          event_end_date: endIso,
+          is_all_day: isAllDay,
+        };
+      });
+      const { error } = await supabase.from('mosque_events').insert(rows);
+      if (error) { toast.error("Fehler: " + error.message); return; }
+      toast.success(`${rows.length} ${rows.length === 1 ? 'Termin' : 'Termine'} übernommen!`);
+      setImportedEvents([]);
+      await fetchEvents();
+    } finally {
+      setImportSaving(false);
     }
   };
 
@@ -673,6 +761,84 @@ export default function AdminPage() {
         {/* ── TAB: TERMINE ── */}
         {activeAdminTab === 'events' && (
           <div className="space-y-4 animate-in fade-in duration-200">
+
+            {/* ── Termine aus Datei importieren ── */}
+            <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-gold)' }}>
+              <p className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--app-gold)' }}>
+                <Sparkles size={12} /> Termine aus Datei importieren
+              </p>
+              <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
+                Lade einen Terminplan hoch (PDF, Foto oder Text) – die Termine werden automatisch erkannt.
+              </p>
+              <label
+                className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold cursor-pointer transition-opacity ${importing ? 'opacity-60 pointer-events-none' : 'active:opacity-70'}`}
+                style={{ background: 'var(--app-gold-dim)', border: '1px dashed var(--app-gold)', color: 'var(--app-gold)' }}
+              >
+                {importing ? <><Loader2 size={16} className="animate-spin" /> Analysiere Dokument...</> : <><FileUp size={16} /> Datei auswählen</>}
+                <input
+                  type="file"
+                  accept="application/pdf,image/*,.txt,.csv,.md"
+                  className="hidden"
+                  disabled={importing}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleImportFile(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+
+              {importedEvents.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--app-text3)' }}>
+                    Erkannte Termine – abwählen was nicht übernommen werden soll
+                  </p>
+                  {importedEvents.map((e, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setImportedEvents(prev => prev.map((ev, j) => j === i ? { ...ev, selected: !ev.selected } : ev))}
+                      className="w-full flex items-start gap-3 rounded-xl p-3 text-left transition-opacity"
+                      style={{
+                        background: 'var(--app-card)',
+                        border: `1px solid ${e.selected ? 'var(--app-emerald)' : 'var(--app-border)'}`,
+                        opacity: e.selected ? 1 : 0.5,
+                      }}
+                    >
+                      <span className="mt-0.5 shrink-0 w-5 h-5 rounded-md flex items-center justify-center"
+                        style={{ background: e.selected ? 'var(--app-emerald)' : 'transparent', border: '1.5px solid var(--app-emerald)' }}>
+                        {e.selected && <Check size={13} color="#fff" strokeWidth={3} />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-bold truncate" style={{ color: 'var(--app-text)' }}>{e.title}</span>
+                        <span className="block text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>
+                          {new Date(e.date + 'T00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
+                          {e.time ? ` · ${e.time} Uhr` : ' · ganztägig'}
+                          {e.end_date && e.end_date !== e.date ? ` bis ${new Date(e.end_date + 'T00:00').toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}` : ''}
+                        </span>
+                        <span className="block text-[11px] mt-0.5" style={{ color: 'var(--app-text3)' }}>
+                          {e.location} · {ORG_LABEL[e.org] || e.org}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      className="flex-1"
+                      disabled={importSaving || !importedEvents.some(e => e.selected)}
+                      onClick={handleSaveImportedEvents}
+                    >
+                      {importSaving
+                        ? <><Loader2 size={16} className="mr-2 animate-spin" /> Speichern...</>
+                        : <><CalendarPlus size={16} className="mr-2" /> {importedEvents.filter(e => e.selected).length} übernehmen</>}
+                    </Button>
+                    <Button variant="outline" onClick={() => setImportedEvents([])} disabled={importSaving}>
+                      Verwerfen
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="rounded-2xl p-4 space-y-3" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Neuer Termin</p>

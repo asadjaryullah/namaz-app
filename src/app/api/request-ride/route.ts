@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendPushToAll } from '@/lib/webpush';
+import { sendPushToGender } from '@/lib/webpush';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -86,15 +86,29 @@ export async function POST(request: Request) {
 
   const n = count ?? 1;
   const prayerLabel = PRAYER_LABEL[prayer_id] || prayer_id;
-  const brotherText = n === 1 ? 'Bruder wartet' : 'Brüder warten';
 
-  sendPushToAll(
+  // Push nur an das eigene Geschlecht (Fahrten sind getrennt), nicht an den Anfragenden selbst
+  const { data: requesterProfile } = await supabase
+    .from('profiles')
+    .select('gender')
+    .eq('id', userData.user.id)
+    .maybeSingle();
+
+  const gender = requesterProfile?.gender || 'male';
+  const waitText = gender === 'female'
+    ? (n === 1 ? 'Schwester wartet' : 'Schwestern warten')
+    : (n === 1 ? 'Bruder wartet' : 'Brüder warten');
+
+  sendPushToGender(
+    gender,
     {
-      title: `🤲 ${n} ${brotherText} auf Fahrt zum ${prayerLabel}`,
+      title: `🤲 ${n} ${waitText} auf Fahrt zum ${prayerLabel}`,
       body: 'Kannst du fahren? Jetzt Fahrt anbieten!',
       url: '/select-prayer?role=driver',
     },
-    []
+    [],
+    [],
+    [userData.user.id]
   ).catch(() => {});
 
   return NextResponse.json({ id: upserted.id, count: n });

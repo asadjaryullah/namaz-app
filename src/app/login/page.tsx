@@ -203,7 +203,24 @@ export default function LoginPage() {
             {step === 'verify' && (
               <form onSubmit={handleVerifyCode} className="space-y-5">
                 <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid var(--app-gold)', boxShadow: '0 0 24px var(--app-gold-glow)' }}>
-                  <input type="text" placeholder="— — — — — —" maxLength={6} value={otp} onChange={e => setOtp(e.target.value)} autoFocus className="font-mono-app"
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                    placeholder="— — — — — —"
+                    maxLength={6}
+                    value={otp}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtp(digits);
+                      if (digits.length === 6 && !loading) {
+                        // Auto-Submit sobald der Code vollständig ist
+                        const form = e.target.form;
+                        setTimeout(() => form?.requestSubmit(), 100);
+                      }
+                    }}
+                    autoFocus className="font-mono-app"
                     style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', textAlign: 'center', fontSize: 36, fontWeight: 500, color: 'var(--app-gold)', padding: '22px 16px', letterSpacing: '0.3em' }} />
                 </div>
                 <p className="text-[11px] text-center" style={{ color: 'var(--app-text3)' }}>Schau in dein Email-Postfach.</p>

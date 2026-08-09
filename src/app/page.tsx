@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell
 import MapComponent from '@/components/MapComponent';
 import ZikrWidget from '@/components/ZikrWidget';
 import NextPrayerBanner from '@/components/NextPrayerBanner';
+import { toast } from 'sonner';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -173,8 +174,12 @@ export default function HomePage() {
         setCommitmentCount(data.count);
         setPopCommit(true);
         setTimeout(() => setPopCommit(false), 350);
+      } else {
+        toast.error("Zusage konnte nicht gespeichert werden. Bitte nochmal versuchen.");
       }
-    } catch (_) {}
+    } catch (_) {
+      toast.error("Keine Verbindung. Bitte nochmal versuchen.");
+    }
     setTogglingCommit(false);
   };
 
@@ -185,23 +190,34 @@ export default function HomePage() {
       const { data: { session } } = await supabase.auth.getSession();
       const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
       if (myRideRequest) {
-        await fetch('/api/request-ride', {
+        const res = await fetch('/api/request-ride', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
           body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
         });
-        setMyRideRequest(null);
-        setRideRequestCount(c => Math.max(0, c - 1));
+        if (res.ok) {
+          setMyRideRequest(null);
+          setRideRequestCount(c => Math.max(0, c - 1));
+        } else {
+          toast.error("Abmelden hat nicht geklappt. Bitte nochmal versuchen.");
+        }
       } else {
         const res = await fetch('/api/request-ride', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
           body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
         });
-        const data = await res.json();
-        if (data.id) { setMyRideRequest(data.id); setRideRequestCount(data.count ?? rideRequestCount + 1); }
+        const data = res.ok ? await res.json() : null;
+        if (data?.id) {
+          setMyRideRequest(data.id);
+          setRideRequestCount(data.count ?? rideRequestCount + 1);
+        } else {
+          toast.error("Anfrage konnte nicht gesendet werden. Bitte nochmal versuchen.");
+        }
       }
-    } catch (_) {}
+    } catch (_) {
+      toast.error("Keine Verbindung. Bitte nochmal versuchen.");
+    }
     setTogglingRequest(false);
   };
 
@@ -216,10 +232,16 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
         body: JSON.stringify({ prayer_id: nextPrayer.id, maybe_date: today }),
       });
-      const data = await res.json();
-      setMyDriverMaybe(data.maybe);
-      setDriverMaybeCount(data.count ?? 0);
-    } catch (_) {}
+      if (res.ok) {
+        const data = await res.json();
+        setMyDriverMaybe(data.maybe);
+        setDriverMaybeCount(data.count ?? 0);
+      } else {
+        toast.error("Konnte nicht gespeichert werden. Bitte nochmal versuchen.");
+      }
+    } catch (_) {
+      toast.error("Keine Verbindung. Bitte nochmal versuchen.");
+    }
     setTogglingMaybe(false);
   };
 
