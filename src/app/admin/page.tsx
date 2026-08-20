@@ -75,6 +75,7 @@ export default function AdminPage() {
   const [showTemplates, setShowTemplates] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const [notifyOnTimeChange, setNotifyOnTimeChange] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canEditTimes, setCanEditTimes] = useState(false);
@@ -492,10 +493,28 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.from('prayer_times').upsert(prayers);
-    setSaving(false);
-    if (error) toast.error("Fehler: " + error.message);
-    else toast.success("Gebetszeiten gespeichert!");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/admin/update-prayer-times', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+        body: JSON.stringify({ prayers, notify: notifyOnTimeChange }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error("Fehler: " + (json.error || res.status)); return; }
+
+      if (json.changed === 0) {
+        toast.success("Gespeichert – keine Zeit geändert.");
+      } else if (json.pushed > 0) {
+        toast.success(`Gespeichert – ${json.changed === 1 ? '1 Zeit' : `${json.changed} Zeiten`} geändert, Gemeinde benachrichtigt.`);
+      } else {
+        toast.success(`Gespeichert – ${json.changed === 1 ? '1 Zeit' : `${json.changed} Zeiten`} geändert.`);
+      }
+    } catch {
+      toast.error("Keine Verbindung. Bitte nochmal versuchen.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSendPush = async () => {
@@ -1110,6 +1129,32 @@ export default function AdminPage() {
                   </div>
                 ))}
               </div>
+              {/* Benachrichtigen-Schalter */}
+              <button
+                onClick={() => setNotifyOnTimeChange(v => !v)}
+                className="w-full flex items-center justify-between p-3 rounded-xl transition-all"
+                style={notifyOnTimeChange
+                  ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
+                  : { background: 'var(--app-card)', border: '1px solid var(--app-border)' }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <BellRing size={15} style={{ color: notifyOnTimeChange ? 'var(--app-blue)' : 'var(--app-text3)' }} />
+                  <div className="text-left">
+                    <p className="font-bold text-sm" style={{ color: notifyOnTimeChange ? 'var(--app-blue)' : 'var(--app-text2)' }}>
+                      Gemeinde benachrichtigen
+                    </p>
+                    <p className="text-[11px]" style={{ color: 'var(--app-text3)' }}>
+                      {notifyOnTimeChange ? 'Push bei geänderten Zeiten' : 'Still speichern, keine Push'}
+                    </p>
+                  </div>
+                </div>
+                <div className="w-10 h-5 rounded-full transition-all relative shrink-0"
+                  style={{ background: notifyOnTimeChange ? 'var(--app-blue)' : 'var(--app-border)' }}>
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                    style={{ left: notifyOnTimeChange ? 'calc(100% - 1.125rem)' : '2px' }} />
+                </div>
+              </button>
+
               <button className="btn-gold w-full" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Save size={15} className="mr-2" />}
                 Speichern
