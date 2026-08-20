@@ -99,6 +99,31 @@ export default function NextPrayerBanner() {
             </p>
           </div>
         </div>
+
+        {/* Übersicht: alle Gebetszeiten des Tages */}
+        {prayers.length > 0 && (
+          <div className="mt-4 pt-3 flex gap-1" style={{ borderTop: '1px solid var(--app-border)' }}>
+            {prayers.map((p) => {
+              const isNext = p.name === next.name;
+              return (
+                <div key={p.name}
+                  className="flex-1 min-w-0 flex flex-col items-center gap-0.5 py-1.5 rounded-lg transition-colors"
+                  style={isNext
+                    ? { background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }
+                    : { border: '1px solid transparent' }}>
+                  <span className="text-[9px] font-bold uppercase tracking-wide truncate max-w-full px-0.5"
+                    style={{ color: isNext ? 'var(--app-gold)' : 'var(--app-text3)' }}>
+                    {p.name}
+                  </span>
+                  <span className="font-mono-app text-[11px] font-bold tabular-nums"
+                    style={{ color: isNext ? 'var(--app-gold)' : 'var(--app-text2)' }}>
+                    {p.time}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
