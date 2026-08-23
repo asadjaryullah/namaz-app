@@ -4,10 +4,9 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, Car, User, ArrowRight, Calendar, Settings, Bell, GraduationCap, Users } from "lucide-react";
-import MapComponent from '@/components/MapComponent';
+import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, GraduationCap } from "lucide-react";
 import ZikrWidget from '@/components/ZikrWidget';
-import NextPrayerBanner from '@/components/NextPrayerBanner';
+import TodayCard from '@/components/TodayCard';
 import { toast } from 'sonner';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
@@ -27,6 +26,7 @@ export default function HomePage() {
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
   const [nextPrayer, setNextPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
+  const [allPrayers, setAllPrayers] = useState<{ id: string; name: string; time: string }[]>([]);
   const [commitmentCount, setCommitmentCount] = useState(0);
   const [isCommitted, setIsCommitted] = useState(false);
   const [togglingCommit, setTogglingCommit] = useState(false);
@@ -86,6 +86,7 @@ export default function HomePage() {
           const nowHHMM = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
           const next = prayerTimesData.find(p => p.time > nowHHMM) || prayerTimesData[0];
           setNextPrayer(next);
+          setAllPrayers(prayerTimesData);
           try {
             const [{ count }, { data: mine }] = await Promise.all([
               supabase.from('prayer_commitments').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('prayer_date', today),
@@ -369,13 +370,20 @@ export default function HomePage() {
           style={{ color: 'var(--app-gold)' }}>
           Salam, {firstName}
         </p>
-        <button
-          onClick={() => router.push('/profile')}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-lg active:scale-[0.93] transition-transform"
-          style={{ background: 'linear-gradient(135deg, var(--app-gold-dim), var(--app-card))', border: '1px solid var(--app-gold)' }}
-        >
-          {emoji}
-        </button>
+        <div className="flex items-center gap-2.5">
+          <div className="relative w-9 h-9 shrink-0"
+            title="100 Jahre Jubiläum"
+            style={{ filter: 'drop-shadow(0 0 10px var(--app-gold-glow))' }}>
+            <Image src="/jubilaeum.png" alt="100 Jahre Jubiläum" fill className="object-contain" />
+          </div>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg active:scale-[0.93] transition-transform"
+            style={{ background: 'linear-gradient(135deg, var(--app-gold-dim), var(--app-card))', border: '1px solid var(--app-gold)' }}
+          >
+            {emoji}
+          </button>
+        </div>
       </div>
 
       {/* ── Arabic ── */}
@@ -395,124 +403,33 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── Jubiläum ── */}
-      <div className="stagger-2 flex flex-col items-center py-2">
-        <div className="relative w-36 h-36"
-          style={{ filter: 'drop-shadow(0 0 18px var(--app-gold-glow))' }}>
-          <Image src="/jubilaeum.png" alt="100 Jahre Jubiläum" fill className="object-contain" />
-        </div>
+      {/* ── Heute: Gebet & Fahrt ── */}
+      <div className="stagger-2">
+        <TodayCard
+          allPrayers={allPrayers}
+          nextPrayer={nextPrayer}
+          isApproved={isApproved}
+          commitmentCount={commitmentCount}
+          isCommitted={isCommitted}
+          togglingCommit={togglingCommit}
+          popCommit={popCommit}
+          onToggleCommit={handleToggleCommitment}
+          rideRequestCount={rideRequestCount}
+          myRideRequest={myRideRequest}
+          togglingRequest={togglingRequest}
+          onToggleRequest={handleToggleRideRequest}
+          driverMaybeCount={driverMaybeCount}
+          myDriverMaybe={myDriverMaybe}
+          togglingMaybe={togglingMaybe}
+          onToggleMaybe={handleToggleDriverMaybe}
+          activeDriverRide={activeDriverRide}
+          activePassengerRide={activePassengerRide}
+          todayRiderCount={todayRiderCount}
+          onOfferRide={() => router.push('/select-prayer?role=driver')}
+          onOpenDriverRide={() => router.push('/driver/dashboard')}
+          onOpenPassengerRide={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide?.rideId}`)}
+        />
       </div>
-
-      {/* ── Nächstes Gebet ── */}
-      <div className="stagger-2"><NextPrayerBanner /></div>
-
-      {/* ── Commitment Card ── */}
-      {nextPrayer && isApproved && (
-        <div className="stagger-2 rounded-2xl p-4 flex items-center justify-between gap-3"
-          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--app-text3)' }}>
-              Zum Gebet
-            </p>
-            <p className="text-base font-extrabold leading-tight" style={{ color: 'var(--app-text)' }}>
-              {nextPrayer.name} · {nextPrayer.time}
-            </p>
-            {commitmentCount > 0 ? (
-              <p className="text-xs mt-0.5 font-semibold" style={{ color: 'var(--app-emerald)' }}>
-                ✓ {commitmentCount} {commitmentCount === 1 ? 'Person kommt' : 'Personen kommen'}
-              </p>
-            ) : (
-              <p className="text-xs mt-0.5" style={{ color: 'var(--app-text3)' }}>Noch niemand zugesagt</p>
-            )}
-          </div>
-          <button
-            onClick={handleToggleCommitment}
-            disabled={togglingCommit}
-            className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition-colors active:scale-[0.95] ${popCommit ? 'animate-pop' : ''}`}
-            style={{
-              background: isCommitted ? 'var(--app-emerald)' : 'transparent',
-              color: isCommitted ? '#fff' : 'var(--app-emerald)',
-              border: '2px solid var(--app-emerald)',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              minWidth: 100,
-            }}
-          >
-            {togglingCommit ? '...' : isCommitted ? 'Ich komme ✓' : 'Ich komme'}
-          </button>
-        </div>
-      )}
-
-      {/* ── Mitfahrer-Warteliste ── */}
-      {nextPrayer && isApproved && !activeDriverRide && !activePassengerRide && (
-        <div className="stagger-2 rounded-2xl p-4 flex flex-col gap-3"
-          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>
-              Fahrt zum {nextPrayer.name}
-            </p>
-            {(rideRequestCount > 0 || driverMaybeCount > 0) && (
-              <div className="flex items-center gap-1.5">
-                {rideRequestCount > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: 'var(--app-blue-dim)', color: 'var(--app-blue)' }}>
-                    👥 {rideRequestCount} warten
-                  </span>
-                )}
-                {driverMaybeCount > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: 'var(--app-gold-dim)', color: 'var(--app-gold)' }}>
-                    🚗 {driverMaybeCount} vielleicht
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {rideRequestCount === 0 && driverMaybeCount === 0 && !myRideRequest && (
-            <p className="text-xs" style={{ color: 'var(--app-text3)' }}>
-              Noch niemand für diese Fahrt angemeldet — sei der Erste!
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              onClick={handleToggleRideRequest}
-              disabled={togglingRequest}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors active:scale-[0.96]"
-              style={{
-                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                background: myRideRequest ? 'var(--app-blue-dim)' : 'var(--app-surface1)',
-                border: `1px solid ${myRideRequest ? 'var(--app-blue)' : 'var(--app-border)'}`,
-                color: myRideRequest ? 'var(--app-blue)' : 'var(--app-text2)',
-              }}
-            >
-              {togglingRequest ? '...' : myRideRequest ? '✓ Ich will mitfahren' : 'Ich will mitfahren'}
-            </button>
-            <button
-              onClick={handleToggleDriverMaybe}
-              disabled={togglingMaybe}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors active:scale-[0.96]"
-              style={{
-                touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
-                background: myDriverMaybe ? 'var(--app-gold-dim)' : 'var(--app-surface1)',
-                border: `1px solid ${myDriverMaybe ? 'var(--app-gold)' : 'var(--app-border)'}`,
-                color: myDriverMaybe ? 'var(--app-gold)' : 'var(--app-text2)',
-              }}
-            >
-              {togglingMaybe ? '...' : myDriverMaybe ? '✓ Ich fahre vielleicht' : 'Ich fahre vielleicht'}
-            </button>
-          </div>
-
-          <button
-            onClick={() => router.push('/select-prayer?role=driver')}
-            className="text-xs font-bold text-center active:opacity-70"
-            style={{ color: 'var(--app-gold)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-          >
-            Fahrt jetzt anbieten →
-          </button>
-        </div>
-      )}
 
       {/* ── Benachrichtigungen aktivieren ── */}
       {notifPerm !== 'granted' && (
@@ -584,90 +501,6 @@ export default function HomePage() {
 
       {/* ── Zikr Widget ── */}
       <div className="stagger-3"><ZikrWidget userId={user.id} /></div>
-
-      {/* ── Aktive Fahrten ── */}
-      {activeDriverRide && (
-        <div onClick={() => router.push('/driver/dashboard')}
-          className="stagger-3 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform overflow-hidden"
-          style={{ background: 'var(--app-gold-dim)', border: '2px solid var(--app-gold)', boxShadow: '0 0 32px var(--app-gold-glow)' }}>
-          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--app-gold)' }}></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: 'var(--app-gold)' }}></span>
-            </span>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: 'var(--app-gold)' }}>Aktive Fahrt · Live</p>
-          </div>
-          <div className="px-4 pb-4 flex items-center justify-between">
-            <div>
-              <p className="font-extrabold text-xl leading-tight" style={{ color: 'var(--app-gold)' }}>Du bist Fahrer</p>
-              {activeDriverRide.prayer_time && (
-                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--app-text2)' }}>
-                  🕐 Gebet um {activeDriverRide.prayer_time} Uhr
-                </p>
-              )}
-              <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--app-text2)' }}>Tippe für Navigation & Mitfahrer-Übersicht →</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
-              <Car size={24} style={{ color: 'var(--app-gold)' }} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activePassengerRide && (
-        <div onClick={() => router.push(`/passenger/dashboard?rideId=${activePassengerRide.rideId}`)}
-          className="stagger-3 rounded-2xl cursor-pointer active:scale-[0.98] transition-transform overflow-hidden"
-          style={{ background: 'var(--app-emerald-dim)', border: '2px solid var(--app-emerald)', boxShadow: '0 0 32px rgba(34,211,138,0.2)' }}>
-          <div className="px-4 pt-3 pb-1 flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--app-emerald)' }}></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: 'var(--app-emerald)' }}></span>
-            </span>
-            <p className="text-[10px] font-black uppercase tracking-[0.15em]" style={{ color: 'var(--app-emerald)' }}>Aktive Fahrt · Live</p>
-          </div>
-          <div className="px-4 pb-4 flex items-center justify-between">
-            <div>
-              <p className="font-extrabold text-xl leading-tight" style={{ color: 'var(--app-emerald)' }}>Du fährst mit</p>
-              {activePassengerRide.prayer_time && (
-                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--app-text2)' }}>
-                  🕐 Gebet um {activePassengerRide.prayer_time} Uhr
-                </p>
-              )}
-              <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--app-text2)' }}>Tippe für Fahrer-Standort & Details →</p>
-            </div>
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
-              <User size={24} style={{ color: 'var(--app-emerald)' }} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Fahrer / Mitfahrer Raster ── */}
-      {(isApproved || isAdmin) && (
-        <div className="stagger-4 grid grid-cols-2 gap-3">
-          <button onClick={() => router.push('/select-prayer?role=driver')}
-            className="app-card app-card-hover text-left p-[18px] cursor-pointer">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)' }}>
-              <Car size={20} style={{ color: 'var(--app-gold)' }} />
-            </div>
-            <p className="text-[15px] font-extrabold" style={{ color: 'var(--app-text)' }}>Fahrer</p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'var(--app-text2)' }}>Plätze anbieten</p>
-          </button>
-
-          <button onClick={() => router.push('/select-prayer?role=passenger')}
-            className="app-card app-card-hover-blue text-left p-[18px] cursor-pointer">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
-              style={{ background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }}>
-              <User size={20} style={{ color: 'var(--app-blue)' }} />
-            </div>
-            <p className="text-[15px] font-extrabold" style={{ color: 'var(--app-text)' }}>Mitfahrer</p>
-            <p className="text-[11px] mt-0.5" style={{ color: 'var(--app-text2)' }}>Fahrt suchen</p>
-          </button>
-        </div>
-      )}
 
       {/* ── Events Karte ── */}
       <div onClick={() => router.push('/history?tab=events')}
@@ -779,12 +612,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── Karte ── */}
-      <div className="stagger-6 h-[200px] rounded-2xl overflow-hidden"
-        style={{ border: '1px solid var(--app-border)', boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}>
-        <MapComponent />
-      </div>
-
       {/* ── Admin ── */}
       {isAdmin && (
         <div className="pt-4" style={{ borderTop: '1px solid var(--app-border)' }}>
@@ -793,17 +620,6 @@ export default function HomePage() {
             style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}>
             <Settings size={16} /> Admin Bereich
           </button>
-        </div>
-      )}
-
-      {/* ── Tagesübersicht ── */}
-      {todayRiderCount > 0 && (
-        <div className="stagger-6 rounded-2xl p-4 text-center"
-          style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }}>
-          <p className="text-sm font-extrabold" style={{ color: 'var(--app-emerald)' }}>
-            ✓ Heute: {todayRiderCount} {todayRiderCount === 1 ? 'Bruder' : 'Brüder'} gemeinsam zur Moschee
-          </p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>Alhamdulillah!</p>
         </div>
       )}
 
