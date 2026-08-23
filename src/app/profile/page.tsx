@@ -237,7 +237,7 @@ export default function ProfilePage() {
                   type="button"
                   className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
                   style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
-                  onClick={() => router.push('/events')}
+                  onClick={() => router.push('/history?tab=events')}
                 >
                   <List size={18} /> Liste ansehen (Web)
                 </button>

@@ -27,6 +27,9 @@ export default function HomePage() {
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
   const [nextPrayer, setNextPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
   const [allPrayers, setAllPrayers] = useState<{ id: string; name: string; time: string }[]>([]);
+  // Gebet, auf das sich Zusage und Fahrt-Aktionen beziehen. Standard: das nächste.
+  const [selectedPrayer, setSelectedPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
+  const [loadingPrayerState, setLoadingPrayerState] = useState(false);
   const [commitmentCount, setCommitmentCount] = useState(0);
   const [isCommitted, setIsCommitted] = useState(false);
   const [togglingCommit, setTogglingCommit] = useState(false);
@@ -87,37 +90,8 @@ export default function HomePage() {
           const next = prayerTimesData.find(p => p.time > nowHHMM) || prayerTimesData[0];
           setNextPrayer(next);
           setAllPrayers(prayerTimesData);
-          try {
-            const [{ count }, { data: mine }] = await Promise.all([
-              supabase.from('prayer_commitments').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('prayer_date', today),
-              supabase.from('prayer_commitments').select('id').eq('user_id', session.user.id).eq('prayer_id', next.id).eq('prayer_date', today).maybeSingle(),
-            ]);
-            if (mounted) { setCommitmentCount(count ?? 0); setIsCommitted(!!mine); }
-          } catch (_) {}
-
-          // Ride requests + driver maybe + daily tally
-          try {
-            const [
-              { count: reqCount },
-              { data: myReq },
-              { count: maybeCount },
-              { data: myMaybe },
-              { count: riderCount },
-            ] = await Promise.all([
-              supabase.from('ride_requests').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('request_date', today).eq('status', 'waiting'),
-              supabase.from('ride_requests').select('id').eq('user_id', session.user.id).eq('prayer_id', next.id).eq('request_date', today).eq('status', 'waiting').maybeSingle(),
-              supabase.from('driver_maybe').select('*', { count: 'exact', head: true }).eq('prayer_id', next.id).eq('maybe_date', today),
-              supabase.from('driver_maybe').select('id').eq('driver_id', session.user.id).eq('prayer_id', next.id).eq('maybe_date', today).maybeSingle(),
-              supabase.from('bookings').select('*, rides!inner(ride_date)', { count: 'exact', head: true }).eq('status', 'accepted').eq('rides.ride_date', today),
-            ]);
-            if (mounted) {
-              setRideRequestCount(reqCount ?? 0);
-              setMyRideRequest(myReq?.id ?? null);
-              setDriverMaybeCount(maybeCount ?? 0);
-              setMyDriverMaybe(!!myMaybe);
-              setTodayRiderCount(riderCount ?? 0);
-            }
-          } catch (_) {}
+          // Zustand für dieses Gebet lädt der Effekt unten
+          setSelectedPrayer(next);
         }
 
         // Onboarding: show once for new users
@@ -156,8 +130,54 @@ export default function HomePage() {
     };
   }, [router]);
 
+  /* Lädt Zusage, Warteliste und Vielleicht-Fahrer für das gewählte Gebet.
+     Läuft beim Start und jedes Mal, wenn ein anderes Gebet angetippt wird. */
+  useEffect(() => {
+    if (!selectedPrayer || !user) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoadingPrayerState(true);
+      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+      try {
+        const [
+          { count: commitCount },
+          { data: myCommit },
+          { count: reqCount },
+          { data: myReq },
+          { count: maybeCount },
+          { data: myMaybe },
+          { count: riderCount },
+        ] = await Promise.all([
+          supabase.from('prayer_commitments').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('prayer_date', today),
+          supabase.from('prayer_commitments').select('id').eq('user_id', user.id).eq('prayer_id', selectedPrayer.id).eq('prayer_date', today).maybeSingle(),
+          supabase.from('ride_requests').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('request_date', today).eq('status', 'waiting'),
+          supabase.from('ride_requests').select('id').eq('user_id', user.id).eq('prayer_id', selectedPrayer.id).eq('request_date', today).eq('status', 'waiting').maybeSingle(),
+          supabase.from('driver_maybe').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('maybe_date', today),
+          supabase.from('driver_maybe').select('id').eq('driver_id', user.id).eq('prayer_id', selectedPrayer.id).eq('maybe_date', today).maybeSingle(),
+          supabase.from('bookings').select('*, rides!inner(ride_date)', { count: 'exact', head: true }).eq('status', 'accepted').eq('rides.ride_date', today),
+        ]);
+        if (cancelled) return;
+        setCommitmentCount(commitCount ?? 0);
+        setIsCommitted(!!myCommit);
+        setRideRequestCount(reqCount ?? 0);
+        setMyRideRequest(myReq?.id ?? null);
+        setDriverMaybeCount(maybeCount ?? 0);
+        setMyDriverMaybe(!!myMaybe);
+        setTodayRiderCount(riderCount ?? 0);
+      } catch (_) {
+        // Zustand bleibt wie er war — die Karte zeigt weiter die letzten Werte
+      } finally {
+        if (!cancelled) setLoadingPrayerState(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [selectedPrayer, user]);
+
   const handleToggleCommitment = async () => {
-    if (!nextPrayer || !user || togglingCommit) return;
+    if (!selectedPrayer || !user || togglingCommit) return;
     setTogglingCommit(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -167,7 +187,7 @@ export default function HomePage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
-        body: JSON.stringify({ prayer_id: nextPrayer.id }),
+        body: JSON.stringify({ prayer_id: selectedPrayer.id }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -185,7 +205,7 @@ export default function HomePage() {
   };
 
   const handleToggleRideRequest = async () => {
-    if (!nextPrayer || !user || togglingRequest) return;
+    if (!selectedPrayer || !user || togglingRequest) return;
     setTogglingRequest(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -194,7 +214,7 @@ export default function HomePage() {
         const res = await fetch('/api/request-ride', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-          body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
+          body: JSON.stringify({ prayer_id: selectedPrayer.id, request_date: today }),
         });
         if (res.ok) {
           setMyRideRequest(null);
@@ -206,7 +226,7 @@ export default function HomePage() {
         const res = await fetch('/api/request-ride', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-          body: JSON.stringify({ prayer_id: nextPrayer.id, request_date: today }),
+          body: JSON.stringify({ prayer_id: selectedPrayer.id, request_date: today }),
         });
         const data = res.ok ? await res.json() : null;
         if (data?.id) {
@@ -223,7 +243,7 @@ export default function HomePage() {
   };
 
   const handleToggleDriverMaybe = async () => {
-    if (!nextPrayer || !user || togglingMaybe) return;
+    if (!selectedPrayer || !user || togglingMaybe) return;
     setTogglingMaybe(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -231,7 +251,7 @@ export default function HomePage() {
       const res = await fetch('/api/driver-maybe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
-        body: JSON.stringify({ prayer_id: nextPrayer.id, maybe_date: today }),
+        body: JSON.stringify({ prayer_id: selectedPrayer.id, maybe_date: today }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -408,6 +428,9 @@ export default function HomePage() {
         <TodayCard
           allPrayers={allPrayers}
           nextPrayer={nextPrayer}
+          selectedPrayer={selectedPrayer}
+          onSelectPrayer={setSelectedPrayer}
+          loadingPrayerState={loadingPrayerState}
           isApproved={isApproved}
           commitmentCount={commitmentCount}
           isCommitted={isCommitted}
