@@ -11,6 +11,7 @@ import {
   BookOpen, CalendarDays, BarChart2, Smartphone, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { todayBerlin } from '@/lib/date';
 
 // --- KONFIGURATION ZIKR ---
 const ZIKR_LIST = [
@@ -170,7 +171,7 @@ function HistoryContent() {
   useEffect(() => {
     // Load cached zikr counts immediately so taps feel instant on reload
     try {
-      const cached = localStorage.getItem(`zikr_${new Date().toLocaleDateString('en-CA')}`);
+      const cached = localStorage.getItem(`zikr_${todayBerlin()}`);
       if (cached) setZikrData(JSON.parse(cached));
     } catch {}
 
@@ -178,7 +179,7 @@ function HistoryContent() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = todayBerlin();
 
       const { data: driverData } = await supabase.from('rides').select('ride_date').eq('driver_id', user.id).eq('status', 'completed');
       const driverRides = driverData?.map(r => ({ date: r.ride_date, role: 'driver' as const })) || [];
@@ -229,7 +230,7 @@ function HistoryContent() {
     fetchHistory();
   }, []);
 
-  const zikrDateKey = `zikr_${new Date().toLocaleDateString('en-CA')}`;
+  const zikrDateKey = `zikr_${todayBerlin()}`;
 
   const saveLocal = (data: any) => {
     try { localStorage.setItem(zikrDateKey, JSON.stringify(data)); } catch {}

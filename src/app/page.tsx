@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, Graduatio
 import ZikrWidget from '@/components/ZikrWidget';
 import TodayCard from '@/components/TodayCard';
 import { toast } from 'sonner';
+import { todayBerlin } from '@/lib/date';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -103,7 +104,7 @@ export default function HomePage() {
 
         if (mounted) setUser(session.user);
 
-        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+        const today = todayBerlin();
 
         const [
           { data: profileData },
@@ -228,7 +229,7 @@ export default function HomePage() {
     setTogglingRequest(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+      const today = todayBerlin();
       if (myRideRequest) {
         const res = await fetch('/api/request-ride', {
           method: 'DELETE',
@@ -272,7 +273,7 @@ export default function HomePage() {
     setTogglingMaybe(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+      const today = todayBerlin();
       const res = await fetch('/api/driver-maybe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },

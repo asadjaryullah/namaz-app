@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { User, ChevronLeft, MapPin, Loader2, Users, CheckCircle2, MessageCircle, Phone, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { todayBerlin } from '@/lib/date';
 
 type BookingSuccess = { driverName: string; driverPhone: string; rideId: string };
 
@@ -24,7 +25,7 @@ function PassengerListContent() {
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = todayBerlin();
       const { data: { user } } = await supabase.auth.getUser();
 
       let myGender = 'male';

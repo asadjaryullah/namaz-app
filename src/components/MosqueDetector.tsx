@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { todayBerlin } from '@/lib/date';
 
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 }; 
 
@@ -56,7 +57,7 @@ export default function MosqueDetector() {
 
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayBerlin();
 
     // Wir suchen ein Gebet, das +/- 45 Minuten um JETZT liegt
     const activePrayer = prayers.find(p => {

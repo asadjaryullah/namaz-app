@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { todayBerlin } from '@/lib/date';
 
 const MAP_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 };
@@ -69,6 +70,7 @@ export default function DriverDashboard() {
   const [currentPos, setCurrentPos] = useState<{lat: number, lng: number} | null>(null);
   const [passengers, setPassengers] = useState<any[]>([]);
   const [rideId, setRideId] = useState<string | null>(null);
+  const [noRide, setNoRide] = useState(false);
   const [loadingEnd, setLoadingEnd] = useState(false);
   const [ridePrayerName, setRidePrayerName] = useState('');
 
@@ -103,7 +105,7 @@ export default function DriverDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayBerlin();
 
       const { data: ride } = await supabase
         .from('rides')
@@ -123,7 +125,9 @@ export default function DriverDashboard() {
           if (prayer) setRidePrayerName(prayer.name);
         }
       } else {
-        router.push('/');
+        // Kein stiller Rauswurf auf die Startseite — sonst wirkt es, als haette
+        // das Antippen der eigenen Fahrt einfach nicht funktioniert.
+        setNoRide(true);
       }
     };
     fetchRide();
@@ -303,6 +307,31 @@ export default function DriverDashboard() {
 
     return () => navigator.geolocation.clearWatch(watcher);
   }, [rideId]);
+
+  if (noRide) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-4" style={{ background: 'var(--app-bg)' }}>
+        <div className="w-full max-w-md rounded-2xl p-6 text-center"
+          style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
+          <p className="text-lg font-extrabold" style={{ color: 'var(--app-text)' }}>
+            Keine aktive Fahrt
+          </p>
+          <p className="text-sm mt-2" style={{ color: 'var(--app-text2)' }}>
+            Für heute ist keine Fahrt von dir eingetragen. Vielleicht wurde sie
+            schon beendet oder abgesagt.
+          </p>
+          <div className="flex flex-col gap-2 mt-5">
+            <Button className="w-full" onClick={() => router.push('/select-prayer?role=driver')}>
+              Neue Fahrt anbieten
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => router.push('/')}>
+              Zur Startseite
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative" style={{ background: 'var(--app-bg)' }}>

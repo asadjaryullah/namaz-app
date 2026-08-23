@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowRight } from "lucide-react";
+import { todayBerlin } from '@/lib/date';
 
 export default function ZikrWidget({ userId }: { userId: string }) {
   const router = useRouter();
@@ -12,7 +13,7 @@ export default function ZikrWidget({ userId }: { userId: string }) {
 
   useEffect(() => {
     const fetchZikr = async () => {
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = todayBerlin();
       const { data } = await supabase.from('zikr_logs').select('*').eq('user_id', userId).eq('log_date', today).maybeSingle();
       if (data) {
         setData({
