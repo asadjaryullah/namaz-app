@@ -190,6 +190,12 @@ export default function TodayCard(p: Props) {
         {/* Aktionen: Zusage + Fahrt */}
         {p.isApproved && !hasActiveRide && (
           <div className="mt-3 pt-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--app-border)' }}>
+            {p.rideRequestCount === 0 && p.driverMaybeCount === 0 && !p.myRideRequest && (
+              <p className="text-[11px] text-center" style={{ color: 'var(--app-text3)' }}>
+                Noch niemand für diese Fahrt angemeldet — sei der Erste!
+              </p>
+            )}
+
             <button
               onClick={p.onToggleCommit}
               disabled={p.togglingCommit}
