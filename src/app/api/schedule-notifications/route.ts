@@ -60,13 +60,23 @@ export async function GET(req: Request) {
     let sent = 0;
 
     const type = url.searchParams.get("type");
+
+    // Nur Termine prüfen — für einen häufigen Cron, der die Stunden-Erinnerung trifft
+    if (type === "events") {
+      sent += await handleEventReminders(logs, debug);
+      return NextResponse.json({ success: true, sent, logs });
+    }
+
     if (type === "evening") {
       sent += await handleEveningReminder(today, logs, debug);
+      // Der Abendlauf verschickt zugleich die Erinnerungen für morgen
+      sent += await handleEventReminders(logs, debug);
       return NextResponse.json({ success: true, sent, logs });
     }
 
     sent += await handlePrayerPushes(today, nowHHMM, logs, debug);
     sent += await handleFixed(today, nowHHMM, ZIKR_TIMES, "zikr", logs, debug);
+    sent += await handleEventReminders(logs, debug);
 
     const weekday = getBerlinWeekday(now, TZ);
     if (weekday === 5) {
@@ -139,6 +149,79 @@ async function handleFixed(
 
     const ok = await sendOnce(key, () => sendPushToAll(payload, logs), logs, debug);
     if (ok) sent++;
+  }
+
+  return sent;
+}
+
+/**
+ * Termin-Erinnerungen: einmal am Vortag und einmal kurz vorher.
+ *
+ * Bewusst über Zeitspannen statt exakter Zeitpunkte: gefeuert wird beim ersten
+ * Lauf, der in das jeweilige Fenster fällt. Dadurch geht keine Erinnerung
+ * verloren, wenn der Cron nur selten läuft — push_sent verhindert Doppelungen.
+ */
+async function handleEventReminders(logs: string[], debug: boolean) {
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+
+  const { data: events, error } = await getSupabase()
+    .from("mosque_events")
+    .select("id,title,event_date,is_all_day")
+    .gte("event_date", now.toISOString())
+    .lte("event_date", horizon.toISOString())
+    .order("event_date", { ascending: true });
+
+  if (error) { logs.push(`❌ mosque_events: ${error.message}`); return 0; }
+  if (!events?.length) { if (debug) logs.push("📅 keine Termine in den nächsten 25h"); return 0; }
+
+  const todayStr = now.toLocaleDateString("sv-SE", { timeZone: TZ });
+  let sent = 0;
+
+  for (const e of events) {
+    const start = new Date(e.event_date);
+    const minsUntil = Math.round((start.getTime() - now.getTime()) / 60000);
+    const timeStr = start.toLocaleTimeString("de-DE", { timeZone: TZ, hour: "2-digit", minute: "2-digit" });
+    const isTomorrow = start.toLocaleDateString("sv-SE", { timeZone: TZ }) !== todayStr;
+    const dayWord = isTomorrow ? "Morgen" : "Heute";
+
+    if (debug) logs.push(`📅 ${e.title}: in ${minsUntil} Min (ganztägig=${!!e.is_all_day})`);
+
+    // Ein Tag vorher
+    if (minsUntil > 60 && minsUntil <= 24 * 60) {
+      const ok = await sendOnce(
+        `event:day:${e.id}`,
+        () => sendPushToAll(
+          {
+            title: `📅 ${dayWord}: ${e.title}`,
+            body: e.is_all_day ? `${dayWord} in der Bashier Moschee` : `${dayWord} um ${timeStr} Uhr`,
+            url: "/history?tab=events",
+          },
+          logs
+        ),
+        logs,
+        debug
+      );
+      if (ok) sent++;
+    }
+
+    // Eine Stunde vorher — bei ganztägigen Terminen sinnlos, daher übersprungen
+    if (!e.is_all_day && minsUntil >= 0 && minsUntil <= 60) {
+      const ok = await sendOnce(
+        `event:hour:${e.id}`,
+        () => sendPushToAll(
+          {
+            title: `📅 Gleich: ${e.title}`,
+            body: `Beginnt um ${timeStr} Uhr — bis gleich!`,
+            url: "/history?tab=events",
+          },
+          logs
+        ),
+        logs,
+        debug
+      );
+      if (ok) sent++;
+    }
   }
 
   return sent;
