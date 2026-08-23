@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { ChevronLeft, Loader2, Settings, CheckCircle2, UserRound, X } from "lucide-react";
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import { toast } from "sonner";
+import MapComponent from '@/components/MapComponent';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -319,6 +320,17 @@ function SelectPrayerContent() {
               <Settings className="mr-2 h-4 w-4"/> Zeiten verwalten (Admin)
             </Button>
           )}
+
+          {/* Ziel der Fahrt */}
+          <div className="mt-5">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: 'var(--app-text3)' }}>
+              Ziel · Bashier Moschee
+            </p>
+            <div className="h-[180px] rounded-2xl overflow-hidden"
+              style={{ border: '1px solid var(--app-border)' }}>
+              <MapComponent />
+            </div>
+          </div>
         </div>
       )}
 
