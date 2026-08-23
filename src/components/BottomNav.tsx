@@ -67,6 +67,10 @@ export default function BottomNav() {
     if (id === 'fahrt') {
       setShowFahrtSheet(true);
     } else if (href) {
+      // Zikr und Termine teilen den Pfad /history — der Effekt oben laeuft dann
+      // nicht, weil sich nur der Parameter aendert. Deshalb hier direkt setzen,
+      // sonst bliebe die Hervorhebung auf dem alten Tab haengen.
+      setActiveTab(id);
       router.push(href);
     }
   };

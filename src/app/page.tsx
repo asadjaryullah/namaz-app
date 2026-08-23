@@ -11,6 +11,46 @@ import { toast } from 'sonner';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
+type DayState = {
+  commits: Record<string, { count: number; mine: boolean }>;
+  requests: Record<string, { count: number; mineId: string | null }>;
+  maybes: Record<string, { count: number; mine: boolean }>;
+  riderCount: number;
+};
+
+/** Holt Zusagen, Warteliste und Vielleicht-Fahrer für den ganzen Tag auf einmal. */
+async function fetchDayState(userId: string, today: string): Promise<DayState> {
+  const [commitRows, reqRows, maybeRows, bookings] = await Promise.all([
+    supabase.from('prayer_commitments').select('prayer_id,user_id').eq('prayer_date', today),
+    supabase.from('ride_requests').select('id,prayer_id,user_id').eq('request_date', today).eq('status', 'waiting'),
+    supabase.from('driver_maybe').select('prayer_id,driver_id').eq('maybe_date', today),
+    supabase.from('bookings').select('*, rides!inner(ride_date)', { count: 'exact', head: true }).eq('status', 'accepted').eq('rides.ride_date', today),
+  ]);
+
+  const commits: DayState['commits'] = {};
+  for (const r of commitRows.data ?? []) {
+    const e = (commits[r.prayer_id] ??= { count: 0, mine: false });
+    e.count++;
+    if (r.user_id === userId) e.mine = true;
+  }
+
+  const requests: DayState['requests'] = {};
+  for (const r of reqRows.data ?? []) {
+    const e = (requests[r.prayer_id] ??= { count: 0, mineId: null });
+    e.count++;
+    if (r.user_id === userId) e.mineId = r.id;
+  }
+
+  const maybes: DayState['maybes'] = {};
+  for (const r of maybeRows.data ?? []) {
+    const e = (maybes[r.prayer_id] ??= { count: 0, mine: false });
+    e.count++;
+    if (r.driver_id === userId) e.mine = true;
+  }
+
+  return { commits, requests, maybes, riderCount: bookings.count ?? 0 };
+}
+
 export default function HomePage() {
   const router = useRouter();
 
@@ -29,7 +69,9 @@ export default function HomePage() {
   const [allPrayers, setAllPrayers] = useState<{ id: string; name: string; time: string }[]>([]);
   // Gebet, auf das sich Zusage und Fahrt-Aktionen beziehen. Standard: das nächste.
   const [selectedPrayer, setSelectedPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
-  const [loadingPrayerState, setLoadingPrayerState] = useState(false);
+  /* Zustand aller Gebete für heute, einmal geladen. Das Umschalten zwischen
+     Gebeten greift nur noch hier zu, statt jedes Mal neu abzufragen. */
+  const [dayState, setDayState] = useState<DayState | null>(null);
   const [commitmentCount, setCommitmentCount] = useState(0);
   const [isCommitted, setIsCommitted] = useState(false);
   const [togglingCommit, setTogglingCommit] = useState(false);
@@ -85,6 +127,11 @@ export default function HomePage() {
         if (mounted && events) setUpcomingEvents(events);
         if (mounted && linksData) setQuickLinks(linksData);
 
+        // Zusagen/Warteliste/Vielleicht fuer alle Gebete auf einmal
+        fetchDayState(session.user.id, today)
+          .then((ds) => { if (mounted) setDayState(ds); })
+          .catch(() => {});
+
         if (mounted && prayerTimesData?.length) {
           const nowHHMM = new Date().toLocaleTimeString('de-DE', { timeZone: 'Europe/Berlin', hour: '2-digit', minute: '2-digit', hour12: false });
           const next = prayerTimesData.find(p => p.time > nowHHMM) || prayerTimesData[0];
@@ -130,51 +177,21 @@ export default function HomePage() {
     };
   }, [router]);
 
-  /* Lädt Zusage, Warteliste und Vielleicht-Fahrer für das gewählte Gebet.
-     Läuft beim Start und jedes Mal, wenn ein anderes Gebet angetippt wird. */
+  /* Leitet die Werte für das gewählte Gebet aus dem Tageszustand ab — ohne
+     Netzwerk, damit das Umschalten sofort reagiert. */
   useEffect(() => {
-    if (!selectedPrayer || !user) return;
-    let cancelled = false;
-
-    const load = async () => {
-      setLoadingPrayerState(true);
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
-      try {
-        const [
-          { count: commitCount },
-          { data: myCommit },
-          { count: reqCount },
-          { data: myReq },
-          { count: maybeCount },
-          { data: myMaybe },
-          { count: riderCount },
-        ] = await Promise.all([
-          supabase.from('prayer_commitments').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('prayer_date', today),
-          supabase.from('prayer_commitments').select('id').eq('user_id', user.id).eq('prayer_id', selectedPrayer.id).eq('prayer_date', today).maybeSingle(),
-          supabase.from('ride_requests').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('request_date', today).eq('status', 'waiting'),
-          supabase.from('ride_requests').select('id').eq('user_id', user.id).eq('prayer_id', selectedPrayer.id).eq('request_date', today).eq('status', 'waiting').maybeSingle(),
-          supabase.from('driver_maybe').select('*', { count: 'exact', head: true }).eq('prayer_id', selectedPrayer.id).eq('maybe_date', today),
-          supabase.from('driver_maybe').select('id').eq('driver_id', user.id).eq('prayer_id', selectedPrayer.id).eq('maybe_date', today).maybeSingle(),
-          supabase.from('bookings').select('*, rides!inner(ride_date)', { count: 'exact', head: true }).eq('status', 'accepted').eq('rides.ride_date', today),
-        ]);
-        if (cancelled) return;
-        setCommitmentCount(commitCount ?? 0);
-        setIsCommitted(!!myCommit);
-        setRideRequestCount(reqCount ?? 0);
-        setMyRideRequest(myReq?.id ?? null);
-        setDriverMaybeCount(maybeCount ?? 0);
-        setMyDriverMaybe(!!myMaybe);
-        setTodayRiderCount(riderCount ?? 0);
-      } catch (_) {
-        // Zustand bleibt wie er war — die Karte zeigt weiter die letzten Werte
-      } finally {
-        if (!cancelled) setLoadingPrayerState(false);
-      }
-    };
-
-    load();
-    return () => { cancelled = true; };
-  }, [selectedPrayer, user]);
+    if (!selectedPrayer || !dayState) return;
+    const c = dayState.commits[selectedPrayer.id];
+    const r = dayState.requests[selectedPrayer.id];
+    const m = dayState.maybes[selectedPrayer.id];
+    setCommitmentCount(c?.count ?? 0);
+    setIsCommitted(c?.mine ?? false);
+    setRideRequestCount(r?.count ?? 0);
+    setMyRideRequest(r?.mineId ?? null);
+    setDriverMaybeCount(m?.count ?? 0);
+    setMyDriverMaybe(m?.mine ?? false);
+    setTodayRiderCount(dayState.riderCount);
+  }, [selectedPrayer, dayState]);
 
   const handleToggleCommitment = async () => {
     if (!selectedPrayer || !user || togglingCommit) return;
@@ -191,8 +208,10 @@ export default function HomePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setIsCommitted(data.committed);
-        setCommitmentCount(data.count);
+        setDayState(prev => prev ? {
+          ...prev,
+          commits: { ...prev.commits, [selectedPrayer.id]: { count: data.count, mine: data.committed } },
+        } : prev);
         setPopCommit(true);
         setTimeout(() => setPopCommit(false), 350);
       } else {
@@ -217,8 +236,11 @@ export default function HomePage() {
           body: JSON.stringify({ prayer_id: selectedPrayer.id, request_date: today }),
         });
         if (res.ok) {
-          setMyRideRequest(null);
-          setRideRequestCount(c => Math.max(0, c - 1));
+          setDayState(prev => {
+            if (!prev) return prev;
+            const cur = prev.requests[selectedPrayer.id];
+            return { ...prev, requests: { ...prev.requests, [selectedPrayer.id]: { count: Math.max(0, (cur?.count ?? 1) - 1), mineId: null } } };
+          });
         } else {
           toast.error("Abmelden hat nicht geklappt. Bitte nochmal versuchen.");
         }
@@ -230,8 +252,11 @@ export default function HomePage() {
         });
         const data = res.ok ? await res.json() : null;
         if (data?.id) {
-          setMyRideRequest(data.id);
-          setRideRequestCount(data.count ?? rideRequestCount + 1);
+          setDayState(prev => {
+            if (!prev) return prev;
+            const cur = prev.requests[selectedPrayer.id];
+            return { ...prev, requests: { ...prev.requests, [selectedPrayer.id]: { count: data.count ?? (cur?.count ?? 0) + 1, mineId: data.id } } };
+          });
         } else {
           toast.error("Anfrage konnte nicht gesendet werden. Bitte nochmal versuchen.");
         }
@@ -255,8 +280,10 @@ export default function HomePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMyDriverMaybe(data.maybe);
-        setDriverMaybeCount(data.count ?? 0);
+        setDayState(prev => prev ? {
+          ...prev,
+          maybes: { ...prev.maybes, [selectedPrayer.id]: { count: data.count ?? 0, mine: !!data.maybe } },
+        } : prev);
       } else {
         toast.error("Konnte nicht gespeichert werden. Bitte nochmal versuchen.");
       }
@@ -430,7 +457,6 @@ export default function HomePage() {
           nextPrayer={nextPrayer}
           selectedPrayer={selectedPrayer}
           onSelectPrayer={setSelectedPrayer}
-          loadingPrayerState={loadingPrayerState}
           isApproved={isApproved}
           commitmentCount={commitmentCount}
           isCommitted={isCommitted}

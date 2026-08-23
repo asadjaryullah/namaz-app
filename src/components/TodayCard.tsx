@@ -10,7 +10,6 @@ type Props = {
   nextPrayer: Prayer | null;
   selectedPrayer: Prayer | null;
   onSelectPrayer: (p: Prayer) => void;
-  loadingPrayerState: boolean;
   isApproved: boolean;
 
   commitmentCount: number;
@@ -216,7 +215,7 @@ export default function TodayCard(p: Props) {
         {/* Aktionen für das gewählte Gebet */}
         {p.isApproved && !(hasActiveRide && isNext) && (
           <div className="mt-3 pt-3 flex flex-col gap-2"
-            style={{ borderTop: '1px solid var(--app-border)', opacity: p.loadingPrayerState ? 0.5 : 1, transition: 'opacity 0.15s' }}>
+            style={{ borderTop: '1px solid var(--app-border)' }}>
             {p.rideRequestCount === 0 && p.driverMaybeCount === 0 && !p.myRideRequest && (
               <p className="text-[11px] text-center" style={{ color: 'var(--app-text3)' }}>
                 Noch niemand für {shown.name} angemeldet — sei der Erste!
@@ -225,7 +224,7 @@ export default function TodayCard(p: Props) {
 
             <button
               onClick={p.onToggleCommit}
-              disabled={p.togglingCommit || p.loadingPrayerState}
+              disabled={p.togglingCommit}
               className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors active:scale-[0.97] ${p.popCommit ? 'animate-pop' : ''}`}
               style={{
                 background: p.isCommitted ? 'var(--app-emerald)' : 'transparent',
@@ -243,7 +242,7 @@ export default function TodayCard(p: Props) {
             <div className="flex gap-1.5">
               <button
                 onClick={p.onToggleRequest}
-                disabled={p.togglingRequest || p.loadingPrayerState}
+                disabled={p.togglingRequest}
                 className="flex-1 py-2 rounded-xl text-[11px] font-bold transition-colors active:scale-[0.96]"
                 style={{
                   touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
@@ -256,7 +255,7 @@ export default function TodayCard(p: Props) {
 
               <button
                 onClick={p.onToggleMaybe}
-                disabled={p.togglingMaybe || p.loadingPrayerState}
+                disabled={p.togglingMaybe}
                 className="flex-1 py-2 rounded-xl text-[11px] font-bold transition-colors active:scale-[0.96]"
                 style={{
                   touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',

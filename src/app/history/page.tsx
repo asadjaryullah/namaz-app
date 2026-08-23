@@ -83,6 +83,16 @@ function HistoryContent() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'zikr' | 'events' | 'calendar'>(initialTab);
 
+  // Zikr und Termine zeigen beide auf /history — nur der Parameter unterscheidet
+  // sich. Ohne diese Synchronisierung bliebe der Tab beim ersten Wert stehen,
+  // weil die Seite bei gleichem Pfad nicht neu eingehängt wird.
+  const tabParam = searchParams.get('tab');
+  useEffect(() => {
+    if (tabParam === 'zikr' || tabParam === 'events' || tabParam === 'calendar') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
   const [allRides, setAllRides] = useState<any[]>([]);
   const [viewDate, setViewDate] = useState(new Date());
   const [zikrData, setZikrData] = useState<any>({ zikr1_count: 0, zikr2_count: 0, zikr3_count: 0 });
