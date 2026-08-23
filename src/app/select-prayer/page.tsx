@@ -10,6 +10,7 @@ import { ChevronLeft, Loader2, Settings, CheckCircle2, UserRound, X } from "luci
 import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import { toast } from "sonner";
 import MapComponent from '@/components/MapComponent';
+import { todayBerlin } from '@/lib/date';
 
 const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
@@ -159,14 +160,14 @@ function SelectPrayerContent() {
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const today = new Date().toLocaleDateString('en-CA');
+      const today = todayBerlin();
 
       const { data: prayersData } = await supabase.from('prayer_times').select('*').order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
       // Fetch waiting counts per prayer
       if (prayersData) {
-        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
+        const today = todayBerlin();
         const counts: Record<string, number> = {};
         await Promise.all(prayersData.map(async (p) => {
           const { count } = await supabase.from('ride_requests')
@@ -219,7 +220,7 @@ function SelectPrayerContent() {
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-          const today = new Date().toLocaleDateString('en-CA');
+          const today = todayBerlin();
 
           const { error } = await supabase.from('rides').insert({
             driver_id: user.id,
