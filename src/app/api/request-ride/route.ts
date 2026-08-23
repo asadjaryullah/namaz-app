@@ -95,15 +95,20 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   const gender = requesterProfile?.gender || 'male';
-  const waitText = gender === 'female'
+  const female = gender === 'female';
+  const waitText = female
     ? (n === 1 ? 'Schwester wartet' : 'Schwestern warten')
     : (n === 1 ? 'Bruder wartet' : 'Brüder warten');
+  // Wer fahren kann, tut es meist gern — es braucht nur den Anlass und den Grund.
+  const sibling = female
+    ? (n === 1 ? 'deine Schwester' : 'deine Schwestern')
+    : (n === 1 ? 'deinen Bruder' : 'deine Brüder');
 
   sendPushToGender(
     gender,
     {
       title: `🤲 ${n} ${waitText} auf Fahrt zum ${prayerLabel}`,
-      body: 'Kannst du fahren? Jetzt Fahrt anbieten!',
+      body: `Nimm ${sibling} mit und verdiene den Sawab — jetzt Fahrt anbieten.`,
       url: '/select-prayer?role=driver',
     },
     [],

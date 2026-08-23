@@ -115,8 +115,11 @@ export default function HomePage() {
           { data: prayerTimesData },
         ] = await Promise.all([
           supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
-          supabase.from('rides').select('id, prayer_id, prayer_time').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).maybeSingle(),
-          supabase.from('bookings').select('ride_id, rides!inner(id, status, ride_date, prayer_id, prayer_time)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).maybeSingle(),
+          // limit(1) ist wichtig: ohne das liefert maybeSingle() einen Fehler,
+          // sobald mehr als eine aktive Fahrt existiert — dann verschwindet die
+          // Karte stillschweigend, statt die neueste Fahrt zu zeigen.
+          supabase.from('rides').select('id, prayer_id, prayer_time').eq('driver_id', session.user.id).eq('status', 'active').eq('ride_date', today).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+          supabase.from('bookings').select('ride_id, rides!inner(id, status, ride_date, prayer_id, prayer_time)').eq('passenger_id', session.user.id).eq('status', 'accepted').eq('rides.status', 'active').eq('rides.ride_date', today).order('created_at', { ascending: false }).limit(1).maybeSingle(),
           supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
           supabase.from('quick_links').select('id,title,url,emoji,sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
           supabase.from('prayer_times').select('id,name,time,sort_order').order('sort_order', { ascending: true }),
