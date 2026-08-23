@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
-import { User, ChevronLeft, MapPin, Loader2, Users, CheckCircle2, MessageCircle, Phone } from "lucide-react";
+import { User, ChevronLeft, MapPin, Loader2, Users, CheckCircle2, MessageCircle, Phone, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 type BookingSuccess = { driverName: string; driverPhone: string; rideId: string };
@@ -19,6 +19,8 @@ function PassengerListContent() {
   const [loading, setLoading] = useState(true);
   const [bookingRideId, setBookingRideId] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<BookingSuccess | null>(null);
+  // Bereits gebuchte Fahrt für dieses Gebet — als Hinweis, nicht als Weiterleitung
+  const [existingRideId, setExistingRideId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRidesAndBookings = async () => {
@@ -45,10 +47,10 @@ function PassengerListContent() {
           .eq('rides.prayer_id', prayerId)
           .maybeSingle();
 
+        // Nicht weiterleiten — sonst kommt man aus der Liste nicht mehr heraus:
+        // zurück landet wieder hier und schickt einen erneut weg.
         if (existingBooking) {
-          toast.info("Du hast bereits eine aktive Fahrt für dieses Gebet.");
-          router.push(`/passenger/dashboard?rideId=${existingBooking.ride_id}`);
-          return;
+          setExistingRideId(existingBooking.ride_id);
         }
       }
 
@@ -181,6 +183,25 @@ function PassengerListContent() {
           </p>
         </div>
       </div>
+
+      {/* Schon gebucht — Hinweis statt Zwangsweiterleitung */}
+      {!loading && existingRideId && (
+        <button
+          onClick={() => router.push(`/passenger/dashboard?rideId=${existingRideId}`)}
+          className="w-full max-w-md mb-4 flex items-center justify-between gap-3 rounded-2xl p-4 text-left active:scale-[0.98] transition-transform"
+          style={{ background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div className="min-w-0">
+            <p className="font-extrabold text-sm" style={{ color: 'var(--app-emerald)' }}>
+              Du fährst hier schon mit
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--app-text2)' }}>
+              Zu deiner Fahrt →
+            </p>
+          </div>
+          <ArrowRight size={18} style={{ color: 'var(--app-emerald)', flexShrink: 0 }} />
+        </button>
+      )}
 
       {loading ? (
         <div className="py-20"><Loader2 className="animate-spin h-8 w-8" style={{ color: 'var(--app-text3)' }} /></div>
