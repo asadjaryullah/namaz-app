@@ -28,7 +28,17 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
 
-    if (!SECRET || url.searchParams.get("secret") !== SECRET) {
+    /* Schlüssel bevorzugt aus dem Authorization-Header lesen.
+       Vercel schickt bei Cron-Läufen automatisch "Bearer <CRON_SECRET>" mit,
+       dadurch muss der Schlüssel nicht mehr in vercel.json stehen — die Datei
+       liegt im öffentlichen Repository und wäre dort für jeden lesbar.
+       Der Query-Parameter bleibt als Rückfallebene für externe Cron-Dienste,
+       die keine eigenen Header setzen können. */
+    const authHeader = req.headers.get("authorization") || "";
+    const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const provided = bearer ?? url.searchParams.get("secret");
+
+    if (!SECRET || provided !== SECRET) {
       return NextResponse.json({ success: false, error: "unauthorized" }, { status: 401 });
     }
 
