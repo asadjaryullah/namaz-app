@@ -7,14 +7,23 @@ export const dynamic = "force-dynamic";
 const APP_URL = "https://ride2salah.vercel.app";
 
 export async function GET() {
+  /* Service-Schlüssel, nicht der anonyme: Die RLS-Regel auf prayer_times
+     erlaubt Lesen nur "TO authenticated". Ein Kalender-Abo bringt aber keine
+     Anmeldung mit — mit dem anonymen Schlüssel liefert die Abfrage null Zeilen
+     und der Kalender bleibt still leer. Die Route läuft nur serverseitig,
+     der Schlüssel erreicht den Browser nie. */
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
   try {
-    const { data: prayers } = await supabase.from('prayer_times').select('*');
-    if (!prayers) return new NextResponse('Error', { status: 500 });
+    const { data: prayers, error } = await supabase.from('prayer_times').select('*');
+    if (error) {
+      console.error('calendar: prayer_times', error.message);
+      return new NextResponse('Error', { status: 500 });
+    }
+    if (!prayers?.length) return new NextResponse('Error', { status: 500 });
 
     let icsContent = [
       'BEGIN:VCALENDAR',
