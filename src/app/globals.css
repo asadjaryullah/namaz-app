@@ -6,6 +6,12 @@
    DESIGN TOKENS — Light (warmes Creme)
 ═══════════════════════════════════════════ */
 :root {
+  /* Sagt dem Browser, in welchem Stil er native Bedienelemente zeichnen soll:
+     Datums- und Zeitfelder, Auswahllisten, Bildlaufleisten. Ohne diese Angabe
+     zeichnet er sie immer hell — auf dunklem Grund sehen die Kalendersymbole
+     und Picker dann aus wie Fehler. */
+  color-scheme: light;
+
   --app-bg:          #f5f0e8;
   --app-surface1:    #ede8df;
   --app-surface2:    #ffffff;
@@ -51,6 +57,8 @@
 ═══════════════════════════════════════════ */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
     --app-bg:          #07070e;
     --app-surface1:    #0f0f1a;
     --app-surface2:    #161624;
@@ -94,6 +102,8 @@
    DARK MODE — Manuelles Override
 ═══════════════════════════════════════════ */
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --app-bg:          #07070e;
   --app-surface1:    #0f0f1a;
   --app-surface2:    #161624;

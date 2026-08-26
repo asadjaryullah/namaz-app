@@ -928,27 +928,34 @@ export default function AdminPage() {
                 <option value="lajna">Lajna</option>
                 <option value="nasirat">Nasirat</option>
               </select>
-              <div className="grid grid-cols-2 gap-2">
+              {/* Beginn und Ende gruppiert — vorher standen vier Felder ohne
+                  Zusammenhang untereinander, mit abgeschnittenen Beschriftungen */}
+              <div className="rounded-xl p-3 space-y-3"
+                style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
                 <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Datum</label>
-                  <Input type="date" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+                  <p className="text-[10px] uppercase font-bold tracking-wider mb-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Beginn
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input type="date" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+                    <Input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} />
+                  </div>
+                  <p className="text-[10px] mt-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Ohne Uhrzeit gilt der Termin als ganztägig.
+                  </p>
                 </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Uhrzeit (optional)</label>
-                  <Input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} placeholder="–" />
+
+                <div style={{ borderTop: '1px solid var(--app-border)', paddingTop: '0.75rem' }}>
+                  <p className="text-[10px] uppercase font-bold tracking-wider mb-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Ende <span className="normal-case font-normal">— optional</span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input type="date" value={newEventEndDate} onChange={e => setNewEventEndDate(e.target.value)} />
+                    <Input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} />
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Ende-Datum (optional)</label>
-                  <Input type="date" value={newEventEndDate} onChange={e => setNewEventEndDate(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase font-bold" style={{ color: 'var(--app-text3)' }}>Ende-Uhrzeit (optional)</label>
-                  <Input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} placeholder="–" />
-                </div>
-              </div>
-              <Button className="w-full text-white" style={{ background: '#f97316' }} onClick={handleAddEvent} disabled={saving}>
+              <Button className="w-full" style={{ background: 'var(--app-gold)', color: '#fff' }} onClick={handleAddEvent} disabled={saving}>
                 {saving ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <CalendarPlus size={15} className="mr-2" />}
                 Hinzufügen
               </Button>
@@ -1033,7 +1040,7 @@ export default function AdminPage() {
                 <Input placeholder="Titel" value={newLinkTitle} onChange={e => setNewLinkTitle(e.target.value)} className="flex-1" />
               </div>
               <Input placeholder="URL (https://...)" value={newLinkUrl} onChange={e => setNewLinkUrl(e.target.value)} />
-              <Button className="w-full" style={{ background: 'var(--app-blue)', color: '#fff' }} onClick={handleAddLink} disabled={savingLink}>
+              <Button className="w-full" style={{ background: 'var(--app-gold)', color: '#fff' }} onClick={handleAddLink} disabled={savingLink}>
                 {savingLink ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
                 Link hinzufügen
               </Button>
@@ -1168,7 +1175,7 @@ export default function AdminPage() {
               </p>
               <Input placeholder="Titel" value={pushTitle} onChange={e => setPushTitle(e.target.value)} />
               <Input placeholder="Text" value={pushMessage} onChange={e => setPushMessage(e.target.value)} />
-              <Button className="w-full text-white" style={{ background: 'var(--app-blue)' }} onClick={handleSendPush} disabled={sendingPush}>
+              <Button className="w-full" style={{ background: 'var(--app-gold)', color: '#fff' }} onClick={handleSendPush} disabled={sendingPush}>
                 {sendingPush ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
                 Senden
               </Button>
@@ -1185,7 +1192,7 @@ export default function AdminPage() {
                   {cronTesting ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : null}
                   Debug (trocken)
                 </Button>
-                <Button size="sm" onClick={() => handleCronTest('force')} disabled={cronTesting} className="text-xs text-white" style={{ background: '#f97316' }}>
+                <Button size="sm" onClick={() => handleCronTest('force')} disabled={cronTesting} className="text-xs" style={{ background: 'var(--app-rose)', color: '#fff' }}>
                   {cronTesting ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : null}
                   Push sofort senden
                 </Button>
@@ -1421,24 +1428,30 @@ export default function AdminPage() {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Datum</label>
-                  <Input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm(f => ({ ...f, startDate: e.target.value }))} />
+              {/* Gleiche Gruppierung wie im Anlegen-Formular */}
+              <div className="rounded-xl p-3 space-y-3"
+                style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)' }}>
+                <div>
+                  <p className="text-[10px] uppercase font-bold tracking-wider mb-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Beginn
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm(f => ({ ...f, startDate: e.target.value }))} />
+                    <Input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f => ({ ...f, startTime: e.target.value }))} />
+                  </div>
+                  <p className="text-[10px] mt-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Ohne Uhrzeit gilt der Termin als ganztägig.
+                  </p>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Uhrzeit (optional)</label>
-                  <Input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f => ({ ...f, startTime: e.target.value }))} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende-Datum (opt.)</label>
-                  <Input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm(f => ({ ...f, endDate: e.target.value }))} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase" style={{ color: 'var(--app-text2)' }}>Ende-Uhrzeit (opt.)</label>
-                  <Input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f => ({ ...f, endTime: e.target.value }))} />
+
+                <div style={{ borderTop: '1px solid var(--app-border)', paddingTop: '0.75rem' }}>
+                  <p className="text-[10px] uppercase font-bold tracking-wider mb-1.5" style={{ color: 'var(--app-text3)' }}>
+                    Ende <span className="normal-case font-normal">— optional</span>
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm(f => ({ ...f, endDate: e.target.value }))} />
+                    <Input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f => ({ ...f, endTime: e.target.value }))} />
+                  </div>
                 </div>
               </div>
 
