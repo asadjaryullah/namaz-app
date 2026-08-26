@@ -29,41 +29,68 @@ export async function POST(req: Request) {
     const name = (driver_name || "Ein Fahrer").trim();
     const seatText = seats && seats > 1 ? `${seats} freie Plätze` : "1 freier Platz";
 
-    // Include the main admin (identified by ADMIN_EMAIL) regardless of gender filter
+    const logs: string[] = [];
+
+    /* Den Hauptadmin zusätzlich benachrichtigen, unabhängig vom Geschlecht.
+       Eigener try/catch: Schlägt der Admin-Lookup fehl, warf das Destructuring
+       von `data` bisher einen TypeError. Der landete im äußeren catch und die
+       Route gab 500 zurück — ohne dass je ein Push verschickt wurde, obwohl
+       der Admin-Teil nur Beiwerk ist. */
     const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase().trim();
-    let adminUserIds: string[] = [];
+    const adminUserIds: string[] = [];
     if (adminEmail) {
-      const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-      const adminUser = users?.find((u) => u.email?.toLowerCase() === adminEmail);
-      if (adminUser) adminUserIds.push(adminUser.id);
+      try {
+        const { data, error: listErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+        if (listErr) {
+          logs.push(`⚠️ Admin-Lookup: ${listErr.message}`);
+        } else {
+          const adminUser = data?.users?.find((u) => u.email?.toLowerCase() === adminEmail);
+          if (adminUser) adminUserIds.push(adminUser.id);
+        }
+      } catch (e: any) {
+        logs.push(`⚠️ Admin-Lookup fehlgeschlagen: ${e?.message || "unbekannt"}`);
+      }
     }
 
-    await sendPushToGender(
+    // Der Fahrer selbst braucht kein "fahr mit" für die eigene Fahrt
+    const sentToGroup = await sendPushToGender(
       gender,
       {
-        title: `🚗 Fahrt zum ${prayerLabel}-Gebet`,
-        body: `${name} bietet eine Fahrt an — ${seatText}. Jetzt buchen!`,
-        url: "/",
+        title: `🚗 ${name} fährt zum ${prayerLabel}`,
+        body: `${seatText} — jetzt mitfahren!`,
+        url: `/passenger/list?prayer=${prayer_id}`,
       },
-      adminUserIds
+      adminUserIds,
+      logs,
+      [userData.user.id]
     );
 
     // Notify waiting passengers personally
     const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Berlin' });
     const { data: waitingReqs } = await supabase.from('ride_requests')
       .select('user_id').eq('prayer_id', prayer_id).eq('request_date', todayStr).eq('status', 'waiting');
+    let sentToWaiting = 0;
     if (waitingReqs && waitingReqs.length > 0) {
       for (const waitingReq of waitingReqs) {
-        await sendPushToUser(waitingReq.user_id, {
+        if (waitingReq.user_id === userData.user.id) continue;
+        sentToWaiting += await sendPushToUser(waitingReq.user_id, {
           title: `🚗 Alhamdulillah! Fahrt zum ${prayerLabel}!`,
           body: `${name} fährt — jetzt Platz sichern!`,
           url: `/passenger/list?prayer=${prayer_id}`,
-        });
+        }, logs);
       }
     }
 
-    return NextResponse.json({ success: true });
+    // Zahlen zurückgeben, damit der Aufrufer merkt wenn niemand erreicht wurde
+    return NextResponse.json({
+      success: true,
+      sent: sentToGroup + sentToWaiting,
+      sentToGroup,
+      sentToWaiting,
+      logs,
+    });
   } catch (e: any) {
+    console.error("notify-new-ride:", e?.message);
     return NextResponse.json({ error: e?.message || "server_error" }, { status: 500 });
   }
 }

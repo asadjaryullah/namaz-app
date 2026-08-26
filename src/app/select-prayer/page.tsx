@@ -240,16 +240,33 @@ function SelectPrayerContent() {
           if (error) {
             toast.error("Fehler: " + error.message);
           } else {
-            supabase.auth.getSession().then(({ data: { session } }) => {
-              if (session?.access_token) {
-                fetch('/api/notify-new-ride', {
+            setShareSheet({ prayerName: selectedPrayer.name, seats });
+
+            /* Benachrichtigung nicht mehr ins Leere schicken: Bisher wurden
+               alle Fehler mit .catch(() => {}) verschluckt — schlug die Route
+               fehl, kam einfach keine Push und niemand erfuhr warum. */
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session?.access_token) {
+                toast.warning("Fahrt steht — aber die Benachrichtigung ging nicht raus (nicht angemeldet).");
+              } else {
+                const res = await fetch('/api/notify-new-ride', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
                   body: JSON.stringify({ prayer_id: selectedPrayer.id, driver_name: profile?.full_name, seats, driver_gender: profile?.gender || 'male' }),
-                }).catch(() => {});
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  toast.warning("Fahrt steht — die Benachrichtigung ging nicht raus: " + (json.error || res.status));
+                } else if (!json.sent) {
+                  toast.info("Fahrt steht — aktuell ist niemand für Benachrichtigungen angemeldet.");
+                } else {
+                  toast.success(`Fahrt steht — ${json.sent} ${json.sent === 1 ? 'Person' : 'Personen'} benachrichtigt.`);
+                }
               }
-            });
-            setShareSheet({ prayerName: selectedPrayer.name, seats });
+            } catch {
+              toast.warning("Fahrt steht — die Benachrichtigung konnte nicht gesendet werden.");
+            }
           }
         },
         () => { setCreatingRide(false); toast.error("GPS-Zugriff wird benötigt."); }
