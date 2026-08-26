@@ -280,19 +280,32 @@ export default function DriverDashboard() {
           if (notifiedApproachRef.current.has(p.passenger_id)) continue;
           const dist = getDistanceInMeters(lat, lng, p.pickup_lat, p.pickup_lon);
           if (dist <= 500) {
-            notifiedApproachRef.current.add(p.passenger_id);
-            fetch('/api/notify-approaching', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.access_token ?? ''}`,
-              },
-              body: JSON.stringify({
-                ride_id: rideId,
-                passenger_id: p.passenger_id,
-                driver_name: p.driver_name ?? '',
-              }),
-            }).catch(() => {});
+            /* Erst nach erfolgreicher Antwort als benachrichtigt merken.
+               Vorher wurde der Mitfahrer sofort markiert und die Anfrage
+               fire-and-forget abgeschickt: Schlug sie fehl, galt er trotzdem
+               als informiert und wurde nie wieder versucht — er stand dann
+               vergeblich an der Straße. Jetzt greift der nächste GPS-Takt. */
+            try {
+              const res = await fetch('/api/notify-approaching', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session?.access_token ?? ''}`,
+                },
+                body: JSON.stringify({
+                  ride_id: rideId,
+                  passenger_id: p.passenger_id,
+                  driver_name: p.driver_name ?? '',
+                }),
+              });
+              if (res.ok) {
+                notifiedApproachRef.current.add(p.passenger_id);
+              } else {
+                console.error('notify-approaching:', res.status, await res.text().catch(() => ''));
+              }
+            } catch (e) {
+              console.error('notify-approaching: keine Verbindung', e);
+            }
           }
         }
       },
