@@ -937,8 +937,14 @@ export default function AdminPage() {
                     Beginn
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
-                    <Input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Datum</span>
+                      <Input type="date" value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Uhrzeit</span>
+                      <Input type="time" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} />
+                    </label>
                   </div>
                   <p className="text-[10px] mt-1.5" style={{ color: 'var(--app-text3)' }}>
                     Ohne Uhrzeit gilt der Termin als ganztägig.
@@ -950,8 +956,14 @@ export default function AdminPage() {
                     Ende <span className="normal-case font-normal">— optional</span>
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={newEventEndDate} onChange={e => setNewEventEndDate(e.target.value)} />
-                    <Input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Datum</span>
+                      <Input type="date" value={newEventEndDate} onChange={e => setNewEventEndDate(e.target.value)} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Uhrzeit</span>
+                      <Input type="time" value={newEventEndTime} onChange={e => setNewEventEndTime(e.target.value)} />
+                    </label>
                   </div>
                 </div>
               </div>
@@ -1436,8 +1448,14 @@ export default function AdminPage() {
                     Beginn
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm(f => ({ ...f, startDate: e.target.value }))} />
-                    <Input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f => ({ ...f, startTime: e.target.value }))} />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Datum</span>
+                      <Input type="date" value={editEventForm.startDate} onChange={e => setEditEventForm(f => ({ ...f, startDate: e.target.value }))} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Uhrzeit</span>
+                      <Input type="time" value={editEventForm.startTime} onChange={e => setEditEventForm(f => ({ ...f, startTime: e.target.value }))} />
+                    </label>
                   </div>
                   <p className="text-[10px] mt-1.5" style={{ color: 'var(--app-text3)' }}>
                     Ohne Uhrzeit gilt der Termin als ganztägig.
@@ -1449,8 +1467,14 @@ export default function AdminPage() {
                     Ende <span className="normal-case font-normal">— optional</span>
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <Input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm(f => ({ ...f, endDate: e.target.value }))} />
-                    <Input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f => ({ ...f, endTime: e.target.value }))} />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Datum</span>
+                      <Input type="date" value={editEventForm.endDate} onChange={e => setEditEventForm(f => ({ ...f, endDate: e.target.value }))} />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[9px] uppercase tracking-wide" style={{ color: 'var(--app-text3)' }}>Uhrzeit</span>
+                      <Input type="time" value={editEventForm.endTime} onChange={e => setEditEventForm(f => ({ ...f, endTime: e.target.value }))} />
+                    </label>
                   </div>
                 </div>
               </div>

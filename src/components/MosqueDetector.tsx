@@ -21,15 +21,6 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
 export default function MosqueDetector() {
   const router = useRouter();
 
-  useEffect(() => {
-    // Check alle 2 Minuten (um Batterie zu sparen)
-    const interval = setInterval(checkLocation, 120000);
-    // Erster Check nach 5 Sekunden
-    setTimeout(checkLocation, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const checkLocation = async () => {
     if (!('geolocation' in navigator)) return;
 
@@ -108,6 +99,22 @@ export default function MosqueDetector() {
       }
     }
   };
+
+  /* Der Effekt steht bewusst NACH checkLocation: Vorher wurde die Funktion
+     im Effekt benutzt, aber erst darunter deklariert. Zur Laufzeit ging das
+     gut, weil Effekte nach dem Funktionskörper starten — mit aktiviertem
+     React Compiler ist diese Reihenfolge aber nicht mehr garantiert. */
+  useEffect(() => {
+    // Erster Check nach 5 Sekunden, danach alle 2 Minuten (spart Akku)
+    const first = setTimeout(checkLocation, 5000);
+    const interval = setInterval(checkLocation, 120000);
+
+    return () => {
+      clearTimeout(first);
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null; // Unsichtbar
 }

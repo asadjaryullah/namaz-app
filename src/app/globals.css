@@ -370,3 +370,60 @@
     animation: none;
   }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   DATUMS- UND ZEITFELDER
+
+   WebKit zeichnet in <input type="date"> ein eigenes kleines Element
+   für den Wert. Ohne Zutun sitzt es mittig und behält seine natürliche
+   Breite — in einem breiten Feld sieht das aus wie ein zweiter, leerer
+   Kasten darin. Genau der schmale senkrechte Balken, der wie ein
+   Darstellungsfehler wirkt.
+
+   Die native Optik abschalten und das Wert-Element die volle Breite
+   einnehmen lassen behebt das. Zusätzlich ein Mindestmaß, damit das
+   Feld auch leer eine sinnvolle Höhe behält, und ein sichtbares
+   Kalendersymbol statt des blassen Standards.
+   ──────────────────────────────────────────────────────────────── */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 2.5rem;
+  line-height: 1.4;
+  color: var(--app-text);
+}
+
+/* Leeres Feld: Der Wert ist unsichtbar, also braucht es einen Hinweis */
+input[type="date"]:not(:focus):invalid,
+input[type="time"]:not(:focus):invalid {
+  color: var(--app-text3);
+}
+
+/* Das Wert-Element linksbündig über die volle Breite */
+input[type="date"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value {
+  text-align: left;
+  width: 100%;
+  margin: 0;
+}
+
+/* Die einzelnen Bestandteile (TT, MM, JJJJ) nicht auseinanderziehen */
+input[type="date"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
+/* Kalender- und Uhrsymbol sichtbar machen — der Standard ist fast schwarz
+   und verschwindet auf dunklem Grund */
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.65;
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
