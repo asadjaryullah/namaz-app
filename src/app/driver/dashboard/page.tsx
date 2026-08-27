@@ -87,6 +87,11 @@ export default function DriverDashboard() {
   // Refs für Notification-Logik
   const previousCountRef = useRef(0);
   const isFirstLoadRef = useRef(true);
+  /* Richtung der letzten Aenderung. Bewusst kein Boolean mit Timer: Ein Timer
+     wuerde die Klasse spaeter zurueckschalten, und ein Klassenwechsel startet
+     die Animation erneut - die Zahl wuerde ein zweites Mal zucken. So bleibt
+     die Klasse stehen, bis sich die Zahl wirklich wieder aendert. */
+  const [countDelta, setCountDelta] = useState<'up' | 'down' | null>(null);
 
   // Live-Passenger-Ref für GPS-Closure + bereits benachrichtigte Passagiere
   const passengersRef = useRef<any[]>([]);
@@ -153,6 +158,7 @@ export default function DriverDashboard() {
         const prevCount = previousCountRef.current;
         if (!isFirstLoadRef.current) {
           if (currentCount > prevCount) {
+            setCountDelta('up');
             const newPassenger = data[data.length - 1];
             const name = newPassenger?.passenger_name || "Jemand";
             if (Notification.permission === "granted") {
@@ -161,6 +167,7 @@ export default function DriverDashboard() {
               toast.success(`${name} hat deine Fahrt gebucht! 🙋`);
             }
           } else if (currentCount < prevCount) {
+            setCountDelta('down');
             if (Notification.permission === "granted") {
               new Notification("Mitfahrer abgesprungen ⚠️", { body: "Ein Mitfahrer hat seine Buchung storniert.", icon: "/icon.png" });
             } else {
@@ -413,7 +420,18 @@ export default function DriverDashboard() {
           </span>
         </div>
 
-        <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text2)' }}>Abholungen ({passengers.length})</h3>
+        {/* key sorgt dafuer, dass React die Zahl neu einhaengt und die
+            Animation erneut laeuft - sonst spielt sie nur beim ersten Mal. */}
+        <h3 className="text-sm font-bold uppercase mb-3" style={{ color: 'var(--app-text2)' }}>
+          Abholungen (
+          <span
+            key={passengers.length}
+            className={`inline-block tabular-nums ${countDelta === 'up' ? 'animate-pop' : 'animate-count-in'}`}
+          >
+            {passengers.length}
+          </span>
+          )
+        </h3>
 
         {passengers.length === 0 ? (
           <p className="text-sm mb-6 p-4 rounded-xl text-center border border-dashed" style={{ color: 'var(--app-text3)', background: 'var(--app-card)', borderColor: 'var(--app-border)' }}>
