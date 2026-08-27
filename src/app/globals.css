@@ -340,6 +340,22 @@
   from { opacity: 0; transform: translateY(-5px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── SAWAB-MOMENT ──────────────────────────────────────────
+   Bewusst laenger als die 300ms, die sonst fuer Bedienelemente gelten:
+   Das hier passiert einmal pro angebotener Fahrt, also selten. Bei etwas,
+   das man taeglich sieht, waere das Zeitverschwendung - hier ist es der
+   Moment, in dem jemand etwas fuer die Gemeinde getan hat.
+   Ein einzelner Ring, der nach aussen verlaeuft, kein Dauerpuls. */
+@keyframes sawab-ring {
+  from { opacity: 0.5; transform: scale(0.65); }
+  to   { opacity: 0;   transform: scale(2.3); }
+}
+@keyframes sawab-mark {
+  0%   { opacity: 0; transform: scale(0.7); }
+  60%  { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: scale(1); }
+}
 @keyframes section-celebrate {
   0%   { box-shadow: 0 0 0 0 var(--app-gold-glow); }
   50%  { box-shadow: 0 0 28px 8px var(--app-gold-glow); }
@@ -349,6 +365,10 @@
 .animate-shake             { animation: shake 0.35s ease-out; }
 .animate-pop               { animation: pop 0.28s cubic-bezier(0.23, 1, 0.32, 1); }
 .animate-count-in          { animation: count-fade-in 0.18s ease-out; }
+.animate-sawab-ring        { animation: sawab-ring 620ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.animate-sawab-mark        { animation: sawab-mark 520ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+/* Die Zeile darunter kommt nach, wenn das Haekchen steht - nicht gleichzeitig */
+.animate-sawab-text        { animation: count-fade-in 0.32s ease-out 260ms both; }
 .animate-section-celebrate { animation: section-celebrate 0.8s ease-out; }
 
 /* ═══════════════════════════════════════════
@@ -375,6 +395,11 @@
   .animate-pulse-ring { animation: none; }
   .animate-glow-pulse { animation: none; opacity: 0.7; }
   .animate-shake, .animate-pop { animation: none; }
+  /* Sawab-Moment ohne Bewegung: Der Ring entfaellt, Haekchen und Zeile
+     blenden nur ein. Die Aussage bleibt, das Herumspringen nicht. */
+  .animate-sawab-ring { animation: none; opacity: 0; }
+  .animate-sawab-mark { animation: fade-in 0.2s ease both; }
+  .animate-sawab-text { animation: fade-in 0.2s ease 0.1s both; }
   /* Druckreaktion ohne Bewegung: Deckkraft statt Groessenaenderung */
   .press-feedback button:not(:disabled) { transition: opacity 0.12s ease; }
   .press-feedback button:not(:disabled):active { transform: none; opacity: 0.7; }

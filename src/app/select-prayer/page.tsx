@@ -413,11 +413,23 @@ function SelectPrayerContent() {
               <div className="w-10 h-1 rounded-full" style={{ background: 'var(--app-border)' }} />
             </div>
             <div className="px-6 pb-2 flex flex-col items-center gap-4">
-              <CheckCircle2 size={44} style={{ color: 'var(--app-emerald)' }} />
+              {/* Sawab-Moment: Ring einmal nach aussen, Haekchen setzt sich,
+                  Zeile kommt nach. Passiert einmal pro angebotener Fahrt. */}
+              <div className="relative flex items-center justify-center" style={{ width: 44, height: 44 }}>
+                <span
+                  aria-hidden="true"
+                  className="absolute rounded-full animate-sawab-ring"
+                  style={{ width: 44, height: 44, background: 'var(--app-emerald)' }}
+                />
+                <CheckCircle2 size={44} className="relative animate-sawab-mark" style={{ color: 'var(--app-emerald)' }} />
+              </div>
               <div className="text-center">
                 <h3 className="text-lg font-extrabold" style={{ color: 'var(--app-text)' }}>Fahrt erstellt! 🎉</h3>
                 <p className="text-sm mt-1" style={{ color: 'var(--app-text2)' }}>
                   {shareSheet.seats} {shareSheet.seats === 1 ? 'freier Platz' : 'freie Plätze'} zum {shareSheet.prayerName}
+                </p>
+                <p className="text-xs mt-2 animate-sawab-text" style={{ color: 'var(--app-emerald)' }}>
+                  Möge Allah deine Mühe annehmen.
                 </p>
               </div>
               <button
