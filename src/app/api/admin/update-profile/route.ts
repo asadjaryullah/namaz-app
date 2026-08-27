@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isMainAdmin } from "@/lib/admin";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
 
 export async function POST(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
@@ -16,7 +15,7 @@ export async function POST(req: NextRequest) {
   );
   const { data: { user }, error: authError } = await anonClient.auth.getUser(token);
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  if (!ADMIN_EMAIL || user.email?.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()) {
+  if (!isMainAdmin(user.email)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

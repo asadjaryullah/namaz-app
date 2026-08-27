@@ -4,9 +4,21 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const APP_URL = "https://ride2salah.vercel.app";
+/* Die Adresse kommt aus der Anfrage selbst, nicht aus einer festen Zeichenkette.
+   Ein Kalender-Abo ruft genau die Adresse ab, die der Nutzer eingetragen hat -
+   die ist per Definition richtig, auch nach einem Domainwechsel. Fest verdrahtet
+   haette der Link in fremden Kalendern still auf die alte Domain gezeigt. */
+function appUrl(req: Request): string {
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+  if (host) {
+    const proto = req.headers.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https');
+    return `${proto}://${host}`;
+  }
+  return new URL(req.url).origin;
+}
 
-export async function GET() {
+export async function GET(req: Request) {
+  const APP_URL = appUrl(req);
   /* Service-Schlüssel, nicht der anonyme: Die RLS-Regel auf prayer_times
      erlaubt Lesen nur "TO authenticated". Ein Kalender-Abo bringt aber keine
      Anmeldung mit — mit dem anonymen Schlüssel liefert die Abfrage null Zeilen
