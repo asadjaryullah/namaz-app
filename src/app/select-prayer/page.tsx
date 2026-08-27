@@ -11,8 +11,8 @@ import { Sunrise, Sun, Sunset, Moon, CloudMoon, Clock } from "lucide-react";
 import { toast } from "sonner";
 import MapComponent from '@/components/MapComponent';
 import { todayBerlin } from '@/lib/date';
+import { isMainAdmin } from "@/lib/admin";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 const getIcon = (id: string) => {
   switch(id) {
@@ -186,7 +186,7 @@ function SelectPrayerContent() {
       }
 
       if (user) {
-        if (user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim()) setIsAdmin(true);
+        if (isMainAdmin(user.email)) setIsAdmin(true);
 
         const { data: profile } = await supabase.from('profiles').select('gender, is_approved, can_edit_events, can_edit_times').eq('id', user.id).single();
         if (profile) {
@@ -421,7 +421,7 @@ function SelectPrayerContent() {
               </div>
               <button
                 onClick={() => {
-                  const msg = `🚗 Ich fahre gleich zum ${shareSheet.prayerName}!\n\nNoch ${shareSheet.seats} freie ${shareSheet.seats === 1 ? 'Platz' : 'Plätze'}. Jetzt mitbuchen: https://ride2salah.vercel.app`;
+                  const msg = `🚗 Ich fahre gleich zum ${shareSheet.prayerName}!\n\nNoch ${shareSheet.seats} freie ${shareSheet.seats === 1 ? 'Platz' : 'Plätze'}. Jetzt mitbuchen: ${window.location.origin}`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
                 className="w-full rounded-2xl py-3.5 text-[15px] font-extrabold flex items-center justify-center gap-2.5 active:scale-[0.97] transition-transform"

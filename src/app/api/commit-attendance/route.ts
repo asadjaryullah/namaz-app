@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     sendPushToAll({
       title: `${firstName} kommt zum ${prayerName} 🕌`,
       body: 'Jetzt auch zusagen!',
-      url: 'https://ride2salah.vercel.app',
+      url: '/',
     }, []).catch(() => {});
   }
 

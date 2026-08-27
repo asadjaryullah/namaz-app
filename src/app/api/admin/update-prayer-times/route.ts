@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendPushToAll } from '@/lib/webpush';
+import { isMainAdmin } from "@/lib/admin";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
 
 type PrayerRow = { id: string; name: string; time: string; sort_order: number };
 
@@ -27,9 +26,7 @@ export async function POST(request: Request) {
   if (userErr || !userData?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
   // Hauptadmin oder Teiladmin mit Gebetszeiten-Recht
-  const isAdminEmail =
-    !!ADMIN_EMAIL &&
-    userData.user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+  const isAdminEmail = isMainAdmin(userData.user.email);
   const { data: profile } = await supabase
     .from('profiles')
     .select('can_edit_times')

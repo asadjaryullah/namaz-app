@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { isMainAdmin } from "@/lib/admin";
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || '';
 
 function getSupabase() {
   return createClient(
@@ -60,9 +59,7 @@ export async function POST(request: Request) {
   const { data: userData, error: userErr } = await supabase.auth.getUser(token);
   if (userErr || !userData?.user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const isAdminEmail =
-    !!ADMIN_EMAIL &&
-    userData.user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+  const isAdminEmail = isMainAdmin(userData.user.email);
   const { data: profile } = await supabase
     .from('profiles')
     .select('can_edit_events')

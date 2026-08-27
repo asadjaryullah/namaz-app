@@ -275,7 +275,11 @@ function HistoryContent() {
   };
 
   const openCalendarGoogle = (apiUrl: string) => {
-    const fullUrl = `https://ride2salah.vercel.app${apiUrl}`;
+    /* window.location.origin statt fester Adresse: Die Domain hat schon einmal
+       gewechselt, und der Apple-Zweig darueber macht es mit window.location.host
+       ohnehin richtig. So stimmt der Link immer mit der Seite ueberein, auf der
+       man gerade ist - auch auf einer spaeteren eigenen Domain. */
+    const fullUrl = `${window.location.origin}${apiUrl}`;
     window.open(
       `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(fullUrl)}`,
       '_blank'

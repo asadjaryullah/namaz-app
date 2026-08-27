@@ -9,8 +9,8 @@ import ZikrWidget from '@/components/ZikrWidget';
 import TodayCard from '@/components/TodayCard';
 import { toast } from 'sonner';
 import { todayBerlin } from '@/lib/date';
+import { isMainAdmin } from "@/lib/admin";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 type DayState = {
   commits: Record<string, { count: number; mine: boolean }>;
@@ -406,7 +406,7 @@ export default function HomePage() {
      EINGELOGGT — Home
   ══════════════════════════════════════ */
   const firstName = profile?.full_name?.split(' ')[0] || "Nutzer";
-  const isAdmin = user?.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
+  const isAdmin = isMainAdmin(user?.email);
   const isApproved = profile?.is_approved === true;
   const missingData = !profile?.phone || !profile?.gender || !profile?.member_id;
   const emoji = profile?.gender === 'female' ? '🧕🏻' : '🧔🏻‍♂️';

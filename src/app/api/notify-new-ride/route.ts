@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPushToGender, sendPushToUser } from "@/lib/webpush";
+import { isMainAdmin, hasAdminConfigured } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,15 +37,14 @@ export async function POST(req: Request) {
        von `data` bisher einen TypeError. Der landete im äußeren catch und die
        Route gab 500 zurück — ohne dass je ein Push verschickt wurde, obwohl
        der Admin-Teil nur Beiwerk ist. */
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || "").toLowerCase().trim();
     const adminUserIds: string[] = [];
-    if (adminEmail) {
+    if (hasAdminConfigured()) {
       try {
         const { data, error: listErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
         if (listErr) {
           logs.push(`⚠️ Admin-Lookup: ${listErr.message}`);
         } else {
-          const adminUser = data?.users?.find((u) => u.email?.toLowerCase() === adminEmail);
+          const adminUser = data?.users?.find((u) => isMainAdmin(u.email));
           if (adminUser) adminUserIds.push(adminUser.id);
         }
       } catch (e: any) {

@@ -12,8 +12,8 @@ import {
   UserRound, Lock, Unlock, FileUp, Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
+import { isMainAdmin } from "@/lib/admin";
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
 
 type Org = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
 
@@ -122,8 +122,8 @@ export default function AdminPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/'); return; }
 
-      const isMainAdmin = ADMIN_EMAIL && user.email?.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
-      if (!isMainAdmin) {
+      const mainAdmin = isMainAdmin(user.email);
+      if (!mainAdmin) {
         const { data: pf } = await supabase.from('profiles').select('can_edit_events,can_edit_times').eq('id', user.id).single();
         if (!pf?.can_edit_events && !pf?.can_edit_times) {
           toast.error("Zugriff verweigert!");
@@ -139,7 +139,7 @@ export default function AdminPage() {
       const { data: prayersData } = await supabase.from('prayer_times').select('id,name,time,sort_order').order('sort_order', { ascending: true });
       if (prayersData) setPrayers(prayersData);
 
-      const fetchTasks = isMainAdmin
+      const fetchTasks = mainAdmin
         ? [fetchPendingUsers(), fetchAllProfiles(), fetchEvents(), fetchQuickLinks(), fetchDailyQuotes()]
         : [fetchEvents(), fetchQuickLinks(), fetchDailyQuotes()];
       await Promise.all(fetchTasks);

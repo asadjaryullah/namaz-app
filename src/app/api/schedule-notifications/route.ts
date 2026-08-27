@@ -61,7 +61,7 @@ export async function GET(req: Request) {
     if (force) {
       logs.push("🧪 force=1 → sende Test Push");
       const count = await sendPushToAll(
-        { title: "Test Push ✅", body: `Force-Test (${today} ${nowHHMM}).`, url: "https://ride2salah.vercel.app" },
+        { title: "Test Push ✅", body: `Force-Test (${today} ${nowHHMM}).`, url: "/" },
         logs
       );
       return NextResponse.json({ success: true, sent: count, logs });
@@ -124,7 +124,7 @@ async function handlePrayerPushes(today: string, nowHHMM: string, logs: string[]
     const ok = await sendOnce(
       key,
       () => sendPushToAll(
-        { title: `Bald ist ${p.name} 🕌`, body: `In ${PRAYER_OFFSET_MIN} Minuten ist Gebet (${p.time}).`, url: "https://ride2salah.vercel.app" },
+        { title: `Bald ist ${p.name} 🕌`, body: `In ${PRAYER_OFFSET_MIN} Minuten ist Gebet (${p.time}).`, url: "/" },
         logs
       ),
       logs,
@@ -154,8 +154,8 @@ async function handleFixed(
     const key = `${type}:${today}:${t}`;
     const payload =
       type === "zikr"
-        ? { title: "Zikr Erinnerung 📿", body: "Denke an Allah – nimm dir 2 Minuten für Zikr.", url: "https://ride2salah.vercel.app" }
-        : { title: "Jummah Erinnerung 🕌", body: "Heute 12:30 Jummah – bitte rechtzeitig vorbereiten.", url: "https://ride2salah.vercel.app" };
+        ? { title: "Zikr Erinnerung 📿", body: "Denke an Allah – nimm dir 2 Minuten für Zikr.", url: "/" }
+        : { title: "Jummah Erinnerung 🕌", body: "Heute 12:30 Jummah – bitte rechtzeitig vorbereiten.", url: "/" };
 
     const ok = await sendOnce(key, () => sendPushToAll(payload, logs), logs, debug);
     if (ok) sent++;
@@ -295,7 +295,7 @@ async function handleEveningReminder(today: string, logs: string[], debug: boole
       {
         title: "Morgen früh ist Fajr 🌙",
         body: `Fajr um ${fajr.time} Uhr — Wer kommt morgen mit zur Moschee?`,
-        url: "https://ride2salah.vercel.app",
+        url: "/",
       },
       logs
     ),

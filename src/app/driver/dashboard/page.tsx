@@ -497,7 +497,9 @@ export default function DriverDashboard() {
               onClick={() => {
                 const prayer = ridePrayerName || 'Gebet';
                 const freeSeats = passengers.length > 0 ? '' : '\nNoch Plätze frei!';
-                const msg = `🚗 Ich fahre gleich zum ${prayer}!${freeSeats}\nJetzt mitbuchen: https://ride2salah.vercel.app`;
+                // Adresse der laufenden Seite, damit der geteilte Link auch nach
+                // einem Domainwechsel stimmt
+                const msg = `🚗 Ich fahre gleich zum ${prayer}!${freeSeats}\nJetzt mitbuchen: ${window.location.origin}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
               }}
             >

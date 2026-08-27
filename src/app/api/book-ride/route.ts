@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       await sendPushToUser(ride.driver_id, {
         title: "Neuer Mitfahrer! 🙋‍♂️",
         body: `${passenger_name} hat gebucht.`,
-        url: "https://ride2salah.vercel.app/driver/dashboard",
+        url: "/driver/dashboard",
       });
     }
 
