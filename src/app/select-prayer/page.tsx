@@ -25,6 +25,39 @@ const getIcon = (id: string) => {
   }
 };
 
+/* Eigenstaendige Komponente, bewusst ausserhalb von CarSeatSelector.
+   Vorher stand sie im Render-Koerper: Jeder Durchlauf erzeugte eine neue
+   Komponenten-Identitaet, React haengte den Knopf aus und einen neuen ein
+   und die Tipp-Animation brach ab - sichtbar als Flackern. */
+function SeatBtn({ free, onToggle, w = 60, h = 68 }: {
+  free: boolean; onToggle: () => void; w?: number; h?: number;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      aria-pressed={!free}
+      aria-label={free ? 'Sitzplatz freigeben' : 'Sitzplatz blockieren'}
+      className="flex flex-col items-center justify-center gap-1 select-none active:scale-[0.92] transition-transform"
+      style={{
+        width: w, height: h, borderRadius: 14,
+        border: '2px solid',
+        touchAction: 'manipulation',
+        WebkitTapHighlightColor: 'transparent',
+        background: free ? 'var(--app-emerald-dim)' : 'rgba(240,98,146,0.09)',
+        borderColor: free ? 'var(--app-emerald)' : 'rgba(240,98,146,0.4)',
+      }}
+    >
+      {free
+        ? <UserRound size={w > 56 ? 22 : 18} strokeWidth={1.8} style={{ color: 'var(--app-emerald)' }} />
+        : <X size={w > 56 ? 20 : 16} strokeWidth={2.5} style={{ color: 'var(--app-rose)' }} />
+      }
+      <span className="text-[8px] font-bold uppercase" style={{ color: free ? 'var(--app-emerald)' : 'var(--app-rose)' }}>
+        {free ? 'Frei' : 'Belegt'}
+      </span>
+    </button>
+  );
+}
+
 function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats: number, onChange: (n: number) => void, gender: string }) {
   const [seats, setSeats] = useState([true, true, true, true]);
 
@@ -36,32 +69,6 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
   };
 
   const driverImage = gender === 'female' ? '/driver-icon-female.png' : '/driver-icon.png';
-
-  const SeatBtn = ({ index, w = 60, h = 68 }: { index: number; w?: number; h?: number }) => {
-    const free = seats[index];
-    return (
-      <button
-        onClick={() => toggleSeat(index)}
-        className="flex flex-col items-center justify-center gap-1 select-none active:scale-[0.92] transition-transform"
-        style={{
-          width: w, height: h, borderRadius: 14,
-          border: '2px solid',
-          touchAction: 'manipulation',
-          WebkitTapHighlightColor: 'transparent',
-          background: free ? 'rgba(34,211,138,0.12)' : 'rgba(240,98,146,0.09)',
-          borderColor: free ? 'var(--app-emerald)' : 'rgba(240,98,146,0.4)',
-        }}
-      >
-        {free
-          ? <UserRound size={w > 56 ? 22 : 18} strokeWidth={1.8} style={{ color: 'var(--app-emerald)' }} />
-          : <X size={w > 56 ? 20 : 16} strokeWidth={2.5} style={{ color: 'var(--app-rose)' }} />
-        }
-        <span className="text-[8px] font-bold uppercase" style={{ color: free ? 'var(--app-emerald)' : 'var(--app-rose)' }}>
-          {free ? 'Frei' : 'Belegt'}
-        </span>
-      </button>
-    );
-  };
 
   return (
     <div className="flex flex-col items-center mt-4 mb-6 animate-in fade-in zoom-in duration-300">
@@ -108,7 +115,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
             <span className="text-[9px] font-black uppercase tracking-widest" style={{ color: 'var(--app-text3)' }}>Du</span>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <SeatBtn index={0} />
+            <SeatBtn free={seats[0]} onToggle={() => toggleSeat(0)} />
           </div>
         </div>
 
@@ -117,9 +124,9 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
 
         {/* Hintere Reihe — 3 Sitze */}
         <div className="flex justify-between items-center" style={{ padding: '0 2px', marginBottom: 12 }}>
-          <SeatBtn index={1} w={54} h={62} />
-          <SeatBtn index={2} w={54} h={62} />
-          <SeatBtn index={3} w={54} h={62} />
+          <SeatBtn free={seats[1]} onToggle={() => toggleSeat(1)} w={54} h={62} />
+          <SeatBtn free={seats[2]} onToggle={() => toggleSeat(2)} w={54} h={62} />
+          <SeatBtn free={seats[3]} onToggle={() => toggleSeat(3)} w={54} h={62} />
         </div>
 
         {/* Heckscheibe */}
@@ -203,7 +210,11 @@ function SelectPrayerContent() {
       setLoading(false);
     };
     init();
-  }, []);
+    // role und router gehoeren hier hinein: Der Effekt prueft, ob ein nicht
+    // freigegebener Nutzer die Fahrer-Rolle waehlt. Weil /select-prayer bei
+    // einem Wechsel von ?role=passenger auf ?role=driver denselben Pfad
+    // behaelt, wuerde die Pruefung sonst nicht erneut laufen.
+  }, [role, router]);
 
   const handleNext = async () => {
     const selectedPrayer = prayers.find(p => p.id === selectedId);

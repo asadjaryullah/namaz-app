@@ -131,7 +131,6 @@ export default function DriverDashboard() {
       }
     };
     fetchRide();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   // 2. Passagiere laden & Benachrichtigen
@@ -319,6 +318,12 @@ export default function DriverDashboard() {
     );
 
     return () => navigator.geolocation.clearWatch(watcher);
+    /* handleEndRide steht bewusst NICHT in den Abhaengigkeiten: Die Funktion
+       arbeitet ausschliesslich mit Refs und Zustands-Setzern, ist also nie
+       veraltet. Nimmt man sie auf, wird der GPS-Waechter bei jedem Rendern
+       abgebaut und neu gestartet - das kostet Akku und unterbricht die Ortung
+       mitten in der Fahrt. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rideId]);
 
   if (noRide) {
