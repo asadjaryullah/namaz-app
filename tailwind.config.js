@@ -1,5 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  /* Auf Touchgeraeten gibt es kein echtes Hover. Tippt man einen Knopf an,
+     bleibt der :hover-Zustand haengen, bis man woanders hintippt - der Knopf
+     sieht danach dauerhaft ausgegraut aus. Mit dieser Option verpackt
+     Tailwind jede hover:-Klasse in @media (hover: hover), sie greift also nur
+     mit Maus oder Trackpad. Die eigenen Klassen in globals.css machen das
+     bereits so; hier ziehen die 32 Tailwind-Hilfsklassen nach. */
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Check, GraduationCap, BookOpen, Trophy, RefreshCw, Settings, Plus, Trash2, X } from 'lucide-react';
 
@@ -165,7 +165,7 @@ function shuffle<T>(arr: T[]): T[] {
 const EMPTY_FORM = { arabic: '', transliteration: '', german: '', urdu: '', section: 'niyyat', sectionLabel: 'Niyyat' };
 
 export default function LearnPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [words, setWords] = useState<NamazWord[]>([]);
   const [section, setSection] = useState('niyyat');
   const [mode, setMode] = useState<'learn' | 'quiz' | 'manage'>('learn');
@@ -408,7 +408,7 @@ export default function LearnPage() {
               <button
                 key={w.id}
                 onClick={() => { setCardIndex(i); setRevealed(false); }}
-                className="rounded-full transition-all"
+                className="rounded-full transition"
                 style={{
                   touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                   width: i === cardIndex ? 20 : 8, height: 8,
@@ -697,7 +697,7 @@ export default function LearnPage() {
                 {[...new Map(words.map(w => [w.section, w.sectionLabel])).entries()].map(([sec, label]) => (
                   <button key={sec}
                     onClick={() => setForm(f => ({ ...f, section: sec, sectionLabel: label }))}
-                    className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:opacity-70"
+                    className="flex-1 py-2 rounded-xl text-xs font-bold transition active:opacity-70"
                     style={{
                       touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                       background: form.section === sec ? 'var(--app-text)' : 'var(--app-card)',

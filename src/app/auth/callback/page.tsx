@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+/* Bewusst der normale useRouter, nicht useTransitionRouter: Diese Seite ist
+   eine programmatische Weiterleitung waehrend der Anmeldung, keine vom Nutzer
+   ausgeloeste Navigation. Ein Uebergang wuerde hier nur Zeit kosten. */
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Loader2 } from "lucide-react";

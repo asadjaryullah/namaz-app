@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
@@ -145,7 +146,7 @@ function CarSeatSelector({ availableSeats, onChange, gender }: { availableSeats:
 }
 
 function SelectPrayerContent() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const searchParams = useSearchParams();
   const role = searchParams.get('role') || 'passenger'; 
 

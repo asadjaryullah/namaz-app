@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Phone, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CompleteProfilePage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);

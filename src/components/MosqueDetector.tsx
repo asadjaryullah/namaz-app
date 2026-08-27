@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { todayBerlin } from '@/lib/date';
 
 const MOSQUE_LOCATION = { lat: 49.685590, lng: 8.593480 }; 
@@ -19,7 +19,7 @@ function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: num
 }
 
 export default function MosqueDetector() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   const checkLocation = async () => {
     if (!('geolocation' in navigator)) return;

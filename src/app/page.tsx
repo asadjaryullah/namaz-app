@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, GraduationCap } from "lucide-react";
 import ZikrWidget from '@/components/ZikrWidget';
@@ -53,7 +53,7 @@ async function fetchDayState(userId: string, today: string): Promise<DayState> {
 }
 
 export default function HomePage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -710,7 +710,7 @@ export default function HomePage() {
               {/* Dots */}
               <div className="flex gap-2">
                 {slides.map((_, i) => (
-                  <div key={i} className="rounded-full transition-all"
+                  <div key={i} className="rounded-full transition"
                     style={{ width: i === onboardingSlide ? 20 : 8, height: 8, background: i === onboardingSlide ? 'var(--app-gold)' : 'var(--app-border)' }} />
                 ))}
               </div>

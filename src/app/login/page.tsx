@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, User, Phone, BadgeInfo } from "lucide-react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   const [step, setStep] = useState<'input' | 'verify'>('input');
   const [loading, setLoading] = useState(false);
@@ -155,7 +155,7 @@ export default function LoginPage() {
                     <div className="grid grid-cols-2 gap-2">
                       {([['male', '🧔🏻‍♂️ Bruder'], ['female', '🧕🏻 Schwester']] as [string,string][]).map(([v, lbl]) => (
                         <button type="button" key={v} onClick={() => setGender(v)}
-                          className="py-3 px-2 rounded-xl font-bold text-sm transition-all"
+                          className="py-3 px-2 rounded-xl font-bold text-sm transition"
                           style={{
                             background: gender === v ? (v === 'female' ? 'rgba(240,98,146,0.15)' : 'var(--app-gold-dim)') : 'var(--app-surface1)',
                             border: `1px solid ${gender === v ? (v === 'female' ? 'var(--app-rose)' : 'var(--app-gold)') : 'var(--app-border)'}`,

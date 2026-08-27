@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { Card } from "@/components/ui/card";
 import { Loader2, Navigation, User, Phone, CheckSquare, MapPin, MessageCircle, XCircle, ArrowLeft, RotateCcw, Share2 } from "lucide-react";
@@ -65,7 +65,7 @@ function Directions({ userLocation }: { userLocation: {lat: number, lng: number}
 }
 
 export default function DriverDashboard() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [startPoint, setStartPoint] = useState<{lat: number, lng: number} | null>(null);
   const [currentPos, setCurrentPos] = useState<{lat: number, lng: number} | null>(null);
   const [passengers, setPassengers] = useState<any[]>([]);

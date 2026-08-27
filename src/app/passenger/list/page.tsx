@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { User, ChevronLeft, MapPin, Loader2, Users, CheckCircle2, MessageCircle, Phone, ArrowRight } from "lucide-react";
@@ -11,7 +12,7 @@ import { todayBerlin } from '@/lib/date';
 type BookingSuccess = { driverName: string; driverPhone: string; rideId: string };
 
 function PassengerListContent() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const searchParams = useSearchParams();
   const prayerId = searchParams.get('prayer');
   const prayerTime = searchParams.get('time');
@@ -222,7 +223,7 @@ function PassengerListContent() {
             return (
               <div
                 key={ride.id}
-                className="p-5 rounded-xl shadow-sm border-l-4 transition-all"
+                className="p-5 rounded-xl shadow-sm border-l-4 transition"
                 style={{
                   background: 'var(--app-card)',
                   border: '1px solid var(--app-border)',

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Droplets, BookOpen, Moon, ArrowRight } from "lucide-react";
 
 export default function ArrivalPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   const [checked, setChecked] = useState({
     wudhu: false,
@@ -72,7 +72,7 @@ export default function ArrivalPage() {
 
         <div className="w-full h-2 rounded-full mb-4 overflow-hidden" style={{ background: 'var(--app-border)' }}>
           <div
-            className="h-full transition-all duration-500 ease-out"
+            className="h-full transition-[width] duration-500 ease-out"
             style={{ width: `${progress}%`, background: 'var(--app-emerald)' }}
           ></div>
         </div>
@@ -88,7 +88,7 @@ export default function ArrivalPage() {
             <div
               key={key}
               onClick={() => toggle(key as keyof typeof checked)}
-              className="flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all"
+              className="flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition"
               style={{
                 background: isChecked ? 'var(--app-emerald-dim)' : 'var(--app-card)',
                 borderColor: isChecked ? 'var(--app-emerald)' : 'transparent',

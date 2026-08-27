@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useRef, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -348,7 +349,7 @@ function HistoryContent() {
           <button
             key={id}
             onClick={() => setActiveTab(id)}
-            className="flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-1"
+            className="flex-1 py-2.5 px-2 text-sm font-bold rounded-2xl transition flex flex-col items-center gap-1"
             style={activeTab === id
               ? { background: 'var(--app-text)', color: 'var(--app-bg)' }
               : { background: 'var(--app-surface2)', color: 'var(--app-text2)', border: '1px solid var(--app-border)' }
@@ -403,10 +404,10 @@ function HistoryContent() {
                     }}
                   >
                     {isDone && <div className="absolute right-[-20px] bottom-[-20px] transform rotate-12" style={{ color: 'rgba(255,255,255,0.2)' }}><Check size={120} /></div>}
-                    {!isDone && <div className="absolute bottom-0 left-0 h-1.5 transition-all duration-300" style={{ width: `${progress}%`, background: item.theme.accent }} />}
+                    {!isDone && <div className="absolute bottom-0 left-0 h-1.5 transition-[width] duration-300" style={{ width: `${progress}%`, background: item.theme.accent }} />}
                     {count > 0 && !isDone && (
                       <div className="absolute top-3 left-3 z-10">
-                        <button onClick={(e) => handleReset(e, item.key)} className="p-1.5 rounded-full transition-all shadow-sm" style={{ background: 'var(--app-surface2)', color: 'var(--app-text3)' }}>
+                        <button onClick={(e) => handleReset(e, item.key)} className="p-1.5 rounded-full transition shadow-sm" style={{ background: 'var(--app-surface2)', color: 'var(--app-text3)' }}>
                           <RotateCcw size={14} />
                         </button>
                       </div>
@@ -467,7 +468,7 @@ function HistoryContent() {
                       <div key={dayNum} className="flex flex-col items-center justify-center relative">
                         <button
                           onClick={() => hasEvent && setSelectedDay(dayNum)}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center transition-all border font-bold ${isToday ? 'ring-2 ring-offset-1' : ''} ${hasEvent ? 'active:opacity-60' : ''}`}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center transition border font-bold ${isToday ? 'ring-2 ring-offset-1' : ''} ${hasEvent ? 'active:opacity-60' : ''}`}
                           style={{
                             touchAction: 'manipulation',
                             WebkitTapHighlightColor: 'transparent',
@@ -632,7 +633,7 @@ function HistoryContent() {
                     return (
                       <div key={dayNum} className="flex flex-col items-center gap-0.5">
                         <div
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${isToday ? 'ring-2 ring-offset-1' : ''}`}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center transition ${isToday ? 'ring-2 ring-offset-1' : ''}`}
                           style={{ ...getRingStyle(count), ...(isToday ? { outline: '2px solid var(--app-text)', outlineOffset: '1px' } : {}) }}
                         >
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shadow-sm" style={{ background: 'var(--app-card)', color: 'var(--app-text)' }}>{dayNum}</div>
@@ -706,7 +707,7 @@ function HistoryContent() {
 }
 
 export default function HistoryPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   return (
     <main className="min-h-screen flex flex-col items-center p-4 pb-20" style={{ background: 'var(--app-bg)' }}>
       <div className="w-full max-w-md flex items-center mb-6">

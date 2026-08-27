@@ -1,11 +1,11 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default function DatenschutzPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 flex flex-col items-center">

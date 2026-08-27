@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, Suspense, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { APIProvider, Map, useMapsLibrary, useMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ function Directions({ startPoint }: { startPoint: {lat: number, lng: number} | n
 }
 
 function PassengerDashboardContent() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const searchParams = useSearchParams();
   const rideId = searchParams.get('rideId');
 

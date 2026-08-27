@@ -219,6 +219,18 @@
   to   { transform: rotate(360deg); }
 }
 
+/* Druckreaktion fuer ganze Bereiche. Ein Knopf ohne sichtbare Reaktion auf den
+   Finger wirkt langsam, auch wenn er es nicht ist - die Antwort kommt erst mit
+   der neuen Ansicht, also gefuehlt zu spaet. 0.97 und 160ms sind bewusst knapp:
+   spuerbar, aber nicht verspielt. Knoepfe mit eigener active:scale-Klasse
+   behalten ihre - Klassenselektoren gewinnen gegen den Elementselektor hier. */
+.press-feedback button:not(:disabled) {
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.press-feedback button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
 .animate-float       { animation: float 3.5s ease-in-out infinite; }
 .animate-shimmer     { animation: shimmer 2.4s linear infinite; background-size: 200% auto; }
 .animate-pulse-ring  { animation: pulse-ring 1.4s cubic-bezier(0.4,0,0.6,1) infinite; }
@@ -363,6 +375,9 @@
   .animate-pulse-ring { animation: none; }
   .animate-glow-pulse { animation: none; opacity: 0.7; }
   .animate-shake, .animate-pop { animation: none; }
+  /* Druckreaktion ohne Bewegung: Deckkraft statt Groessenaenderung */
+  .press-feedback button:not(:disabled) { transition: opacity 0.12s ease; }
+  .press-feedback button:not(:disabled):active { transform: none; opacity: 0.7; }
   .btn-gold, .btn-emerald, .app-card {
     transition: opacity 0.15s ease;
   }
