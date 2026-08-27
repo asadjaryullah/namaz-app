@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ type Profile = {
 };
 
 export default function AdminPage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [loading, setLoading] = useState(true);
 
   const [prayers, setPrayers] = useState<any[]>([]);
@@ -596,13 +596,15 @@ export default function AdminPage() {
 
   if (!isAuthorized) return null;
 
+  /* press-feedback: gibt allen 30 Knoepfen hier die Druckreaktion, die der
+     Rest der App schon hat. Regel steht in globals.css. */
   return (
-    <main className="min-h-screen flex flex-col items-center pb-20" style={{ background: 'var(--app-bg)' }}>
+    <main className="min-h-screen flex flex-col items-center pb-20 press-feedback" style={{ background: 'var(--app-bg)' }}>
 
       {/* HEADER */}
       <div className="w-full px-4 py-3 flex items-center justify-between sticky top-0 z-10"
         style={{ background: 'var(--app-surface1)', borderBottom: '1px solid var(--app-border)', boxShadow: '0 1px 8px rgba(0,0,0,0.08)' }}>
-        <button className="h-9 w-9 flex items-center justify-center rounded-xl transition-all hover:opacity-80"
+        <button className="h-9 w-9 flex items-center justify-center rounded-xl transition hover:opacity-80"
           style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
           onClick={() => router.push('/')}>
           <ArrowLeft className="h-5 w-5" />
@@ -628,7 +630,7 @@ export default function AdminPage() {
             <button
               key={id}
               onClick={() => setActiveAdminTab(id)}
-              className="flex-1 py-2.5 text-sm font-bold rounded-2xl transition-all flex flex-col items-center gap-1"
+              className="flex-1 py-2.5 text-sm font-bold rounded-2xl transition flex flex-col items-center gap-1"
               style={{
                 background: activeAdminTab === id ? 'var(--app-text)' : 'var(--app-surface2)',
                 color: activeAdminTab === id ? 'var(--app-bg)' : 'var(--app-text2)',
@@ -656,7 +658,7 @@ export default function AdminPage() {
             <div className="flex gap-1.5 p-1 rounded-2xl" style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}>
               <button
                 onClick={() => setUsersSubTab('pending')}
-                className="flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
                 style={usersSubTab === 'pending'
                   ? { background: 'var(--app-card)', color: 'var(--app-text)', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }
                   : { color: 'var(--app-text3)' }}
@@ -670,7 +672,7 @@ export default function AdminPage() {
               </button>
               <button
                 onClick={() => setUsersSubTab('all')}
-                className="flex-1 py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5"
                 style={usersSubTab === 'all'
                   ? { background: 'var(--app-card)', color: 'var(--app-text)', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }
                   : { color: 'var(--app-text3)' }}
@@ -865,7 +867,7 @@ export default function AdminPage() {
               {/* Template picker */}
               <button
                 onClick={() => setShowTemplates(v => !v)}
-                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition-all"
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-bold transition"
                 style={{ background: 'var(--app-card)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
               >
                 <span>Vorlage verwenden</span>
@@ -879,7 +881,7 @@ export default function AdminPage() {
                       <button
                         key={t.title}
                         onClick={() => applyTemplate(t)}
-                        className="px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:opacity-80"
+                        className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80"
                         style={{ background: 'var(--app-gold-dim)', border: '1px solid var(--app-gold)', color: 'var(--app-gold)' }}
                       >
                         {t.title}
@@ -898,7 +900,7 @@ export default function AdminPage() {
                             <button
                               key={e.id}
                               onClick={() => applyTemplate({ title: e.title, location: e.location || 'Bashier Moschee', org: (e.org as Org) || 'jamaat' })}
-                              className="px-3 py-1.5 rounded-full text-xs font-bold transition-all hover:opacity-80 truncate max-w-[10rem]"
+                              className="px-3 py-1.5 rounded-full text-xs font-bold transition hover:opacity-80 truncate max-w-[10rem]"
                               style={{ background: 'var(--app-surface2)', border: '1px solid var(--app-border)', color: 'var(--app-text2)' }}
                             >
                               {e.title}
@@ -1151,7 +1153,7 @@ export default function AdminPage() {
               {/* Benachrichtigen-Schalter */}
               <button
                 onClick={() => setNotifyOnTimeChange(v => !v)}
-                className="w-full flex items-center justify-between p-3 rounded-xl transition-all"
+                className="w-full flex items-center justify-between p-3 rounded-xl transition"
                 style={notifyOnTimeChange
                   ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
                   : { background: 'var(--app-card)', border: '1px solid var(--app-border)' }}
@@ -1167,9 +1169,9 @@ export default function AdminPage() {
                     </p>
                   </div>
                 </div>
-                <div className="w-10 h-5 rounded-full transition-all relative shrink-0"
+                <div className="w-10 h-5 rounded-full transition relative shrink-0"
                   style={{ background: notifyOnTimeChange ? 'var(--app-blue)' : 'var(--app-border)' }}>
-                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all"
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition"
                     style={{ left: notifyOnTimeChange ? 'calc(100% - 1.125rem)' : '2px' }} />
                 </div>
               </button>
@@ -1274,7 +1276,7 @@ export default function AdminPage() {
                     <button
                       key={val}
                       onClick={() => setEditForm(f => ({ ...f, gender: val }))}
-                      className="py-2.5 rounded-xl font-bold text-sm transition-all"
+                      className="py-2.5 rounded-xl font-bold text-sm transition"
                       style={editForm.gender === val
                         ? { background: 'var(--app-gold-dim)', border: '2px solid var(--app-gold)', color: 'var(--app-gold)' }
                         : { background: 'var(--app-card)', border: '2px solid var(--app-border)', color: 'var(--app-text2)' }}
@@ -1322,7 +1324,7 @@ export default function AdminPage() {
                   <button
                     key={key}
                     onClick={() => setEditForm(f => ({ ...f, [key]: !f[key] }))}
-                    className="w-full flex items-center justify-between p-3.5 rounded-2xl transition-all"
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl transition"
                     style={editForm[key]
                       ? { background: 'var(--app-blue-dim)', border: '1px solid var(--app-blue)' }
                       : { background: 'var(--app-surface2)', border: '1px solid var(--app-border)' }}
@@ -1334,8 +1336,8 @@ export default function AdminPage() {
                         <p className="text-xs" style={{ color: 'var(--app-text3)' }}>{desc}</p>
                       </div>
                     </div>
-                    <div className="w-10 h-5 rounded-full transition-all relative shrink-0" style={{ background: editForm[key] ? 'var(--app-blue)' : 'var(--app-border)' }}>
-                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all" style={{ left: editForm[key] ? 'calc(100% - 1.125rem)' : '2px' }} />
+                    <div className="w-10 h-5 rounded-full transition relative shrink-0" style={{ background: editForm[key] ? 'var(--app-blue)' : 'var(--app-border)' }}>
+                      <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition" style={{ left: editForm[key] ? 'calc(100% - 1.125rem)' : '2px' }} />
                     </div>
                   </button>
                 ))}
@@ -1344,7 +1346,7 @@ export default function AdminPage() {
               {/* Freigeschaltet Toggle */}
               <button
                 onClick={() => setEditForm(f => ({ ...f, isApproved: !f.isApproved }))}
-                className="w-full flex items-center justify-between p-4 rounded-2xl transition-all"
+                className="w-full flex items-center justify-between p-4 rounded-2xl transition"
                 style={editForm.isApproved
                   ? { background: 'var(--app-emerald-dim)', border: '1px solid var(--app-emerald)' }
                   : { background: 'rgba(240,98,146,0.08)', border: '1px solid rgba(240,98,146,0.3)' }}
@@ -1361,8 +1363,8 @@ export default function AdminPage() {
                     <p className="text-xs" style={{ color: 'var(--app-text3)' }}>Tippen zum Umschalten</p>
                   </div>
                 </div>
-                <div className="w-12 h-6 rounded-full transition-all relative" style={{ background: editForm.isApproved ? 'var(--app-emerald)' : 'var(--app-border)' }}>
-                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all" style={{ left: editForm.isApproved ? 'calc(100% - 1.375rem)' : '2px' }} />
+                <div className="w-12 h-6 rounded-full transition relative" style={{ background: editForm.isApproved ? 'var(--app-emerald)' : 'var(--app-border)' }}>
+                  <div className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition" style={{ left: editForm.isApproved ? 'calc(100% - 1.375rem)' : '2px' }} />
                 </div>
               </button>
 
@@ -1374,7 +1376,7 @@ export default function AdminPage() {
 
               <button
                 onClick={() => deleteUser(editingProfile.id, editingProfile.full_name)}
-                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition"
                 style={{ background: 'rgba(240,98,146,0.08)', border: '1px solid rgba(240,98,146,0.25)', color: 'var(--app-rose)' }}
               >
                 <Trash2 size={15} /> Profil löschen
@@ -1486,7 +1488,7 @@ export default function AdminPage() {
 
               <button
                 onClick={() => { handleDeleteEvent(editingEvent.id); setEditingEvent(null); }}
-                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+                className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition"
                 style={{ background: 'rgba(240,98,146,0.08)', border: '1px solid rgba(240,98,146,0.25)', color: 'var(--app-rose)' }}
               >
                 <Trash2 size={15} /> Termin löschen

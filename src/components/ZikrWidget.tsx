@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { ArrowRight } from "lucide-react";
 import { todayBerlin } from '@/lib/date';
 
 export default function ZikrWidget({ userId }: { userId: string }) {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const [data, setData] = useState({ zikr1: 0, zikr2: 0, zikr3: 0 });
   const [loading, setLoading] = useState(true);
 

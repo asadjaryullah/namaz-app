@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { Home, Car, CalendarDays, UserRound, Navigation, BookOpen } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -16,7 +17,7 @@ const HIDDEN_PATHS = [
 ];
 
 export default function BottomNav() {
-  const router = useRouter();
+  const router = useTransitionRouter();
   const pathname = usePathname();
   const [showFahrtSheet, setShowFahrtSheet] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('');

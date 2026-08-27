@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import LocationSettings from '@/components/LocationSettings';
 const ADMIN_WHATSAPP = "+4915904273761";
 
 export default function ProfilePage() {
-  const router = useRouter();
+  const router = useTransitionRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -133,7 +133,7 @@ export default function ProfilePage() {
               <div className={`grid grid-cols-2 gap-2 ${isGenderLocked ? 'opacity-60 cursor-not-allowed' : ''}`}>
                 <div
                   onClick={() => !isGenderLocked && setFormData({...formData, gender: 'male'})}
-                  className="rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1"
+                  className="rounded-xl border-2 p-3 text-center transition flex flex-col items-center gap-1"
                   style={{
                     borderColor: formData.gender === 'male' ? 'var(--app-gold)' : 'var(--app-border)',
                     background: formData.gender === 'male' ? 'var(--app-gold-dim)' : 'var(--app-card)',
@@ -146,7 +146,7 @@ export default function ProfilePage() {
                 </div>
                 <div
                   onClick={() => !isGenderLocked && setFormData({...formData, gender: 'female'})}
-                  className="rounded-xl border-2 p-3 text-center transition-all flex flex-col items-center gap-1"
+                  className="rounded-xl border-2 p-3 text-center transition flex flex-col items-center gap-1"
                   style={{
                     borderColor: formData.gender === 'female' ? 'var(--app-rose)' : 'var(--app-border)',
                     background: formData.gender === 'female' ? 'rgba(240,98,146,0.12)' : 'var(--app-card)',
