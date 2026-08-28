@@ -197,14 +197,59 @@ function HistoryContent() {
       const walkInRides = visitData?.map(v => ({ date: v.visit_date, role: 'walk-in' as const })) || [];
       setAllRides([...driverRides, ...passengerRides, ...walkInRides]);
 
-      const { data: zikrLog } = await supabase.from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
+      const { data: zikrLog, error: zikrErr } = await supabase
+        .from('zikr_logs').select('*').eq('user_id', user.id).eq('log_date', today).maybeSingle();
+
+      if (zikrErr) {
+        // Nicht mehr verschlucken: Bisher blieb der Zaehler bei 0 stehen und
+        // niemand erfuhr, dass die Datenbank die Abfrage abgelehnt hat.
+        console.error('zikr_logs laden:', zikrErr.message);
+        toast.error('Zikr-Zaehler konnte nicht geladen werden.');
+      }
+
       if (zikrLog) {
-        setZikrData(zikrLog);
+        /* Abgleich statt blindem Ueberschreiben: Ging ein Speichern verloren,
+           stand lokal ein hoeherer Stand als in der Datenbank - und der Zaehler
+           sprang beim Oeffnen zurueck. Getippt wird nur nach oben, also gewinnt
+           pro Zaehler der groessere Wert. Ein zurueckgesetzter Zaehler bleibt
+           dabei nur dann auf 0, wenn das Zuruecksetzen auch gespeichert wurde;
+           das ist die sichere Richtung, denn ein verlorener Stand waere
+           schlimmer als ein Zuruecksetzen, das man wiederholen muss. */
+        let merged = zikrLog;
+        try {
+          const cachedRaw = localStorage.getItem(`zikr_${today}`);
+          if (cachedRaw) {
+            const cached = JSON.parse(cachedRaw);
+            const ahead: Record<string, number> = {};
+            for (const { key } of ZIKR_LIST) {
+              const lokal = Number(cached?.[key] ?? 0);
+              if (lokal > Number(zikrLog[key] ?? 0)) ahead[key] = lokal;
+            }
+            if (Object.keys(ahead).length > 0) {
+              merged = { ...zikrLog, ...ahead };
+              // Der lokale Vorsprung wird sofort nachgetragen
+              const { error } = await supabase.from('zikr_logs').update(ahead).eq('id', zikrLog.id);
+              if (error) console.error('zikr_logs nachtragen:', error.message);
+            }
+          }
+        } catch {}
+
+        setZikrData(merged);
         setTodayLogId(zikrLog.id);
-        try { localStorage.setItem(`zikr_${today}`, JSON.stringify(zikrLog)); } catch {}
+        try { localStorage.setItem(`zikr_${today}`, JSON.stringify(merged)); } catch {}
       } else {
-        const { data: newLog } = await supabase.from('zikr_logs').insert({ user_id: user.id, log_date: today }).select().single();
-        if (newLog) { setTodayLogId(newLog.id); setZikrData(newLog); }
+        const { data: newLog, error: insErr } = await supabase
+          .from('zikr_logs').insert({ user_id: user.id, log_date: today }).select().maybeSingle();
+        if (insErr || !newLog) {
+          /* Genau hier ging es bisher lautlos schief: Ohne Zeile gibt es keine
+             id, und die Speicherfunktion prueft nur "if (todayLogId)". Jeder
+             weitere Tipp wurde damit stillschweigend verworfen. */
+          console.error('zikr_logs anlegen:', insErr?.message);
+          toast.error('Zikr-Zaehler konnte nicht angelegt werden — Zaehlen geht, Speichern noch nicht.');
+        } else {
+          setTodayLogId(newLog.id);
+          setZikrData(newLog);
+        }
       }
 
       const { data: eventsData } = await supabase
@@ -237,12 +282,64 @@ function HistoryContent() {
     try { localStorage.setItem(zikrDateKey, JSON.stringify(data)); } catch {}
   };
 
-  const saveToDb = (newData: any) => {
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (todayLogId) await supabase.from('zikr_logs').update(newData).eq('id', todayLogId);
-    }, 800);
+  /* Der letzte noch nicht geschriebene Stand. Ohne diesen Zwischenspeicher ging
+     alles verloren, was innerhalb der 800ms Wartezeit getippt und dann durch
+     Verlassen der Seite unterbrochen wurde - und genau so benutzt man einen
+     Zikr-Zaehler: schnell tippen, dann weg. */
+  const pendingRef = useRef<Record<string, number> | null>(null);
+  const logIdRef = useRef<string | null>(null);
+  useEffect(() => { logIdRef.current = todayLogId; }, [todayLogId]);
+
+  /* Nur die Zaehler schreiben. Vorher ging das komplette Objekt aus select('*')
+     zurueck in die Datenbank, also auch id, user_id, log_date und created_at. */
+  const onlyCounters = (data: any): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const { key } of ZIKR_LIST) out[key] = Number(data?.[key] ?? 0);
+    return out;
   };
+
+  const flushToDb = async () => {
+    const payload = pendingRef.current;
+    const id = logIdRef.current;
+    if (!payload) return;
+    if (!id) {
+      /* Fehlt die Zeile, wurde bisher einfach nichts getan - stillschweigend.
+         Jetzt sagen wir es, statt den Stand ins Leere laufen zu lassen. */
+      toast.error('Zikr wird lokal gezaehlt, aber nicht gespeichert.');
+      return;
+    }
+    pendingRef.current = null;
+    const { error } = await supabase.from('zikr_logs').update(payload).eq('id', id);
+    if (error) {
+      console.error('zikr_logs speichern:', error.message);
+      pendingRef.current = payload;   // beim naechsten Versuch erneut schreiben
+      toast.error('Zikr konnte nicht gespeichert werden.');
+    }
+  };
+
+  const saveToDb = (newData: any) => {
+    pendingRef.current = onlyCounters(newData);
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(flushToDb, 800);
+  };
+
+  /* Offenen Stand sichern, bevor die Seite verschwindet. visibilitychange ist
+     auf dem Handy der einzige verlaessliche Zeitpunkt: Beim Schliessen der App
+     laeuft kein setTimeout mehr, und unload feuert dort oft gar nicht. */
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden' && pendingRef.current) {
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        void flushToDb();
+      }
+    };
+    document.addEventListener('visibilitychange', onHidden);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      void flushToDb();          // beim Verlassen der Seite ebenfalls schreiben
+    };
+  }, []);
 
   const handleZikrClick = (key: string, target: number) => {
     const v = zikrData[key] || 0;
