@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTransitionRouter } from 'next-view-transitions';
 import { supabase } from '@/lib/supabase';
-import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, GraduationCap } from "lucide-react";
+import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, GraduationCap, BookOpen } from "lucide-react";
+import { LESSON_KIND_LABEL, formatLessonDate, loadLessonProgress } from '@/lib/lessons';
 import ZikrWidget from '@/components/ZikrWidget';
 import TodayCard from '@/components/TodayCard';
 import { toast } from 'sonner';
@@ -66,6 +67,11 @@ export default function HomePage() {
   const [activePassengerRide, setActivePassengerRide] = useState<any>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
   const [quickLinks, setQuickLinks] = useState<any[]>([]);
+  // Neueste veroeffentlichte Khutba/Dars fuer die Startseiten-Karte, samt Lernstand vom Geraet
+  const [latestLesson, setLatestLesson] = useState<{
+    id: string; kind: 'khutba' | 'dars'; delivered_on: string; title: string; topic: string | null; cardIds: string[];
+  } | null>(null);
+  const [lessonLearned, setLessonLearned] = useState(0);
   const [nextPrayer, setNextPrayer] = useState<{ id: string; name: string; time: string } | null>(null);
   const [allPrayers, setAllPrayers] = useState<{ id: string; name: string; time: string }[]>([]);
   // Gebet, auf das sich Zusage und Fahrt-Aktionen beziehen. Standard: das nächste.
@@ -113,6 +119,7 @@ export default function HomePage() {
           { data: events },
           { data: linksData },
           { data: prayerTimesData },
+          { data: lessonData },
         ] = await Promise.all([
           supabase.from('profiles').select('id,full_name,is_approved,phone,gender,member_id').eq('id', session.user.id).maybeSingle(),
           // limit(1) ist wichtig: ohne das liefert maybeSingle() einen Fehler,
@@ -123,7 +130,16 @@ export default function HomePage() {
           supabase.from('mosque_events').select('id,title,event_date').gte('event_date', new Date().toISOString()).order('event_date', { ascending: true }).limit(3),
           supabase.from('quick_links').select('id,title,url,emoji,sort_order').eq('is_active', true).order('sort_order', { ascending: true }),
           supabase.from('prayer_times').select('id,name,time,sort_order').order('sort_order', { ascending: true }),
+          // Nur die neueste veroeffentlichte Lektion, mit Karten-IDs fuer den Lernstand
+          supabase.from('lessons').select('id,kind,delivered_on,title,topic,lesson_cards(id)').eq('published', true).order('delivered_on', { ascending: false }).limit(1).maybeSingle(),
         ]);
+
+        if (mounted && lessonData) {
+          const cardIds = ((lessonData as any).lesson_cards ?? []).map((c: any) => c.id as string);
+          setLatestLesson({ ...(lessonData as any), cardIds });
+          const progress = loadLessonProgress();
+          setLessonLearned(cardIds.filter((id: string) => progress[id]).length);
+        }
 
         if (mounted && profileData) setProfile(profileData);
         if (mounted && driverRide) setActiveDriverRide(driverRide);
@@ -596,6 +612,35 @@ export default function HomePage() {
           </p>
         )}
       </div>
+
+      {/* ── Khutba & Dars ── */}
+      {latestLesson && (
+        <div onClick={() => router.push(`/lessons/${latestLesson.id}`)}
+          className="stagger-5 app-card app-card-hover p-4 cursor-pointer">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] flex items-center gap-1.5"
+              style={{ color: 'var(--app-text2)' }}>
+              <BookOpen size={12} style={{ color: 'var(--app-text3)' }} />
+              {LESSON_KIND_LABEL[latestLesson.kind]} vom {formatLessonDate(latestLesson.delivered_on)}
+            </p>
+            <ArrowRight size={14} style={{ color: 'var(--app-text3)' }} />
+          </div>
+          <p className="font-extrabold text-[15px] leading-snug" style={{ color: 'var(--app-text)' }}>{latestLesson.title}</p>
+          <div className="flex items-center gap-2 mt-2">
+            {/* Fortschrittsbalken: transition-[width] mit Absicht, siehe Fortschrittsbalken in history */}
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--app-border)' }}>
+              <div className="h-full rounded-full transition-[width] duration-500"
+                style={{
+                  width: `${latestLesson.cardIds.length ? Math.round(100 * lessonLearned / latestLesson.cardIds.length) : 0}%`,
+                  background: lessonLearned === latestLesson.cardIds.length && latestLesson.cardIds.length > 0 ? 'var(--app-emerald)' : 'var(--app-gold)',
+                }} />
+            </div>
+            <span className="text-[11px] font-bold tabular-nums" style={{ color: 'var(--app-text2)' }}>
+              {lessonLearned}/{latestLesson.cardIds.length} Karten
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Featured 2-col grid ── */}
       <div className="stagger-5 grid grid-cols-2 gap-3">
