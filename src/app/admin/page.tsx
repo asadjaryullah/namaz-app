@@ -13,6 +13,9 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { isMainAdmin } from "@/lib/admin";
+import LessonsAdmin from "@/components/admin/LessonsAdmin";
+// Eigener Import mit Alias, damit er nicht mit der Sammelliste oben kollidiert
+import { BookOpen as LessonsIcon } from "lucide-react";
 
 
 type Org = 'ansar' | 'khuddam' | 'atfal' | 'lajna' | 'nasirat' | 'jamaat';
@@ -80,7 +83,7 @@ export default function AdminPage() {
   const [canEditEvents, setCanEditEvents] = useState(false);
   const [canEditTimes, setCanEditTimes] = useState(false);
   const [showPastEvents, setShowPastEvents] = useState(false);
-  const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'events' | 'system'>('users');
+  const [activeAdminTab, setActiveAdminTab] = useState<'users' | 'events' | 'lessons' | 'system'>('users');
   const [usersSubTab, setUsersSubTab] = useState<'pending' | 'all'>('pending');
   const [profileSearch, setProfileSearch] = useState('');
 
@@ -625,6 +628,8 @@ export default function AdminPage() {
           {([
             ...(!canEditEvents && !canEditTimes ? [{ id: 'users' as const, Icon: Users, label: 'Anmeldungen', badge: pendingUsers.length }] : []),
             ...(canEditEvents || !canEditEvents && !canEditTimes ? [{ id: 'events' as const, Icon: CalendarDays, label: 'Termine', badge: 0 }] : []),
+            // Wer Termine pflegen darf, pflegt auch Khutba und Dars - gleiche Rechte wie beim Termin-Import
+            ...(canEditEvents || !canEditEvents && !canEditTimes ? [{ id: 'lessons' as const, Icon: LessonsIcon, label: 'Khutba', badge: 0 }] : []),
             ...(canEditTimes || !canEditEvents && !canEditTimes ? [{ id: 'system' as const, Icon: Settings, label: (canEditEvents || canEditTimes) ? 'Gebetszeiten' : 'System', badge: 0 }] : []),
           ]).map(({ id, Icon, label, badge }) => (
             <button
@@ -1130,6 +1135,9 @@ export default function AdminPage() {
         )}
 
         {/* ── TAB: SYSTEM ── */}
+        {/* ── TAB: KHUTBA & DARS ── */}
+        {activeAdminTab === 'lessons' && <LessonsAdmin />}
+
         {activeAdminTab === 'system' && (
           <div className="space-y-4 animate-in fade-in duration-200">
 
