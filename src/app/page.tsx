@@ -8,6 +8,7 @@ import { Loader2, AlertTriangle, ArrowRight, Calendar, Settings, Bell, Graduatio
 import { LESSON_KIND_LABEL, formatLessonDate, loadLessonProgress } from '@/lib/lessons';
 import ZikrWidget from '@/components/ZikrWidget';
 import TodayCard from '@/components/TodayCard';
+import OnboardingTour from '@/components/OnboardingTour';
 import { toast } from 'sonner';
 import { todayBerlin } from '@/lib/date';
 import { isMainAdmin } from "@/lib/admin";
@@ -430,6 +431,10 @@ export default function HomePage() {
   return (
     <main className="min-h-screen flex flex-col p-5 gap-5 pb-20 relative z-10"
       style={{ background: 'var(--app-bg)' }}>
+
+      {/* Einfuehrung beim allerersten Start - zeigt sich selbst nur einmal
+          pro Geraet (localStorage), rendert also fuer alle danach nichts */}
+      <OnboardingTour />
 
       {/* ── Header ── */}
       <div className="stagger-1 flex items-center justify-between pt-1">
