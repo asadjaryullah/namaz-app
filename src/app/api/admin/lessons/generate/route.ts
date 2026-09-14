@@ -76,25 +76,52 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => ({}));
   const kind = body?.kind === 'dars' ? 'dars' : 'khutba';
+  const deliveredOn = String(body?.delivered_on || '').trim();
+  const kindLabel = kind === 'dars' ? 'Hadith-Dars' : 'Khutba';
+  const occasionLabel = `${kindLabel}${deliveredOn ? `, gehalten am ${deliveredOn}` : ''}`;
+
+  /* Zwei Wege zum Inhalt, wie beim Termin-Import: entweder eingefuegter Text,
+     oder eine hochgeladene Datei (PDF/Foto einer bereits gehaltenen Khutba).
+     Eine reine Textdatei (.txt/.md) behandelt der Client bereits wie
+     eingefuegten Text - hier kommen nur noch PDF/Bild als eigener Zweig an. */
+  const mediaType = String(body?.media_type || '');
+  const fileData = String(body?.data || '');
   const textDe = String(body?.text_de || '').trim();
   const textUr = String(body?.text_ur || '').trim();
-  const deliveredOn = String(body?.delivered_on || '').trim();
 
-  if (textDe.length < 200) {
-    return NextResponse.json({ error: 'Der deutsche Text ist zu kurz - bitte die ganze Ansprache einfuegen.' }, { status: 400 });
-  }
-  if (textDe.length > 60000) {
-    return NextResponse.json({ error: 'Der Text ist zu lang (max. 60.000 Zeichen).' }, { status: 400 });
+  let contentBlock: Anthropic.ContentBlockParam;
+
+  if (mediaType || fileData) {
+    if (mediaType === 'application/pdf') {
+      contentBlock = { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fileData } };
+    } else if (['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mediaType)) {
+      contentBlock = { type: 'image', source: { type: 'base64', media_type: mediaType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: fileData } };
+    } else {
+      return NextResponse.json(
+        { error: 'Nicht unterstützter Dateityp. Erlaubt: PDF, Bild (JPG/PNG/GIF/WebP), Text.' },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (textDe.length < 200) {
+      return NextResponse.json({ error: 'Der deutsche Text ist zu kurz - bitte die ganze Ansprache einfuegen.' }, { status: 400 });
+    }
+    if (textDe.length > 60000) {
+      return NextResponse.json({ error: 'Der Text ist zu lang (max. 60.000 Zeichen).' }, { status: 400 });
+    }
+    contentBlock = {
+      type: 'text',
+      text:
+        `=== DEUTSCHER TEXT ===\n${textDe}\n\n` +
+        (textUr ? `=== URDU-TEXT ===\n${textUr}\n\n` : `(Kein Urdu-Text vorhanden - bitte selbst uebersetzen.)\n\n`),
+    };
   }
 
   const anthropic = new Anthropic();
-  const kindLabel = kind === 'dars' ? 'Hadith-Dars' : 'Khutba';
 
-  const userText =
-    `Art: ${kindLabel}${deliveredOn ? `, gehalten am ${deliveredOn}` : ''}.\n\n` +
-    `=== DEUTSCHER TEXT ===\n${textDe}\n\n` +
-    (textUr ? `=== URDU-TEXT ===\n${textUr}\n\n` : `(Kein Urdu-Text vorhanden - bitte selbst uebersetzen.)\n\n`) +
-    `Erstelle daraus Titel, Thema, zentralen Vers, Zusammenfassung und die Lernkarten.`;
+  const instruction = (mediaType || fileData)
+    ? `Art: ${occasionLabel}. Das Dokument im Anhang enthaelt die gehaltene Ansprache (moeglicherweise zweisprachig Urdu und Deutsch). Erstelle daraus Titel, Thema, zentralen Vers, Zusammenfassung und die Lernkarten.`
+    : `Art: ${occasionLabel}.\n\nErstelle daraus Titel, Thema, zentralen Vers, Zusammenfassung und die Lernkarten.`;
 
   try {
     const response = await anthropic.messages.create({
@@ -107,7 +134,7 @@ export async function POST(req: Request) {
         format: { type: 'json_schema', schema: LESSON_SCHEMA },
       },
       system: SYSTEM,
-      messages: [{ role: 'user', content: userText }],
+      messages: [{ role: 'user', content: [contentBlock, { type: 'text', text: instruction }] }],
     });
 
     if (response.stop_reason === 'refusal') {

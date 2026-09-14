@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import {
-  Loader2, Plus, Sparkles, Trash2, ChevronUp, ChevronDown, ArrowLeft, Send, Save, Eye, EyeOff,
+  Loader2, Plus, Sparkles, Trash2, ChevronUp, ChevronDown, ArrowLeft, Send, Save, Eye, EyeOff, FileUp,
 } from 'lucide-react';
 import {
   type Lesson, type LessonCard, type LessonKind, type CardKind,
@@ -79,6 +79,7 @@ export default function LessonsAdmin() {
   const [cards, setCards] = useState<LessonCard[]>([]);
   const [textDe, setTextDe] = useState('');
   const [textUr, setTextUr] = useState('');
+  const [inputMode, setInputMode] = useState<'text' | 'file'>('text');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -94,7 +95,7 @@ export default function LessonsAdmin() {
   useEffect(() => { loadList(); }, [loadList]);
 
   const startNew = () => {
-    setLesson(emptyLesson()); setCards([]); setTextDe(''); setTextUr('');
+    setLesson(emptyLesson()); setCards([]); setTextDe(''); setTextUr(''); setInputMode('text');
     setView('edit');
   };
 
@@ -102,31 +103,61 @@ export default function LessonsAdmin() {
     const res = await fetch(`/api/admin/lessons?id=${id}`, { headers: await authHeaders() });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { toast.error(json.error || 'Konnte nicht geladen werden'); return; }
-    setLesson(json.lesson); setCards(json.cards ?? []); setTextDe(''); setTextUr('');
+    setLesson(json.lesson); setCards(json.cards ?? []); setTextDe(''); setTextUr(''); setInputMode('text');
     setView('edit');
   };
 
-  const generate = async () => {
-    if (textDe.trim().length < 200) { toast.error('Bitte den ganzen deutschen Text einfügen.'); return; }
+  const applyDraft = (d: Record<string, unknown>) => {
+    setLesson(prev => ({
+      ...prev,
+      title: (d.title as string) || prev.title,
+      topic: (d.topic as string | null) ?? prev.topic,
+      verse_ref: d.verse_ref as string | null, verse_ar: d.verse_ar as string | null,
+      verse_de: d.verse_de as string | null, verse_ur: d.verse_ur as string | null,
+      summary_de: d.summary_de as string | null, summary_ur: d.summary_ur as string | null,
+    }));
+    const cardsOut = Array.isArray(d.cards) ? d.cards as LessonCard[] : [];
+    setCards(cardsOut);
+    toast.success(`${cardsOut.length} Karten vorgeschlagen — bitte prüfen.`);
+  };
+
+  const runGenerate = async (payload: Record<string, unknown>) => {
     setGenerating(true);
     try {
       const res = await fetch('/api/admin/lessons/generate', {
         method: 'POST', headers: await authHeaders(),
-        body: JSON.stringify({ kind: lesson.kind, delivered_on: lesson.delivered_on, text_de: textDe, text_ur: textUr }),
+        body: JSON.stringify({ kind: lesson.kind, delivered_on: lesson.delivered_on, ...payload }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) { toast.error(json.error || 'Entwurf fehlgeschlagen'); return; }
-      const d = json.draft;
-      setLesson(prev => ({
-        ...prev,
-        title: d.title || prev.title,
-        topic: d.topic ?? prev.topic,
-        verse_ref: d.verse_ref, verse_ar: d.verse_ar, verse_de: d.verse_de, verse_ur: d.verse_ur,
-        summary_de: d.summary_de, summary_ur: d.summary_ur,
-      }));
-      setCards(d.cards ?? []);
-      toast.success(`${(d.cards ?? []).length} Karten vorgeschlagen — bitte prüfen.`);
+      applyDraft(json.draft);
     } finally { setGenerating(false); }
+  };
+
+  const generate = () => {
+    if (textDe.trim().length < 200) { toast.error('Bitte den ganzen deutschen Text einfügen.'); return; }
+    void runGenerate({ text_de: textDe, text_ur: textUr });
+  };
+
+  /* Datei-Upload wie beim Termin-Import: PDF/Bild gehen base64-kodiert raus,
+     eine reine Textdatei (.txt/.md) wird wie eingefuegter Text behandelt.
+     Dieselbe 3-MB-Grenze wie dort, weil Vercel den Request-Body auf
+     4,5 MB begrenzt und Base64 die Groesse um rund ein Drittel aufblaeht. */
+  const generateFromFile = async (file: File) => {
+    if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+      if (file.size > 3 * 1024 * 1024) { toast.error('Datei zu groß (max. 3 MB).'); return; }
+      const buf = await file.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      }
+      await runGenerate({ media_type: file.type, data: btoa(binary) });
+    } else {
+      const text = await file.text();
+      if (text.trim().length < 200) { toast.error('Die Textdatei ist zu kurz — bitte die ganze Ansprache.'); return; }
+      await runGenerate({ text_de: text });
+    }
   };
 
   const save = async (publish: boolean) => {
@@ -261,19 +292,69 @@ export default function LessonsAdmin() {
       {/* Text -> KI-Entwurf */}
       {!lesson.id && (
         <div className="app-card p-4 space-y-3">
-          <p className="text-sm font-bold" style={{ color: 'var(--app-text)' }}>Text einfügen</p>
-          <div>
-            <Label>Deutsch</Label>
-            <Area value={textDe} onChange={setTextDe} rows={6} placeholder="Die ganze Ansprache auf Deutsch" />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-bold" style={{ color: 'var(--app-text)' }}>Inhalt</p>
+            {/* Zwei Wege zu denselben Karten: von Hand eingefuegter Text, oder
+                eine Datei mit der bereits gehaltenen Ansprache - wie beim
+                Termin-Import im Tab "Termine". */}
+            <div className="flex gap-1.5">
+              {([
+                { id: 'text' as const, label: 'Text' },
+                { id: 'file' as const, label: 'Datei' },
+              ]).map(({ id, label }) => (
+                <button key={id} type="button" onClick={() => setInputMode(id)}
+                  className="px-3 h-8 rounded-lg text-xs font-bold transition"
+                  style={{
+                    background: inputMode === id ? 'var(--app-text)' : 'var(--app-surface2)',
+                    color: inputMode === id ? 'var(--app-bg)' : 'var(--app-text2)',
+                    border: `1px solid ${inputMode === id ? 'transparent' : 'var(--app-border)'}`,
+                  }}>
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div>
-            <Label>Urdu (optional — sonst wird übersetzt)</Label>
-            <Area value={textUr} onChange={setTextUr} rows={4} rtl placeholder="اردو متن" />
-          </div>
-          <Button onClick={generate} disabled={generating} className="w-full h-11 rounded-xl font-bold" style={{ background: 'var(--app-gold)', color: '#fff' }}>
-            {generating ? <Loader2 size={16} className="animate-spin mr-1.5" /> : <Sparkles size={16} className="mr-1.5" />}
-            {generating ? 'Karten werden erstellt…' : 'Karten erstellen'}
-          </Button>
+
+          {inputMode === 'text' ? (
+            <>
+              <div>
+                <Label>Deutsch</Label>
+                <Area value={textDe} onChange={setTextDe} rows={6} placeholder="Die ganze Ansprache auf Deutsch" />
+              </div>
+              <div>
+                <Label>Urdu (optional — sonst wird übersetzt)</Label>
+                <Area value={textUr} onChange={setTextUr} rows={4} rtl placeholder="اردو متن" />
+              </div>
+              <Button onClick={generate} disabled={generating} className="w-full h-11 rounded-xl font-bold" style={{ background: 'var(--app-gold)', color: '#fff' }}>
+                {generating ? <Loader2 size={16} className="animate-spin mr-1.5" /> : <Sparkles size={16} className="mr-1.5" />}
+                {generating ? 'Karten werden erstellt…' : 'Karten erstellen'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs" style={{ color: 'var(--app-text2)' }}>
+                PDF, Foto oder Textdatei der bereits gehaltenen Ansprache — Urdu und Deutsch dürfen im selben Dokument stehen.
+              </p>
+              <label
+                className={`flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold cursor-pointer transition-opacity ${generating ? 'opacity-60 pointer-events-none' : 'active:opacity-70'}`}
+                style={{ background: 'var(--app-gold-dim)', border: '1px dashed var(--app-gold)', color: 'var(--app-gold)' }}
+              >
+                {generating ? <><Loader2 size={16} className="animate-spin" /> Analysiere Dokument…</> : <><FileUp size={16} /> Datei auswählen</>}
+                <input
+                  type="file"
+                  accept="application/pdf,image/*,.txt,.md"
+                  className="hidden"
+                  disabled={generating}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void generateFromFile(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+            </>
+          )}
+
           <p className="text-[11px] leading-relaxed" style={{ color: 'var(--app-text3)' }}>
             Der Entwurf hält sich an den Text und erfindet keine Verse oder Ahadith. Trotzdem: alles prüfen, bevor es live geht.
           </p>
