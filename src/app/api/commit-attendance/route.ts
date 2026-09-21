@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendPushToAll } from '@/lib/webpush';
+import { sendPushToGender } from '@/lib/webpush';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -84,18 +84,29 @@ export async function POST(request: Request) {
       prayer_date: date,
     });
 
-    // Push to all when someone commits
+    /* Push nur an das eigene Geschlecht - wie bei "Fahrt anbieten" und
+       "Fahrt suchen". Fahrgemeinschaften werden getrennt gebildet, eine
+       Zusage einer Schwester geht also nur an Schwestern, nicht an die
+       ganze Gemeinde. Admins und Teiladmins sehen es trotzdem, das regelt
+       sendPushToGender bereits selbst. */
     const [{ data: profile }, { data: prayer }] = await Promise.all([
-      supabase.from('profiles').select('full_name').eq('id', userData.user.id).single(),
+      supabase.from('profiles').select('full_name, gender').eq('id', userData.user.id).single(),
       supabase.from('prayer_times').select('name').eq('id', prayer_id).single(),
     ]);
     const firstName = profile?.full_name?.split(' ')[0] || 'Jemand';
     const prayerName = prayer?.name || prayer_id;
-    sendPushToAll({
-      title: `${firstName} kommt zum ${prayerName} 🕌`,
-      body: 'Jetzt auch zusagen!',
-      url: '/',
-    }, []).catch(() => {});
+    const gender = profile?.gender || 'male';
+    sendPushToGender(
+      gender,
+      {
+        title: `${firstName} kommt zum ${prayerName} 🕌`,
+        body: 'Jetzt auch zusagen!',
+        url: '/',
+      },
+      [],
+      [],
+      [userData.user.id]
+    ).catch(() => {});
   }
 
   const { count } = await supabase
