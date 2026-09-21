@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
+import { isMainAdmin, hasAdminConfigured } from "@/lib/admin";
 
 let vapidConfigured = false;
 
@@ -93,8 +94,29 @@ export async function sendPushToGender(
     .select("id")
     .or(`gender.eq.${gender},can_edit_events.eq.true,can_edit_times.eq.true`);
 
+  /* Hauptadmin immer einschliessen, unabhaengig von Geschlecht und
+     Teiladmin-Flags. profiles hat keine E-Mail-Spalte - die Suche laeuft
+     ueber auth.admin.listUsers(), wie es notify-new-ride bisher einzeln
+     gemacht hat. Zentral hier statt an jeder Aufrufstelle neu, sonst
+     wiederholt sich genau die Luecke, die commit-attendance und
+     request-ride bereits hatten: der Admin sah Zusagen des jeweils
+     anderen Geschlechts nur, wenn das eigene Profil zufaellig passte.
+     Eigener try/catch, weil ein fehlgeschlagener Lookup die eigentliche
+     Push nicht verhindern soll - er ist Beiwerk, kein Kernbestandteil. */
+  const adminIds: string[] = [];
+  if (hasAdminConfigured()) {
+    try {
+      const { data } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+      const admin = data?.users?.find((u) => isMainAdmin(u.email));
+      if (admin) adminIds.push(admin.id);
+    } catch {
+      // Lookup ist Beiwerk - die Gruppen-Push geht trotzdem raus
+    }
+  }
+
   const userIds = [...new Set([
     ...(profiles?.map((p) => p.id) || []),
+    ...adminIds,
     ...extraUserIds,
   ])].filter((id) => !excludeUserIds.includes(id));
 

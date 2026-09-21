@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendPushToGender, sendPushToUser } from "@/lib/webpush";
-import { isMainAdmin, hasAdminConfigured } from "@/lib/admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,27 +31,10 @@ export async function POST(req: Request) {
 
     const logs: string[] = [];
 
-    /* Den Hauptadmin zusätzlich benachrichtigen, unabhängig vom Geschlecht.
-       Eigener try/catch: Schlägt der Admin-Lookup fehl, warf das Destructuring
-       von `data` bisher einen TypeError. Der landete im äußeren catch und die
-       Route gab 500 zurück — ohne dass je ein Push verschickt wurde, obwohl
-       der Admin-Teil nur Beiwerk ist. */
-    const adminUserIds: string[] = [];
-    if (hasAdminConfigured()) {
-      try {
-        const { data, error: listErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-        if (listErr) {
-          logs.push(`⚠️ Admin-Lookup: ${listErr.message}`);
-        } else {
-          const adminUser = data?.users?.find((u) => isMainAdmin(u.email));
-          if (adminUser) adminUserIds.push(adminUser.id);
-        }
-      } catch (e: any) {
-        logs.push(`⚠️ Admin-Lookup fehlgeschlagen: ${e?.message || "unbekannt"}`);
-      }
-    }
-
-    // Der Fahrer selbst braucht kein "fahr mit" für die eigene Fahrt
+    // Der Fahrer selbst braucht kein "fahr mit" für die eigene Fahrt.
+    // Den Hauptadmin schliesst sendPushToGender jetzt selbst mit ein,
+    // unabhaengig von Geschlecht und Teiladmin-Flags - vorher stand der
+    // Lookup dafuer hier einzeln, siehe src/lib/webpush.ts.
     const sentToGroup = await sendPushToGender(
       gender,
       {
@@ -60,7 +42,7 @@ export async function POST(req: Request) {
         body: `${seatText} — jetzt mitfahren!`,
         url: `/passenger/list?prayer=${prayer_id}`,
       },
-      adminUserIds,
+      [],
       logs,
       [userData.user.id]
     );
