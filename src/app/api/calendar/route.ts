@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { todayBerlin, addDaysBerlin, berlinWallTimeToUtc, formatIcsUtc } from '@/lib/date';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,28 +49,31 @@ export async function GET(req: Request) {
       'METHOD:PUBLISH'
     ].join('\r\n');
 
-    const now = new Date();
+    /* Sieben Tage ab dem heutigen Berliner Kalendertag - nicht ab dem
+       Server-Tag, der bei UTC-Laufzeit rund um Mitternacht abweichen kann. */
+    const baseDay = todayBerlin();
 
     for (let i = 0; i < 7; i++) {
-      const day = new Date(now);
-      day.setDate(day.getDate() + i);
+      const dayStr = addDaysBerlin(baseDay, i);
 
       for (const p of prayers) {
         if (!p.time) continue;
-        const [h, m] = p.time.split(':').map(Number);
 
-        const startDate = new Date(day);
-        startDate.setHours(h, m, 0, 0);
-        const endDate = new Date(startDate);
-        endDate.setMinutes(m + 15);
+        /* p.time ("13:15") ist Berliner Wanduhrzeit, wie sie ueberall sonst
+           in der App verstanden wird. berlinWallTimeToUtc rechnet das in
+           den echten UTC-Zeitpunkt um, formatIcsUtc gibt ihn mit "Z" aus -
+           damit versteht jede Kalender-App dieselbe Uhrzeit gleich, ohne
+           eigene Vermutung ueber die gemeinte Zeitzone. */
+        const startDate = berlinWallTimeToUtc(dayStr, p.time);
+        const endDate = new Date(startDate.getTime() + 15 * 60_000);
 
-        const startStr = formatLocal(startDate);
-        const endStr = formatLocal(endDate);
+        const startStr = formatIcsUtc(startDate);
+        const endStr = formatIcsUtc(endDate);
 
         const eventBlock = [
           'BEGIN:VEVENT',
           `UID:prayer-${p.id}-${startStr}@ride2salah.app`,
-          `DTSTAMP:${formatLocal(new Date())}`,
+          `DTSTAMP:${formatIcsUtc(new Date())}`,
           `DTSTART:${startStr}`,
           `DTEND:${endStr}`,
           `SUMMARY:${p.name} Namaz 🕌`,
@@ -100,15 +104,4 @@ export async function GET(req: Request) {
   } catch (error) {
     return new NextResponse('Error', { status: 500 });
   }
-}
-
-function formatLocal(date: Date) {
-  const pad = (n: number) => n < 10 ? '0' + n : n.toString();
-  return date.getFullYear() +
-    pad(date.getMonth() + 1) +
-    pad(date.getDate()) +
-    'T' +
-    pad(date.getHours()) +
-    pad(date.getMinutes()) +
-    pad(date.getSeconds());
 }

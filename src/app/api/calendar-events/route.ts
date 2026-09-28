@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { BERLIN_TZ, addDaysBerlin, formatIcsUtc, formatIcsDateBerlin } from '@/lib/date';
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,16 +60,16 @@ export async function GET() {
       let eventBlock: string;
 
       if (e.is_all_day) {
-        const pad = (n: number) => n < 10 ? '0' + n : '' + n;
-        const dateStr = `${start.getFullYear()}${pad(start.getMonth() + 1)}${pad(start.getDate())}`;
-        const end = e.event_end_date ? new Date(e.event_end_date) : start;
-        const endD = new Date(end);
-        endD.setDate(endD.getDate() + 1);
-        const endStr = `${endD.getFullYear()}${pad(endD.getMonth() + 1)}${pad(endD.getDate())}`;
+        /* Berliner Kalendertag, nicht der Server-lokale (UTC) - sonst kann
+           ein Termin ab Mitternacht auf den Vortag rutschen. */
+        const dateStr = formatIcsDateBerlin(start);
+        const endBase = e.event_end_date ? new Date(e.event_end_date) : start;
+        const endYmd = endBase.toLocaleDateString('sv-SE', { timeZone: BERLIN_TZ });
+        const endStr = addDaysBerlin(endYmd, 1).replace(/-/g, '');
         eventBlock = [
           'BEGIN:VEVENT',
           `UID:event-${e.id}@ride2salah.app`,
-          `DTSTAMP:${formatLocal(new Date())}`,
+          `DTSTAMP:${formatIcsUtc(new Date())}`,
           `DTSTART;VALUE=DATE:${dateStr}`,
           `DTEND;VALUE=DATE:${endStr}`,
           `SUMMARY:📅 ${esc(e.title)}`,
@@ -82,19 +83,17 @@ export async function GET() {
           'END:VEVENT'
         ].join('\r\n');
       } else {
-        let end;
-        if (e.event_end_date) {
-          end = new Date(e.event_end_date);
-        } else {
-          end = new Date(start);
-          end.setHours(start.getHours() + 2);
-        }
+        // event_date/event_end_date sind bereits echte UTC-Zeitpunkte (so
+        // legt das Admin-Formular sie an) - hier nur noch korrekt formatieren.
+        const end = e.event_end_date
+          ? new Date(e.event_end_date)
+          : new Date(start.getTime() + 2 * 60 * 60_000);
         eventBlock = [
           'BEGIN:VEVENT',
           `UID:event-${e.id}@ride2salah.app`,
-          `DTSTAMP:${formatLocal(new Date())}`,
-          `DTSTART:${formatLocal(start)}`,
-          `DTEND:${formatLocal(end)}`,
+          `DTSTAMP:${formatIcsUtc(new Date())}`,
+          `DTSTART:${formatIcsUtc(start)}`,
+          `DTEND:${formatIcsUtc(end)}`,
           `SUMMARY:📅 ${esc(e.title)}`,
           `LOCATION:${esc(e.location || 'Bashier Moschee Bensheim')}`,
           `DESCRIPTION:${esc(ORG_LABEL[e.org] ? ORG_LABEL[e.org] + ' — Veranstaltung der Gemeinde.' : 'Veranstaltung der Gemeinde.')}`,
@@ -122,15 +121,4 @@ export async function GET() {
   } catch (error) {
     return new NextResponse('Error', { status: 500 });
   }
-}
-
-function formatLocal(date: Date) {
-  const pad = (n: number) => n < 10 ? '0' + n : n.toString();
-  return date.getFullYear() +
-    pad(date.getMonth() + 1) +
-    pad(date.getDate()) +
-    'T' +
-    pad(date.getHours()) +
-    pad(date.getMinutes()) +
-    pad(date.getSeconds());
 }
