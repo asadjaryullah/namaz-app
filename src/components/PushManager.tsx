@@ -42,6 +42,13 @@ async function registerAndSave(token: string) {
  * Erlaubnis bereits erteilt ist. Gefragt wird hier bewusst nicht — das macht
  * die Karte "Gebets-Erinnerungen aktivieren" auf der Startseite, damit die
  * Abfrage nur an einer Stelle passiert.
+ *
+ * Die Erneuerung läuft bei jedem App-Start aktiv (getSession), nicht nur
+ * wenn Supabase zufällig ein Auth-Event feuert - sonst bleibt ein Nutzer,
+ * dessen Subscription serverseitig geloescht wurde (z.B. nach 410 Gone bei
+ * abgelaufenem iOS-Push-Abo), unbemerkt ohne Benachrichtigungen: die
+ * Browser-Erlaubnis steht ja weiterhin auf "granted", also erscheint auch
+ * die Aktivieren-Karte nicht mehr.
  */
 export default function PushManager() {
   useEffect(() => {
@@ -51,10 +58,18 @@ export default function PushManager() {
     // Service Worker immer registrieren, damit Offline-Caching für alle greift
     navigator.serviceWorker.register('/sw.js').catch(() => {});
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.access_token) return;
+    const tryRenew = (token?: string) => {
+      if (!token) return;
       if (Notification.permission !== 'granted') return;
-      registerAndSave(session.access_token).catch(console.error);
+      registerAndSave(token).catch(console.error);
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      tryRenew(session?.access_token);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      tryRenew(session?.access_token);
     });
 
     return () => subscription.unsubscribe();
